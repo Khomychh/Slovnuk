@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#F6F2E9">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Словник">
+<link id="manifest" rel="manifest">
+<link id="appleIcon" rel="apple-touch-icon">
+<link id="favIcon" rel="icon">
+<title>Словник</title>
+<style>
+  :root{
+    --paper:#F6F2E9; --raised:#FFFDF8; --ink:#21262E; --soft:#5C6470;
+    --line:#E6DFCF; --accent:#284B8C; --accent-soft:#E9EEF8;
+    --teal:#1F6B5C; --amber:#9C6618; --rose:#A23A3A;
+    --serif:Georgia,'Times New Roman',serif;
+    --sans:system-ui,-apple-system,Roboto,'Segoe UI',sans-serif;
+    --r:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.45;display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
+  .banner{display:none;background:#FBE9C7;color:#7a5a14;font-size:13px;padding:8px 16px;text-align:center}
+  .reminder{display:none;align-items:center;gap:10px;background:var(--accent-soft);color:var(--accent);font-size:13.5px;padding:9px 14px}
+  .reminder span{flex:1}
+  .reminder .rdo{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer}
+  .reminder .rx{background:none;border:none;color:var(--accent);font-size:20px;line-height:1;cursor:pointer;padding:0 2px}
+  header{padding:18px 18px 10px;border-bottom:1px solid var(--line);flex:none}
+  header h1{margin:0;font-family:var(--serif);font-size:22px;font-weight:600;letter-spacing:.3px}
+  header .sub{font-size:12.5px;color:var(--soft);margin-top:2px;letter-spacing:.4px;text-transform:uppercase}
+  main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .view{display:none;padding:14px 16px 26px}
+  .view.on{display:block}
+  #view-lists{padding-bottom:96px}
+  .seg{display:flex;gap:4px;background:#ECE6D8;border-radius:11px;padding:3px;margin-bottom:14px}
+  .seg button{flex:1;border:none;background:none;border-radius:8px;padding:8px 4px;font-size:14px;font-family:var(--sans);color:var(--soft);font-weight:600;cursor:pointer}
+  .seg button.on{background:var(--raised);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  .seg.vert{flex-direction:column;gap:4px}
+  .seg.vert button{text-align:left;padding:11px 12px;line-height:1.3}
+  .seg.vert .d{display:block;font-size:11.5px;font-weight:500;color:var(--soft);margin-top:2px}
+  .search{width:100%;border:1px solid var(--line);background:var(--raised);border-radius:var(--r);padding:11px 14px;font-size:15px;font-family:var(--sans);color:var(--ink);margin-bottom:14px}
+  .search:focus{outline:none;border-color:var(--accent)}
+  .count{font-size:13px;color:var(--soft);margin:0 2px 10px}
+  .count b{color:var(--accent)}
+  .list-row{background:var(--raised);border:1px solid var(--line);border-radius:var(--r);padding:14px 15px;margin-bottom:10px;display:flex;align-items:center;gap:12px;cursor:pointer}
+  .list-row:active{border-color:var(--accent)}
+  .list-row .meta{flex:1;min-width:0}
+  .list-row .nm{font-family:var(--serif);font-size:18px;font-weight:600;overflow-wrap:anywhere}
+  .list-row .sb{font-size:12.5px;color:var(--soft);margin-top:2px}
+  .list-row .due{background:var(--accent);color:#fff;border-radius:9px;font-size:12px;font-weight:600;padding:2px 8px;flex:none}
+  .list-row .gear{background:none;border:none;color:var(--soft);font-size:19px;flex:none;padding:4px;cursor:pointer}
+  .empty{text-align:center;color:var(--soft);padding:48px 20px;font-size:15px}
+  .empty .big{font-family:var(--serif);font-size:19px;color:var(--ink);margin-bottom:6px}
+  .newlist-btn{width:100%;border:1px dashed var(--line);background:transparent;color:var(--soft);border-radius:var(--r);padding:11px;font-size:14px;font-family:var(--sans);font-weight:600;cursor:pointer;margin-bottom:14px}
+  .newlist-btn:active{border-color:var(--accent);color:var(--accent)}
+  .back-bar{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .back-bar .bk{background:none;border:none;font-size:22px;color:var(--accent);cursor:pointer;padding:2px;line-height:1}
+  .back-bar h2{margin:0;font-family:var(--serif);font-size:20px;flex:1;overflow-wrap:anywhere}
+  .back-bar .gear{background:none;border:none;color:var(--soft);font-size:19px;cursor:pointer;padding:4px}
+  .modeline{font-size:12px;color:var(--soft);margin:-6px 2px 12px}
+  .entry{background:var(--raised);border:1px solid var(--line);border-radius:var(--r);padding:13px 15px;margin-bottom:10px;display:flex;align-items:baseline;gap:10px;cursor:pointer}
+  .entry:active{border-color:var(--accent)}
+  .entry .w{font-family:var(--serif);font-size:18px;font-weight:600;overflow-wrap:anywhere}
+  .entry .ipa{font-family:var(--serif);font-style:italic;color:var(--soft);font-size:14px}
+  .entry .tr{margin-left:auto;color:var(--ink);font-size:14px;text-align:right;max-width:46%}
+  .entry .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none;align-self:center}
+  .tag{font-family:var(--sans);font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 5px;align-self:center}
+  .spk-ent{background:none;border:none;color:var(--accent);font-size:18px;cursor:pointer;padding:2px 4px;flex:none;align-self:center}
+  .spk{background:var(--accent-soft);border:none;color:var(--accent);border-radius:50%;width:40px;height:40px;font-size:19px;cursor:pointer;margin-top:14px}
+  .spk:active{transform:scale(.93)}
+  .spk-line{background:none;border:none;color:var(--accent);font-size:14px;cursor:pointer;padding:0 4px}
+  .spk-prev{background:var(--accent-soft);border:none;color:var(--accent);border-radius:10px;padding:8px 14px;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px}
+  .tts-note{color:var(--soft);font-size:13.5px;margin:0}
+  .fab{position:fixed;right:18px;bottom:calc(88px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:30px;line-height:1;box-shadow:0 6px 18px rgba(40,75,140,.35);z-index:20}
+  .fab:active{transform:scale(.94)}
+  .select{width:100%;border:1px solid var(--line);background:var(--raised);border-radius:var(--r);padding:11px 14px;font-size:15px;font-family:var(--sans);color:var(--ink);margin-bottom:12px}
+  .study-hub{text-align:center;padding-top:8px}
+  .big-num{font-family:var(--serif);font-size:60px;font-weight:600;color:var(--accent);line-height:1}
+  .big-lbl{color:var(--soft);font-size:14px;margin-top:4px;text-transform:uppercase;letter-spacing:.6px}
+  .substat{margin-top:10px;color:var(--soft);font-size:13.5px}
+  .btn{display:inline-block;border:none;border-radius:var(--r);font-family:var(--sans);font-size:16px;font-weight:600;padding:13px 30px;cursor:pointer}
+  .btn-primary{background:var(--accent);color:#fff;margin-top:22px}
+  .btn-primary:disabled{background:var(--line);color:var(--soft)}
+  .btn-primary:active{transform:scale(.97)}
+  .card{background:var(--raised);border:1px solid var(--line);border-radius:18px;padding:30px 22px;min-height:56vh;display:flex;flex-direction:column}
+  .progress{font-size:12.5px;color:var(--soft);letter-spacing:.5px;text-align:center;margin-bottom:6px}
+  .card .front{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+  .card .dirhint{font-size:11px;color:var(--soft);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+  .card .headword{font-family:var(--serif);font-size:40px;font-weight:600;overflow-wrap:anywhere}
+  .card .headword.small{font-size:27px;line-height:1.3}
+  .tap-hint{color:var(--soft);font-size:13px;margin-top:24px}
+  .back{border-top:1px solid var(--line);margin-top:8px;padding-top:16px;display:none;animation:fade .25s ease}
+  .back.on{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .back .ipa{font-family:var(--serif);font-style:italic;color:var(--accent);font-size:18px}
+  .back .ans{font-family:var(--serif);font-size:26px;font-weight:600;overflow-wrap:anywhere}
+  .back .tr{font-size:21px;font-weight:600;margin-top:6px}
+  .back .cmt{color:var(--soft);font-size:14.5px;margin-top:10px;font-style:italic}
+  .back .ex{margin-top:14px}
+  .back .ex p{font-family:var(--serif);font-style:italic;font-size:15px;border-left:3px solid var(--accent-soft);padding-left:12px;margin:8px 0;color:#39414d}
+  .reveal-btn{margin:auto auto 0;background:var(--accent-soft);color:var(--accent);font-weight:600;border:none;border-radius:var(--r);padding:14px;width:100%;font-size:16px;cursor:pointer}
+  .rate{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:16px}
+  .rate button{border:none;border-radius:12px;padding:12px 4px;color:#fff;font-weight:600;font-size:14px;cursor:pointer}
+  .rate button:active{transform:scale(.96)}
+  .rate .iv{display:block;font-size:11px;font-weight:500;opacity:.85;margin-top:3px}
+  .r-again{background:var(--rose)} .r-hard{background:var(--amber)} .r-good{background:var(--teal)} .r-easy{background:var(--accent)}
+  .done{text-align:center;padding-top:50px}
+  .done .big{font-family:var(--serif);font-size:26px;margin-bottom:8px}
+  .panel{background:var(--raised);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:14px}
+  .panel h3{margin:0 0 4px;font-family:var(--serif);font-size:17px}
+  .panel p{margin:0 0 12px;color:var(--soft);font-size:13.5px}
+  .panel .btn{width:100%;background:var(--accent);color:#fff}
+  .panel .btn.ghost{background:transparent;border:1px solid var(--accent);color:var(--accent);margin-top:8px}
+  .panel .btn.danger{background:var(--rose);color:#fff}
+  .numrow{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .numrow input{width:90px;border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:9px 11px;font-size:16px;font-family:var(--sans);color:var(--ink)}
+  .numrow label{font-size:14px}
+  .stat-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .stat-row:last-child{border:none}
+  .stat-row span:last-child{font-weight:600}
+  nav{flex:none;display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);background:var(--raised);padding-bottom:env(safe-area-inset-bottom)}
+  nav button{border:none;background:none;padding:10px 0 14px;color:var(--soft);font-size:12px;font-family:var(--sans);cursor:pointer}
+  nav button .ic{display:block;font-size:21px;margin-bottom:2px}
+  nav button.on{color:var(--accent)}
+  nav .badge{display:inline-block;min-width:17px;background:var(--accent);color:#fff;border-radius:9px;font-size:11px;padding:0 5px;margin-left:4px;vertical-align:top}
+  .editor{position:fixed;inset:0;background:var(--paper);z-index:50;display:none;flex-direction:column}
+  .editor.on{display:flex}
+  .ed-head{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .ed-head .x{background:none;border:none;font-size:26px;color:var(--soft);cursor:pointer;line-height:1}
+  .ed-head h2{margin:0;font-family:var(--serif);font-size:19px;flex:1}
+  .ed-head .save{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:8px 18px;font-weight:600;font-size:15px;cursor:pointer}
+  .ed-body{flex:1;overflow-y:auto;padding:16px}
+  .field{margin-bottom:15px}
+  .field label{display:block;font-size:12.5px;color:var(--soft);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+  .field input,.field textarea,.field select{width:100%;border:1px solid var(--line);background:var(--raised);border-radius:11px;padding:11px 13px;font-size:16px;font-family:var(--sans);color:var(--ink)}
+  .field input.serif{font-family:var(--serif)}
+  .field textarea{resize:vertical;min-height:64px;font-family:var(--serif)}
+  .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--accent)}
+  .field .hint{font-size:12px;color:var(--soft);margin-top:5px}
+  .del-link{display:block;width:100%;text-align:center;background:none;border:none;color:var(--rose);font-size:14px;padding:10px;margin-top:6px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="banner" id="banner">Сховище недоступне — дані не збережуться. Відкрий файл через Chrome на телефоні.</div>
+<div class="reminder" id="reminder">
+  <span id="reminderText">Давно не зберігав резервну копію.</span>
+  <button class="rdo" id="remExport">Зберегти файл</button>
+  <button class="rx" id="remClose">×</button>
+</div>
+<header><h1>Мій словник</h1><div class="sub">англійські слова та фрази</div></header>
+<main>
+  <section class="view on" id="view-lists">
+    <div id="lists-root"><div class="count" id="rootCount"></div><button class="newlist-btn" id="newListBtn">+ Новий список</button><div id="lists"></div></div>
+    <div id="list-detail" style="display:none">
+      <div class="back-bar"><button class="bk" id="detailBack">‹</button><h2 id="detailTitle"></h2><button class="gear" id="detailGear">⚙︎</button></div>
+      <div class="modeline" id="detailMode"></div>
+      <div class="seg" id="filterSeg"><button class="on" data-f="all">Усі</button><button data-f="word">Слова</button><button data-f="phrase">Фрази</button></div>
+      <input class="search" id="search" placeholder="Пошук слова чи перекладу…">
+      <div class="count" id="wcount"></div><div id="list"></div>
+    </div>
+  </section>
+  <section class="view" id="view-study">
+    <select class="select" id="scopeSel"></select>
+    <div class="seg" id="dirSeg"><button data-dir="fwd" class="on">Англ→Укр</button><button data-dir="rev">Укр→Англ</button><button data-dir="mix">Змішано</button></div>
+    <div id="study-hub" class="study-hub"></div><div id="study-card"></div>
+  </section>
+  <section class="view" id="view-data">
+    <div class="panel"><h3>Статистика</h3><div id="stats"></div></div>
+    <div class="panel" id="ttsPanel">
+      <h3>Озвучення</h3>
+      <div id="ttsControls">
+        <p>Озвучення англійських слів і прикладів голосом твого пристрою.</p>
+        <div class="seg" id="ttsOnSeg"><button data-on="1">Увімкнено</button><button data-on="0">Вимкнено</button></div>
+        <div class="seg" id="ttsAutoSeg"><button data-auto="1">Авто-озвучення</button><button data-auto="0">Лише вручну</button></div>
+        <div class="seg" id="ttsAccSeg"><button data-acc="auto">Авто</button><button data-acc="us">🇺🇸 US</button><button data-acc="gb">🇬🇧 UK</button></div>
+        <div class="seg" id="ttsSpeedSeg"><button data-slow="0">Звичайна</button><button data-slow="1">Повільна</button></div>
+        <button class="btn ghost" id="ttsTest">▶ Перевірити</button>
+      </div>
+      <p class="tts-note" id="ttsUnsupported" style="display:none">Твій пристрій або браузер не підтримує озвучення. На Android встанови/онови «Google Синтез мовлення» та англомовний голос у налаштуваннях системи.</p>
+    </div>
+    <div class="panel">
+      <h3>Нові слова на день</h3>
+      <p>Скільки нових слів максимум показувати щодня. Повторення наявних слів не обмежується.</p>
+      <div class="numrow"><input type="number" id="newLimit" min="0" max="999" inputmode="numeric"><label>0 = без ліміту</label></div>
+    </div>
+    <div class="panel">
+      <h3>Авто-копії</h3><p id="bkpInfo"></p>
+      <select class="select" id="bkpSel"></select>
+      <button class="btn ghost" id="restoreBtn">Відновити обрану копію</button>
+    </div>
+    <div class="panel"><h3>Експорт</h3><p>Зберегти всі списки й слова у файл. Перед зміною телефона або як резервну копію.</p><button class="btn" id="export">Зберегти у файл (.json)</button></div>
+    <div class="panel"><h3>Імпорт</h3><p>Завантажити дані з файлу. Замінить усі поточні дані.</p><button class="btn ghost" id="importBtn">Вибрати файл</button><input type="file" id="importFile" accept=".json,application/json" style="display:none"></div>
+    <div class="panel"><h3>Очистити все</h3><p>Видалити всі слова й залишити один порожній список. Перед очищенням робиться авто-копія — це можна відкотити.</p><button class="btn danger" id="clearBtn">Очистити всі дані</button></div>
+  </section>
+</main>
+<button class="fab" id="fab">+</button>
+<nav>
+  <button class="on" data-view="lists"><span class="ic">📚</span>Списки</button>
+  <button data-view="study"><span class="ic">🎯</span>Вчити <span class="badge" id="navBadge" style="display:none">0</span></button>
+  <button data-view="data"><span class="ic">⚙︎</span>Дані</button>
+</nav>
+<div class="editor" id="editor">
+  <div class="ed-head"><button class="x" id="edClose">×</button><h2 id="edTitle">Новий запис</h2><button class="save" id="edSave">Зберегти</button></div>
+  <div class="ed-body">
+    <div class="seg" id="typeSeg"><button class="on" data-type="word">Слово</button><button data-type="phrase">Фраза</button></div>
+    <div class="field"><label id="lblWord">Слово</label><input id="f-word" class="serif" autocapitalize="none" autocomplete="off" placeholder="endeavour"><button class="spk-prev" id="spkPreview" type="button" style="display:none">🔊 Прослухати</button></div>
+    <div class="field"><label>Транскрипція</label><input id="f-ipa" class="serif" autocapitalize="none" placeholder="/ɪnˈdɛvə/"></div>
+    <div class="field"><label>Переклад</label><input id="f-tr" placeholder="зусилля; намагатися"></div>
+    <div class="field"><label>Мій коментар</label><textarea id="f-cmt" placeholder="Як запам'ятати, нюанси вживання…"></textarea></div>
+    <div class="field"><label>Речення-приклади</label><textarea id="f-ex" placeholder="Кожне речення з нового рядка"></textarea><div class="hint">Кожен приклад — з нового рядка.</div></div>
+    <div class="field"><label>Список</label><select id="f-list"></select><div class="hint">Зміни список, щоб перенести слово (прогрес збережеться).</div></div>
+    <button class="del-link" id="edDelete" style="display:none">Видалити запис</button>
+  </div>
+</div>
+<div class="editor" id="listEditor">
+  <div class="ed-head"><button class="x" id="leClose">×</button><h2 id="leTitle">Новий список</h2><button class="save" id="leSave">Зберегти</button></div>
+  <div class="ed-body">
+    <div class="field"><label>Назва списку</label><input id="l-name" autocomplete="off" placeholder="Напр.: Богослов'я, Робота, Подорожі"></div>
+    <div class="field"><label>Тип списку</label>
+      <div class="seg vert" id="modeSeg">
+        <button class="on" data-indep="false">Звичайний<span class="d">Слова унікальні серед усіх звичайних списків. Слово — головне, список лише групує.</span></button>
+        <button data-indep="true">Незалежний<span class="d">Окрема бульбашка: слова тут повністю незалежні від інших слів.</span></button>
+      </div>
+    </div>
+    <button class="del-link" id="leDelete" style="display:none">Видалити список і всі його слова</button>
+  </div>
+</div>
+<script>
+"use strict";
+const KEY="words_app_v1", BKP="words_app_backup_v1", META="words_app_meta_v1";
+const MAXBK=3, DEFLIMIT=20;
+let storeOk=true, lists=[], cards=[];
+let currentList=null, activeView="lists";
+let editingId=null, editType="word", filter="all";
+let editingListId=null, editIndep=false;
+let studyScope="all", session=[], sessTotal=0;
+
+function load(){
+  let raw=null;
+  try{ raw=localStorage.getItem(KEY); }catch(e){ storeOk=false; document.getElementById("banner").style.display="block"; }
+  let p=null; try{ p=raw?JSON.parse(raw):null; }catch(e){ p=null; }
+  migrateInto(p);
+  if(!lists.length){ lists=[{id:uid(),name:"Загальний",independent:false,created:todayStr()}]; ensureFallback(); }
+  if(storeOk) save();
+}
+function migrateInto(p){
+  lists=[]; cards=[];
+  if(Array.isArray(p)) cards=p;
+  else if(p && Array.isArray(p.cards)){ lists=Array.isArray(p.lists)?p.lists:[]; cards=p.cards; }
+  cards.forEach(c=>{ if(c.type!=="phrase") c.type="word"; c.seen = (c.seen===true)||(c.reps>0); });
+  lists.forEach(l=>{ if(typeof l.independent!=="boolean") l.independent = (l.mode==="independent"); delete l.mode; });
+  if(cards.length && !lists.length) lists=[{id:uid(),name:"Мій список",independent:false,created:todayStr()}];
+  ensureFallback();
+}
+function ensureFallback(){
+  const ids=new Set(lists.map(l=>l.id)); const fb=lists[0]?lists[0].id:null;
+  cards.forEach(c=>{ if(!ids.has(c.listId)) c.listId=fb; });
+}
+function save(){ if(!storeOk) return; try{ localStorage.setItem(KEY,JSON.stringify({lists,cards})); }catch(e){ storeOk=false; document.getElementById("banner").style.display="block"; } }
+function getMeta(){ try{ return JSON.parse(localStorage.getItem(META))||{}; }catch(e){ return {}; } }
+function setMeta(m){ try{ localStorage.setItem(META,JSON.stringify(m)); }catch(e){} }
+
+/* ---- озвучення (Web Speech API) ---- */
+const ttsAvail = (typeof window!=="undefined") && ("speechSynthesis" in window) && ("SpeechSynthesisUtterance" in window);
+let voices=[];
+function loadVoices(){ try{ voices=window.speechSynthesis.getVoices()||[]; }catch(e){ voices=[]; } }
+if(ttsAvail){ loadVoices(); try{ window.speechSynthesis.onvoiceschanged=loadVoices; }catch(e){} }
+function ttsOn(){ return ttsAvail && getMeta().tts!==false; }
+function autoOn(){ return ttsOn() && getMeta().auto!==false; }
+function pickVoice(){
+  if(!voices.length) loadVoices();
+  const en=voices.filter(v=>/^en([-_]|$)/i.test(v.lang||""));
+  if(!en.length) return null;
+  const acc=getMeta().accent||"auto";
+  if(acc==="us") return en.find(v=>/en[-_]?US/i.test(v.lang))||en[0];
+  if(acc==="gb") return en.find(v=>/en[-_]?GB/i.test(v.lang))||en[0];
+  return en[0];
+}
+function speak(text){
+  if(!ttsOn() || !text) return;
+  try{
+    window.speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(String(text));
+    const v=pickVoice(); if(v){ u.voice=v; u.lang=v.lang; } else { u.lang="en-US"; }
+    u.rate=getMeta().slow?0.7:1;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+/* ---- backups: масив знімків, найновіший перший, максимум MAXBK ---- */
+function getBackups(){
+  let b=null; try{ b=JSON.parse(localStorage.getItem(BKP)); }catch(e){ b=null; }
+  if(!b) return [];
+  if(Array.isArray(b)) return b;                                   // новий формат
+  if(Array.isArray(b.cards)) return [{date:b.date,lists:b.lists,cards:b.cards}]; // одиночний новий
+  if(Array.isArray(b.data)) return [{date:b.date,lists:[],cards:b.data}];        // старий формат
+  return [];
+}
+function writeBackup(){
+  if(!storeOk || !cards.length) return;
+  let arr=getBackups();
+  const snap={date:todayStr(),ts:Date.now(),lists:JSON.parse(JSON.stringify(lists)),cards:JSON.parse(JSON.stringify(cards))};
+  if(arr[0] && arr[0].date===todayStr()) arr[0]=snap;             // оновити сьогоднішній
+  else arr.unshift(snap);
+  arr=arr.slice(0,MAXBK);
+  try{ localStorage.setItem(BKP,JSON.stringify(arr)); }catch(e){}
+}
+function snapshotNow(){ writeBackup(); }
+function dailySnapshot(){
+  if(!storeOk || !cards.length) return;
+  const arr=getBackups();
+  if(!arr.length || arr[0].date!==todayStr()) writeBackup();
+}
+
+/* ---- helpers ---- */
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function today(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
+function todayStr(){ return today().toISOString().slice(0,10); }
+function addDays(n){ const d=today(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+function isDue(c){ return (c.due||todayStr())<=todayStr(); }
+function listById(id){ return lists.find(l=>l.id===id); }
+function cardsOf(id){ return cards.filter(c=>c.listId===id); }
+function norm(s){ return (s||"").trim().toLowerCase(); }
+function esc(s){ return (s||"").replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+function ivLabel(n){ if(n<=0) return "сьогодні"; if(n===1) return "1 дн"; if(n<30) return n+" дн"; if(n<365) return (n/30).toFixed(n<60?1:0)+" міс"; return (n/365).toFixed(1)+" р"; }
+
+/* ---- унікальність ---- */
+function findConflict(w, listId, exceptId){
+  const target=listById(listId); if(!target) return null;
+  return cards.find(c=>{
+    if(c.id===exceptId) return false;
+    if(norm(c.word)!==w) return false;
+    if(target.independent) return c.listId===listId;     // незалежний: лише в собі
+    const cl=listById(c.listId);
+    return cl && !cl.independent;                          // звичайний: будь-який звичайний список
+  });
+}
+
+/* ---- ліміт нових ---- */
+function newLimit(){ const m=getMeta(); return (typeof m.newLimit==="number")?m.newLimit:DEFLIMIT; }
+function newToday(){ const m=getMeta(); return m.newDate===todayStr()?(m.newCount||0):0; }
+function bumpNew(){ const m=getMeta(); if(m.newDate!==todayStr()){ m.newDate=todayStr(); m.newCount=0; } m.newCount=(m.newCount||0)+1; setMeta(m); }
+
+/* ---- черга повторення ---- */
+function poolOf(scope){ return scope==="all"?cards:cardsOf(scope); }
+function reviewsOf(scope){ return poolOf(scope).filter(c=>c.seen && isDue(c)); }
+function newOf(scope){ return poolOf(scope).filter(c=>!c.seen); }
+function buildQueue(scope){
+  const rev=reviewsOf(scope); let nw=newOf(scope);
+  const lim=newLimit();
+  if(lim>0){ const left=Math.max(0, lim-newToday()); nw=nw.slice(0,left); }
+  return {rev, nw, all:rev.concat(nw)};
+}
+function totalDue(){ return buildQueue("all").all.length; }
+
+/* ---- SM-2 ---- */
+function applyReview(c,q){
+  if(q<3){ c.reps=0; c.interval=0; }
+  else{
+    if(c.reps===0) c.interval=1; else if(c.reps===1) c.interval=6; else c.interval=Math.round(c.interval*c.ef);
+    c.reps+=1; if(q===5) c.interval=Math.round(c.interval*1.3);
+  }
+  c.ef=c.ef+(0.1-(5-q)*(0.08+(5-q)*0.02)); if(c.ef<1.3) c.ef=1.3;
+  c.due=addDays(c.interval); c.last=todayStr();
+}
+function previewIv(c,q){ const t=JSON.parse(JSON.stringify(c)); applyReview(t,q); return ivLabel(t.interval); }
+
+/* ---- routing ---- */
+function show(v){
+  activeView=v;
+  document.querySelectorAll(".view").forEach(s=>s.classList.remove("on"));
+  document.getElementById("view-"+v).classList.add("on");
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.view===v));
+  document.getElementById("fab").style.display = v==="lists" ? "block":"none";
+  if(v==="lists") renderLists();
+  if(v==="study"){ session=[]; renderStudy(); }
+  if(v==="data") renderData();
+  updateBadge();
+}
+function renderLists(){
+  if(currentList && !listById(currentList)) currentList=null;
+  document.getElementById("lists-root").style.display = currentList?"none":"block";
+  document.getElementById("list-detail").style.display = currentList?"block":"none";
+  if(currentList) renderDetail(); else renderRoot();
+}
+function updateBadge(){ const n=totalDue(), b=document.getElementById("navBadge"); if(n){ b.style.display="inline-block"; b.textContent=n; } else b.style.display="none"; }
+
+function renderRoot(){
+  const root=document.getElementById("lists");
+  document.getElementById("rootCount").innerHTML = lists.length?`${lists.length} ${lists.length===1?'список':'списків'} · <b>${totalDue()}</b> на повторення`:"";
+  root.innerHTML=lists.map(l=>{
+    const n=cardsOf(l.id).length, d=buildQueue(l.id).all.length;
+    return `<div class="list-row" data-id="${l.id}"><div class="meta"><div class="nm">${esc(l.name)}</div><div class="sb">${n} ${n===1?'запис':'записів'}${l.independent?' · незалежний':''}</div></div>${d?`<span class="due">${d}</span>`:''}<button class="gear" data-gear="${l.id}">⚙︎</button></div>`;
+  }).join("");
+  root.querySelectorAll(".list-row").forEach(r=>r.onclick=()=>{ currentList=r.dataset.id; filter="all"; renderLists(); });
+  root.querySelectorAll(".gear").forEach(g=>g.onclick=ev=>{ ev.stopPropagation(); openListEditor(g.dataset.gear); });
+}
+function renderDetail(){
+  const l=listById(currentList);
+  document.getElementById("detailTitle").textContent=l.name;
+  document.getElementById("detailMode").textContent = l.independent?"Тип: незалежний (слова окремі від інших)":"Тип: звичайний (слова глобально унікальні)";
+  document.querySelectorAll("#filterSeg button").forEach(b=>b.classList.toggle("on",b.dataset.f===filter));
+  const q=norm(document.getElementById("search").value);
+  let arr=cardsOf(currentList).slice().sort((a,b)=>a.word.toLowerCase()<b.word.toLowerCase()?-1:1);
+  if(filter!=="all") arr=arr.filter(c=>c.type===filter);
+  if(q) arr=arr.filter(c=>(c.word+" "+c.tr).toLowerCase().includes(q));
+  const total=cardsOf(currentList).length;
+  document.getElementById("wcount").innerHTML = total?`${total} ${total===1?'запис':'записів'} · <b>${buildQueue(currentList).all.length}</b> на повторення`:"";
+  const list=document.getElementById("list");
+  if(!total){ list.innerHTML=`<div class="empty"><div class="big">Список порожній</div>Натисни + щоб додати слово або фразу.</div>`; return; }
+  if(!arr.length){ list.innerHTML=`<div class="empty">Нічого не знайдено.</div>`; return; }
+  list.innerHTML=arr.map(c=>`<div class="entry" data-id="${c.id}">${isDue(c)||!c.seen?'<span class="dot"></span>':''}<span class="w">${esc(c.word)}</span>${c.type==="phrase"?'<span class="tag">фраза</span>':(c.ipa?`<span class="ipa">${esc(c.ipa)}</span>`:'')}<span class="tr">${esc(c.tr)}</span>${ttsOn()?`<button class="spk-ent" data-spk="${c.id}">🔊</button>`:''}</div>`).join("");
+  list.querySelectorAll(".entry").forEach(e=>e.onclick=()=>openWordEditor(e.dataset.id));
+  if(ttsOn()) list.querySelectorAll(".spk-ent").forEach(b=>b.onclick=ev=>{ ev.stopPropagation(); const c=cards.find(x=>x.id===b.dataset.spk); if(c) speak(c.word); });
+}
+
+/* ---- word editor ---- */
+function setEditType(t){ editType=t; document.querySelectorAll("#typeSeg button").forEach(b=>b.classList.toggle("on",b.dataset.type===t)); document.getElementById("lblWord").textContent=t==="phrase"?"Фраза":"Слово"; document.getElementById("f-word").placeholder=t==="phrase"?"to make up for":"endeavour"; }
+function fillListSelect(sel){ const s=document.getElementById("f-list"); s.innerHTML=lists.map(l=>`<option value="${l.id}">${esc(l.name)}${l.independent?' (незал.)':''}</option>`).join(""); s.value=sel; }
+function openWordEditor(id){
+  editingId=id||null;
+  const c=id?cards.find(x=>x.id===id):null;
+  setEditType(c?c.type:"word");
+  document.getElementById("edTitle").textContent=c?"Редагувати":"Новий запис";
+  document.getElementById("f-word").value=c?c.word:"";
+  document.getElementById("f-ipa").value=c?c.ipa:"";
+  document.getElementById("f-tr").value=c?c.tr:"";
+  document.getElementById("f-cmt").value=c?c.cmt:"";
+  document.getElementById("f-ex").value=c?c.ex:"";
+  fillListSelect(c?c.listId:(currentList||(lists[0]&&lists[0].id)));
+  document.getElementById("edDelete").style.display=c?"block":"none";
+  document.getElementById("spkPreview").style.display=ttsOn()?"inline-block":"none";
+  document.getElementById("editor").classList.add("on");
+  if(!c) setTimeout(()=>document.getElementById("f-word").focus(),100);
+}
+function closeWordEditor(){ document.getElementById("editor").classList.remove("on"); editingId=null; }
+function saveWord(){
+  const word=document.getElementById("f-word").value.trim();
+  if(!word){ document.getElementById("f-word").focus(); return; }
+  const targetList=document.getElementById("f-list").value;
+  const orig = editingId?cards.find(x=>x.id===editingId):null;
+  const w=norm(word);
+  const changed = !orig || norm(orig.word)!==w || orig.listId!==targetList;
+  if(changed){
+    const conf=findConflict(w, targetList, editingId);
+    if(conf){
+      if(conf.listId===targetList) alert("Це слово вже є у цьому списку.");
+      else alert(`«${word}» вже є у списку «${listById(conf.listId).name}». Слова мають бути унікальними між звичайними списками.`);
+      return;
+    }
+  }
+  const data={ word, type:editType, listId:targetList,
+    ipa:document.getElementById("f-ipa").value.trim(),
+    tr:document.getElementById("f-tr").value.trim(),
+    cmt:document.getElementById("f-cmt").value.trim(),
+    ex:document.getElementById("f-ex").value };
+  if(editingId) Object.assign(orig,data);
+  else cards.push({id:uid(),...data,ef:2.5,interval:0,reps:0,seen:false,due:todayStr(),created:todayStr()});
+  save(); closeWordEditor(); renderLists();
+}
+function deleteWord(){ if(!editingId) return; if(confirm("Видалити цей запис?")){ cards=cards.filter(x=>x.id!==editingId); save(); closeWordEditor(); renderLists(); } }
+
+/* ---- list editor ---- */
+function setEditIndep(v){ editIndep=v; document.querySelectorAll("#modeSeg button").forEach(b=>b.classList.toggle("on",(b.dataset.indep==="true")===v)); }
+function openListEditor(id){
+  editingListId=id||null; const l=id?listById(id):null;
+  document.getElementById("leTitle").textContent=l?"Налаштування списку":"Новий список";
+  document.getElementById("l-name").value=l?l.name:"";
+  setEditIndep(l?!!l.independent:false);
+  document.getElementById("leDelete").style.display=l?"block":"none";
+  document.getElementById("listEditor").classList.add("on");
+  if(!l) setTimeout(()=>document.getElementById("l-name").focus(),100);
+}
+function closeListEditor(){ document.getElementById("listEditor").classList.remove("on"); editingListId=null; }
+function saveList(){
+  const name=document.getElementById("l-name").value.trim();
+  if(!name){ document.getElementById("l-name").focus(); return; }
+  if(editingListId){ const l=listById(editingListId); l.name=name; l.independent=editIndep; save(); closeListEditor(); renderLists(); }
+  else{ const id=uid(); lists.push({id,name,independent:editIndep,created:todayStr()}); save(); closeListEditor(); currentList=id; filter="all"; renderLists(); }
+}
+function deleteList(){
+  if(!editingListId) return;
+  const l=listById(editingListId), n=cardsOf(editingListId).length;
+  if(!confirm(`Видалити список «${l.name}»${n?` і всі його слова (${n})`:''}? Дію не можна скасувати.`)) return;
+  snapshotNow();
+  cards=cards.filter(c=>c.listId!==editingListId);
+  lists=lists.filter(x=>x.id!==editingListId);
+  if(!lists.length){ lists=[{id:uid(),name:"Загальний",independent:false,created:todayStr()}]; }
+  if(currentList===editingListId) currentList=null;
+  save(); closeListEditor(); renderLists();
+}
+
+/* ---- study ---- */
+function studyDir(){ const m=getMeta(); return m.dir||"fwd"; }
+function setDir(d){ const m=getMeta(); m.dir=d; setMeta(m); document.querySelectorAll("#dirSeg button").forEach(b=>b.classList.toggle("on",b.dataset.dir===d)); renderHub(); }
+function renderStudy(){
+  const sel=document.getElementById("scopeSel");
+  if(studyScope!=="all" && !listById(studyScope)) studyScope="all";
+  sel.innerHTML=`<option value="all">Усі списки (${totalDue()})</option>`+lists.map(l=>`<option value="${l.id}">${esc(l.name)} (${buildQueue(l.id).all.length})</option>`).join("");
+  sel.value=studyScope;
+  document.querySelectorAll("#dirSeg button").forEach(b=>b.classList.toggle("on",b.dataset.dir===studyDir()));
+  document.getElementById("study-card").innerHTML="";
+  renderHub();
+}
+function renderHub(){
+  const hub=document.getElementById("study-hub"); hub.style.display="block";
+  document.getElementById("study-card").innerHTML="";
+  const q=buildQueue(studyScope); const n=q.all.length;
+  const scopeName=studyScope==="all"?"усіх списках":`«${listById(studyScope).name}»`;
+  const lim=newLimit(); const limTxt=lim>0?` (ліміт ${lim}/день)`:"";
+  hub.innerHTML=`<div class="big-num">${n}</div><div class="big-lbl">${n===1?'картка':'карток'} на повторення</div>
+    <div class="substat">у ${scopeName}<br>повторення: ${q.rev.length} · нові: ${q.nw.length}${limTxt}</div>
+    <button class="btn btn-primary" id="startBtn" ${n?'':'disabled'}>${n?'Почати':'Все повторено 🎉'}</button>`;
+  const sb=document.getElementById("startBtn"); if(sb&&n) sb.onclick=startSession;
+}
+function startSession(){
+  const q=buildQueue(studyScope).all.slice();
+  for(let i=q.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [q[i],q[j]]=[q[j],q[i]]; }
+  const d=studyDir();
+  session=q.map(c=>({c, dir: d==="mix"?(Math.random()<0.5?"fwd":"rev"):d}));
+  sessTotal=session.length;
+  document.getElementById("study-hub").style.display="none";
+  showCard();
+}
+function showCard(){
+  const card=document.getElementById("study-card");
+  if(!session.length){
+    card.innerHTML=`<div class="done"><div class="big">Сесію завершено</div><div class="substat">Гарна робота. Повертайся завтра.</div><button class="btn btn-primary" id="backHub">До огляду</button></div>`;
+    document.getElementById("backHub").onclick=renderStudy; updateBadge(); return;
+  }
+  const {c,dir}=session[0]; const done=sessTotal-session.length+1;
+  const small=c.type==="phrase"?" small":"";
+  const exArr=(c.ex||"").split("\n").filter(x=>x.trim());
+  const spkLine=i=>ttsOn()?` <button class="spk-line" data-i="${i}">🔊</button>`:'';
+  const exHtml=exArr.length?`<div class="ex">${exArr.map((x,i)=>`<p>${esc(x)}${spkLine(i)}</p>`).join("")}</div>`:"";
+  const wordSpk=ttsOn()?`<button class="spk spk-word" type="button">🔊</button>`:'';
+  let front, back;
+  if(dir==="rev"){
+    front=`<div class="dirhint">укр → англ</div><div class="headword${small}">${esc(c.tr||"—")}</div>`;
+    back=`<div class="ans">${esc(c.word)}</div>${wordSpk}${c.ipa?`<div class="ipa">${esc(c.ipa)}</div>`:''}${c.cmt?`<div class="cmt">${esc(c.cmt)}</div>`:''}${exHtml}`;
+  }else{
+    front=`<div class="dirhint">англ → укр</div><div class="headword${small}">${esc(c.word)}</div>${wordSpk}`;
+    back=`${c.ipa?`<div class="ipa">${esc(c.ipa)}</div>`:''}<div class="tr">${esc(c.tr)}</div>${c.cmt?`<div class="cmt">${esc(c.cmt)}</div>`:''}${exHtml}`;
+  }
+  card.innerHTML=`<div class="card"><div class="progress">${done} / ${sessTotal}</div>
+    <div class="front">${front}<div class="tap-hint" id="th">торкнись, щоб побачити відповідь</div></div>
+    <div class="back" id="back">${back}</div>
+    <button class="reveal-btn" id="reveal">Показати відповідь</button>
+    <div class="rate" id="rate" style="display:none">
+      <button class="r-again">Не згадав<span class="iv">${previewIv(c,2)}</span></button>
+      <button class="r-hard">Важко<span class="iv">${previewIv(c,3)}</span></button>
+      <button class="r-good">Добре<span class="iv">${previewIv(c,4)}</span></button>
+      <button class="r-easy">Легко<span class="iv">${previewIv(c,5)}</span></button>
+    </div></div>`;
+  const reveal=()=>{ document.getElementById("back").classList.add("on"); document.getElementById("reveal").style.display="none"; document.getElementById("rate").style.display="grid"; const th=document.getElementById("th"); if(th) th.style.display="none"; if(autoOn() && dir==="rev") speak(c.word); };
+  card.querySelector(".front").onclick=reveal; document.getElementById("reveal").onclick=reveal;
+  if(ttsOn()){
+    card.querySelectorAll(".spk-word").forEach(b=>b.onclick=ev=>{ ev.stopPropagation(); speak(c.word); });
+    card.querySelectorAll(".spk-line").forEach(b=>b.onclick=ev=>{ ev.stopPropagation(); speak(exArr[+b.dataset.i]); });
+  }
+  const btns=card.querySelectorAll(".rate button"); const qs=[2,3,4,5];
+  btns.forEach((b,i)=>b.onclick=()=>rate(qs[i]));
+  if(autoOn() && dir!=="rev") speak(c.word);
+}
+function rate(q){
+  const item=session.shift(); const c=item.c; const isNew=!c.seen;
+  applyReview(c,q); if(isNew){ c.seen=true; bumpNew(); }
+  save(); if(q<3) session.push(item); showCard();
+}
+
+/* ---- data ---- */
+function renderTts(){
+  const panel=document.getElementById("ttsControls");
+  const note=document.getElementById("ttsUnsupported");
+  if(!ttsAvail){ panel.style.display="none"; note.style.display="block"; return; }
+  panel.style.display="block"; note.style.display="none";
+  const m=getMeta();
+  const on=m.tts!==false, auto=m.auto!==false, acc=m.accent||"auto", slow=!!m.slow;
+  document.querySelectorAll("#ttsOnSeg button").forEach(b=>b.classList.toggle("on",(b.dataset.on==="1")===on));
+  document.querySelectorAll("#ttsAutoSeg button").forEach(b=>b.classList.toggle("on",(b.dataset.auto==="1")===auto));
+  document.querySelectorAll("#ttsAccSeg button").forEach(b=>b.classList.toggle("on",b.dataset.acc===acc));
+  document.querySelectorAll("#ttsSpeedSeg button").forEach(b=>b.classList.toggle("on",(b.dataset.slow==="1")===slow));
+}
+function renderData(){
+  const phrases=cards.filter(c=>c.type==="phrase").length, words=cards.length-phrases;
+  const learned=cards.filter(c=>c.reps>=2).length;
+  document.getElementById("stats").innerHTML=`
+    <div class="stat-row"><span>Списків</span><span>${lists.length}</span></div>
+    <div class="stat-row"><span>Слів</span><span>${words}</span></div>
+    <div class="stat-row"><span>Фраз</span><span>${phrases}</span></div>
+    <div class="stat-row"><span>Нових сьогодні</span><span>${newToday()} / ${newLimit()||"∞"}</span></div>
+    <div class="stat-row"><span>На повторення</span><span>${totalDue()}</span></div>
+    <div class="stat-row"><span>Засвоєні</span><span>${learned}</span></div>`;
+  document.getElementById("newLimit").value=newLimit();
+  renderTts();
+  const arr=getBackups();
+  const sel=document.getElementById("bkpSel");
+  if(arr.length){ sel.innerHTML=arr.map((b,i)=>`<option value="${i}">${b.date} — ${b.cards.length} записів</option>`).join(""); sel.disabled=false; document.getElementById("restoreBtn").disabled=false; }
+  else{ sel.innerHTML=`<option>Копій ще немає</option>`; sel.disabled=true; document.getElementById("restoreBtn").disabled=true; }
+  document.getElementById("bkpInfo").textContent = arr.length?`Зберігається до ${MAXBK} останніх знімків. Якщо щось зіпсуєш — відкоти потрібний.`:"Авто-копія зʼявиться при наступному відкритті.";
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify({lists,cards},null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob); const a=document.createElement("a");
+  a.href=url; a.download="slovnyk-"+todayStr()+".json"; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  const m=getMeta(); m.lastExport=todayStr(); setMeta(m); hideReminder();
+}
+function normalizeImport(p){
+  let L=[],C=[];
+  if(Array.isArray(p)) C=p; else if(p && Array.isArray(p.cards)){ L=Array.isArray(p.lists)?p.lists:[]; C=p.cards; } else throw new Error("bad");
+  C=C.map(c=>({ id:c.id||uid(), listId:c.listId, word:c.word||"", type:c.type==="phrase"?"phrase":"word",
+    ipa:c.ipa||"", tr:c.tr||"", cmt:c.cmt||"", ex:c.ex||"",
+    ef:c.ef||2.5, interval:c.interval||0, reps:c.reps||0, seen:(c.seen===true)||(c.reps>0),
+    due:c.due||todayStr(), created:c.created||todayStr() }));
+  L=L.map(l=>({ id:l.id||uid(), name:l.name||"Список", independent:(typeof l.independent==="boolean")?l.independent:(l.mode==="independent"), created:l.created||todayStr() }));
+  if(C.length && !L.length) L=[{id:uid(),name:"Імпортований список",independent:false,created:todayStr()}];
+  if(!L.length) L=[{id:uid(),name:"Загальний",independent:false,created:todayStr()}];
+  const ids=new Set(L.map(l=>l.id)); const fb=L[0].id;
+  C.forEach(c=>{ if(!ids.has(c.listId)) c.listId=fb; });
+  return {L,C};
+}
+function importData(file){
+  const r=new FileReader();
+  r.onload=()=>{ try{
+    const {L,C}=normalizeImport(JSON.parse(r.result));
+    if(!confirm(`Завантажити ${C.length} записів у ${L.length} списках? Поточні дані буде замінено.`)) return;
+    snapshotNow(); lists=L; cards=C; currentList=null; studyScope="all";
+    save(); renderData(); updateBadge(); alert("Готово. Завантажено "+C.length+" записів.");
+  }catch(e){ alert("Не вдалося прочитати файл. Перевір, що це правильний .json з цього додатку."); } };
+  r.readAsText(file);
+}
+function restoreBackup(){
+  const arr=getBackups(); if(!arr.length){ alert("Авто-копій ще немає."); return; }
+  const i=parseInt(document.getElementById("bkpSel").value,10)||0; const b=arr[i]; if(!b||!b.cards.length){ alert("Ця копія порожня."); return; }
+  if(!confirm(`Відновити ${b.cards.length} записів зі знімка від ${b.date}? Поточні дані буде замінено.`)) return;
+  const {L,C}=normalizeImport({lists:b.lists,cards:b.cards});
+  lists=L; cards=C; currentList=null; studyScope="all";
+  save(); renderData(); updateBadge(); alert("Відновлено.");
+}
+function clearAll(){
+  if(!cards.length){ alert("Слів і так немає."); return; }
+  if(!confirm("Видалити ВСІ слова? Перед цим буде зроблено авто-копію.")) return;
+  if(!confirm("Точно очистити все? Це останнє попередження.")) return;
+  snapshotNow();
+  lists=[{id:uid(),name:"Загальний",independent:false,created:todayStr()}]; cards=[]; currentList=null; studyScope="all";
+  save(); renderData(); updateBadge(); alert("Готово. Залишився один порожній список.");
+}
+
+/* ---- reminder ---- */
+function hideReminder(){ document.getElementById("reminder").style.display="none"; }
+function maybeReminder(){
+  if(!storeOk || !cards.length) return;
+  const m=getMeta(), t=todayStr();
+  if(m.lastExport===t || m.remDismissed===t) return;
+  const txt=m.lastExport?`Остання збережена копія: ${m.lastExport}.`:"Ти ще не зберігав копію у файл.";
+  document.getElementById("reminderText").textContent=txt+" Зберегти про всяк випадок?";
+  document.getElementById("reminder").style.display="flex";
+}
+
+/* ---- PWA manifest/icons (працює, коли файл розміщено на https) ---- */
+const ICON192="data:image/png;base64,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";
+const ICON512="data:image/png;base64,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";
+(function(){
+  try{
+    document.getElementById("appleIcon").href=ICON192;
+    document.getElementById("favIcon").href=ICON192;
+    const manifest={name:"Мій словник",short_name:"Словник",start_url:".",scope:".",display:"standalone",orientation:"portrait",background_color:"#F6F2E9",theme_color:"#F6F2E9",icons:[{src:ICON192,sizes:"192x192",type:"image/png",purpose:"any"},{src:ICON512,sizes:"512x512",type:"image/png",purpose:"any maskable"}]};
+    const mb=new Blob([JSON.stringify(manifest)],{type:"application/manifest+json"});
+    document.getElementById("manifest").href=URL.createObjectURL(mb);
+  }catch(e){}
+})();
+
+/* ---- wire up ---- */
+load(); dailySnapshot();
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{ if(b.dataset.view==="lists") currentList=null; show(b.dataset.view); });
+document.getElementById("fab").onclick=()=>{ if(activeView!=="lists") return; openWordEditor(null); };
+document.getElementById("detailBack").onclick=()=>{ currentList=null; renderLists(); };
+document.getElementById("newListBtn").onclick=()=>openListEditor(null);
+document.getElementById("detailGear").onclick=()=>openListEditor(currentList);
+document.getElementById("search").oninput=renderDetail;
+document.querySelectorAll("#filterSeg button").forEach(b=>b.onclick=()=>{ filter=b.dataset.f; renderDetail(); });
+document.querySelectorAll("#typeSeg button").forEach(b=>b.onclick=()=>setEditType(b.dataset.type));
+document.getElementById("edClose").onclick=closeWordEditor;
+document.getElementById("edSave").onclick=saveWord;
+document.getElementById("edDelete").onclick=deleteWord;
+document.querySelectorAll("#modeSeg button").forEach(b=>b.onclick=()=>setEditIndep(b.dataset.indep==="true"));
+document.getElementById("leClose").onclick=closeListEditor;
+document.getElementById("leSave").onclick=saveList;
+document.getElementById("leDelete").onclick=deleteList;
+document.getElementById("scopeSel").onchange=e=>{ studyScope=e.target.value; renderHub(); };
+document.querySelectorAll("#dirSeg button").forEach(b=>b.onclick=()=>setDir(b.dataset.dir));
+document.getElementById("newLimit").onchange=e=>{ let v=parseInt(e.target.value,10); if(isNaN(v)||v<0) v=0; const m=getMeta(); m.newLimit=v; setMeta(m); e.target.value=v; renderData(); };
+document.getElementById("spkPreview").onclick=()=>speak(document.getElementById("f-word").value.trim());
+document.querySelectorAll("#ttsOnSeg button").forEach(b=>b.onclick=()=>{ const m=getMeta(); m.tts=b.dataset.on==="1"; setMeta(m); renderTts(); });
+document.querySelectorAll("#ttsAutoSeg button").forEach(b=>b.onclick=()=>{ const m=getMeta(); m.auto=b.dataset.auto==="1"; setMeta(m); renderTts(); });
+document.querySelectorAll("#ttsAccSeg button").forEach(b=>b.onclick=()=>{ const m=getMeta(); m.accent=b.dataset.acc; setMeta(m); renderTts(); });
+document.querySelectorAll("#ttsSpeedSeg button").forEach(b=>b.onclick=()=>{ const m=getMeta(); m.slow=b.dataset.slow==="1"; setMeta(m); renderTts(); });
+document.getElementById("ttsTest").onclick=()=>speak("Hello, this is a test.");
+document.getElementById("export").onclick=exportData;
+document.getElementById("importBtn").onclick=()=>document.getElementById("importFile").click();
+document.getElementById("importFile").onchange=e=>{ if(e.target.files[0]) importData(e.target.files[0]); e.target.value=""; };
+document.getElementById("restoreBtn").onclick=restoreBackup;
+document.getElementById("clearBtn").onclick=clearAll;
+document.getElementById("remExport").onclick=exportData;
+document.getElementById("remClose").onclick=()=>{ const m=getMeta(); m.remDismissed=todayStr(); setMeta(m); hideReminder(); };
+renderLists(); updateBadge(); maybeReminder();
+</script>
+</body>
+</html>
