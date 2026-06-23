@@ -141,6 +141,31 @@
   .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--accent)}
   .field .hint{font-size:12px;color:var(--soft);margin-top:5px}
   .del-link{display:block;width:100%;text-align:center;background:none;border:none;color:var(--rose);font-size:14px;padding:10px;margin-top:6px;cursor:pointer}
+  /* --- розкривні списки --- */
+  .list-card{background:var(--raised);border:1px solid var(--line);border-radius:var(--r);margin-bottom:10px;overflow:hidden;transition:border-color .15s}
+  .list-card.open{border-color:#D8CFB8}
+  .list-head{display:flex;align-items:center;gap:11px;padding:14px 15px;cursor:pointer}
+  .list-head .chev{color:var(--soft);font-size:17px;line-height:1;flex:none;transition:transform .22s ease}
+  .list-card.open .list-head .chev{transform:rotate(90deg);color:var(--accent)}
+  .list-head .meta{flex:1;min-width:0}
+  .list-head .nm{font-family:var(--serif);font-size:18px;font-weight:600;overflow-wrap:anywhere}
+  .list-head .sb{font-size:12.5px;color:var(--soft);margin-top:2px}
+  .list-head .due{background:var(--accent);color:#fff;border-radius:9px;font-size:12px;font-weight:600;padding:2px 8px;flex:none}
+  .list-head .gear{background:none;border:none;color:var(--soft);font-size:19px;flex:none;padding:4px;cursor:pointer}
+  .list-body{border-top:1px solid var(--line);padding:0 15px 10px;background:rgba(40,75,140,.018)}
+  .list-body .entry{background:none;border:none;border-bottom:1px solid var(--line);border-radius:0;padding:12px 2px;margin:0}
+  .list-body .entry:last-of-type{border-bottom:none}
+  .empty-mini{color:var(--soft);font-size:13.5px;padding:14px 2px 4px}
+  .add-word{display:block;width:100%;text-align:left;border:none;background:none;color:var(--accent);font-size:14px;font-weight:600;font-family:var(--sans);padding:11px 2px 4px;cursor:pointer}
+  .add-word:active{opacity:.6}
+  .entry.long .w{font-size:15.5px}
+  .entry .src{font-size:11px;color:var(--accent);background:var(--accent-soft);border-radius:7px;padding:2px 8px;align-self:center;flex:none;white-space:nowrap;font-weight:600}
+  /* --- чип денної цілі --- */
+  .goal{display:inline-flex;align-items:center;gap:10px;background:var(--accent-soft);color:var(--accent);border-radius:12px;padding:9px 15px;font-size:13.5px;font-weight:600;margin-top:16px}
+  .goal.done{background:#E4F0EC;color:var(--teal)}
+  .goal .bar{width:64px;height:6px;border-radius:3px;background:rgba(40,75,140,.18);overflow:hidden}
+  .goal .bar i{display:block;height:100%;background:var(--accent);border-radius:3px;transition:width .3s}
+  .goal.done .bar{background:rgba(31,107,92,.2)} .goal.done .bar i{background:var(--teal)}
 </style>
 </head>
 <body>
@@ -150,16 +175,15 @@
   <button class="rdo" id="remExport">Зберегти файл</button>
   <button class="rx" id="remClose">×</button>
 </div>
-<header><h1>Мій словник</h1><div class="sub">англійські слова та фрази</div></header>
+<header><h1>Мій словник</h1><div class="sub">англійська лексика</div></header>
 <main>
   <section class="view on" id="view-lists">
-    <div id="lists-root"><div class="count" id="rootCount"></div><button class="newlist-btn" id="newListBtn">+ Новий список</button><div id="lists"></div></div>
-    <div id="list-detail" style="display:none">
-      <div class="back-bar"><button class="bk" id="detailBack">‹</button><h2 id="detailTitle"></h2><button class="gear" id="detailGear">⚙︎</button></div>
-      <div class="modeline" id="detailMode"></div>
-      <div class="seg" id="filterSeg"><button class="on" data-f="all">Усі</button><button data-f="word">Слова</button><button data-f="phrase">Фрази</button></div>
-      <input class="search" id="search" placeholder="Пошук слова чи перекладу…">
-      <div class="count" id="wcount"></div><div id="list"></div>
+    <input class="search" id="gsearch" placeholder="Пошук серед усіх слів…" autocapitalize="none" autocomplete="off">
+    <div id="searchResults" style="display:none"></div>
+    <div id="listsWrap">
+      <div class="count" id="rootCount"></div>
+      <div id="lists"></div>
+      <button class="newlist-btn" id="newListBtn">+ Новий список</button>
     </div>
   </section>
   <section class="view" id="view-study">
@@ -182,9 +206,9 @@
       <p class="tts-note" id="ttsUnsupported" style="display:none">Твій пристрій або браузер не підтримує озвучення. На Android встанови/онови «Google Синтез мовлення» та англомовний голос у налаштуваннях системи.</p>
     </div>
     <div class="panel">
-      <h3>Нові слова на день</h3>
-      <p>Скільки нових слів максимум показувати щодня. Повторення наявних слів не обмежується.</p>
-      <div class="numrow"><input type="number" id="newLimit" min="0" max="999" inputmode="numeric"><label>0 = без ліміту</label></div>
+      <h3>Денна ціль нових слів</h3>
+      <p>Скільки нових слів ти прагнеш вивчати щодня. Це орієнтир-досягнення, а не обмеження — нові слова завжди доступні, а застосунок показує твій поступ до цілі.</p>
+      <div class="numrow"><input type="number" id="newLimit" min="0" max="999" inputmode="numeric"><label>0 = без цілі</label></div>
     </div>
     <div class="panel">
       <h3>Авто-копії</h3><p id="bkpInfo"></p>
@@ -205,8 +229,7 @@
 <div class="editor" id="editor">
   <div class="ed-head"><button class="x" id="edClose">×</button><h2 id="edTitle">Новий запис</h2><button class="save" id="edSave">Зберегти</button></div>
   <div class="ed-body">
-    <div class="seg" id="typeSeg"><button class="on" data-type="word">Слово</button><button data-type="phrase">Фраза</button></div>
-    <div class="field"><label id="lblWord">Слово</label><input id="f-word" class="serif" autocapitalize="none" autocomplete="off" placeholder="endeavour"><button class="spk-prev" id="spkPreview" type="button" style="display:none">🔊 Прослухати</button></div>
+    <div class="field"><label>Слово або фраза</label><input id="f-word" class="serif" autocapitalize="none" autocomplete="off" placeholder="endeavour"><button class="spk-prev" id="spkPreview" type="button" style="display:none">🔊 Прослухати</button></div>
     <div class="field"><label>Транскрипція</label><input id="f-ipa" class="serif" autocapitalize="none" placeholder="/ɪnˈdɛvə/"></div>
     <div class="field"><label>Переклад</label><input id="f-tr" placeholder="зусилля; намагатися"></div>
     <div class="field"><label>Мій коментар</label><textarea id="f-cmt" placeholder="Як запам'ятати, нюанси вживання…"></textarea></div>
@@ -231,10 +254,10 @@
 <script>
 "use strict";
 const KEY="words_app_v1", BKP="words_app_backup_v1", META="words_app_meta_v1";
-const MAXBK=3, DEFLIMIT=20;
+const MAXBK=3, DEFGOAL=20;
 let storeOk=true, lists=[], cards=[];
-let currentList=null, activeView="lists";
-let editingId=null, editType="word", filter="all";
+let activeView="lists", expanded=new Set();
+let editingId=null;
 let editingListId=null, editIndep=false;
 let studyScope="all", session=[], sessTotal=0;
 
@@ -244,6 +267,7 @@ function load(){
   let p=null; try{ p=raw?JSON.parse(raw):null; }catch(e){ p=null; }
   migrateInto(p);
   if(!lists.length){ lists=[{id:uid(),name:"Загальний",independent:false,created:todayStr()}]; ensureFallback(); }
+  if(lists.length===1) expanded.add(lists[0].id);
   if(storeOk) save();
 }
 function migrateInto(p){
@@ -326,6 +350,7 @@ function cardsOf(id){ return cards.filter(c=>c.listId===id); }
 function norm(s){ return (s||"").trim().toLowerCase(); }
 function esc(s){ return (s||"").replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
 function ivLabel(n){ if(n<=0) return "сьогодні"; if(n===1) return "1 дн"; if(n<30) return n+" дн"; if(n<365) return (n/30).toFixed(n<60?1:0)+" міс"; return (n/365).toFixed(1)+" р"; }
+function plz(n,one,few,many){ const m10=n%10,m100=n%100; if(m10===1&&m100!==11) return one; if(m10>=2&&m10<=4&&(m100<12||m100>14)) return few; return many; }
 
 /* ---- унікальність ---- */
 function findConflict(w, listId, exceptId){
@@ -339,8 +364,8 @@ function findConflict(w, listId, exceptId){
   });
 }
 
-/* ---- ліміт нових ---- */
-function newLimit(){ const m=getMeta(); return (typeof m.newLimit==="number")?m.newLimit:DEFLIMIT; }
+/* ---- денна ціль нових (орієнтир, не обмеження) ---- */
+function dailyGoal(){ const m=getMeta(); return (typeof m.newLimit==="number")?m.newLimit:DEFGOAL; }
 function newToday(){ const m=getMeta(); return m.newDate===todayStr()?(m.newCount||0):0; }
 function bumpNew(){ const m=getMeta(); if(m.newDate!==todayStr()){ m.newDate=todayStr(); m.newCount=0; } m.newCount=(m.newCount||0)+1; setMeta(m); }
 
@@ -349,10 +374,8 @@ function poolOf(scope){ return scope==="all"?cards:cardsOf(scope); }
 function reviewsOf(scope){ return poolOf(scope).filter(c=>c.seen && isDue(c)); }
 function newOf(scope){ return poolOf(scope).filter(c=>!c.seen); }
 function buildQueue(scope){
-  const rev=reviewsOf(scope); let nw=newOf(scope);
-  const lim=newLimit();
-  if(lim>0){ const left=Math.max(0, lim-newToday()); nw=nw.slice(0,left); }
-  return {rev, nw, all:rev.concat(nw)};
+  const rev=reviewsOf(scope), nw=newOf(scope);
+  return {rev, nw, all:rev.concat(nw)};   // ціль нічого не ріже — усі нові доступні
 }
 function totalDue(){ return buildQueue("all").all.length; }
 
@@ -381,56 +404,69 @@ function show(v){
   updateBadge();
 }
 function renderLists(){
-  if(currentList && !listById(currentList)) currentList=null;
-  document.getElementById("lists-root").style.display = currentList?"none":"block";
-  document.getElementById("list-detail").style.display = currentList?"block":"none";
-  if(currentList) renderDetail(); else renderRoot();
+  const q=norm(document.getElementById("gsearch").value);
+  const wrap=document.getElementById("listsWrap"), res=document.getElementById("searchResults");
+  if(q){ wrap.style.display="none"; res.style.display="block"; renderSearch(q); }
+  else{ res.style.display="none"; wrap.style.display="block"; renderAccordion(); }
 }
 function updateBadge(){ const n=totalDue(), b=document.getElementById("navBadge"); if(n){ b.style.display="inline-block"; b.textContent=n; } else b.style.display="none"; }
 
-function renderRoot(){
-  const root=document.getElementById("lists");
-  document.getElementById("rootCount").innerHTML = lists.length?`${lists.length} ${lists.length===1?'список':'списків'} · <b>${totalDue()}</b> на повторення`:"";
-  root.innerHTML=lists.map(l=>{
-    const n=cardsOf(l.id).length, d=buildQueue(l.id).all.length;
-    return `<div class="list-row" data-id="${l.id}"><div class="meta"><div class="nm">${esc(l.name)}</div><div class="sb">${n} ${n===1?'запис':'записів'}${l.independent?' · незалежний':''}</div></div>${d?`<span class="due">${d}</span>`:''}<button class="gear" data-gear="${l.id}">⚙︎</button></div>`;
-  }).join("");
-  root.querySelectorAll(".list-row").forEach(r=>r.onclick=()=>{ currentList=r.dataset.id; filter="all"; renderLists(); });
-  root.querySelectorAll(".gear").forEach(g=>g.onclick=ev=>{ ev.stopPropagation(); openListEditor(g.dataset.gear); });
+function entryHTML(c, src){
+  const long=(c.word||"").length>22;
+  const dot=(isDue(c)||!c.seen)?'<span class="dot"></span>':'';
+  const ipa=c.ipa?`<span class="ipa">${esc(c.ipa)}</span>`:'';
+  const srcTag=src?`<span class="src">${esc(src)}</span>`:'';
+  const spk=ttsOn()?`<button class="spk-ent" data-spk="${c.id}">🔊</button>`:'';
+  return `<div class="entry${long?' long':''}" data-id="${c.id}">${dot}<span class="w">${esc(c.word)}</span>${ipa}<span class="tr">${esc(c.tr)}</span>${srcTag}${spk}</div>`;
 }
-function renderDetail(){
-  const l=listById(currentList);
-  document.getElementById("detailTitle").textContent=l.name;
-  document.getElementById("detailMode").textContent = l.independent?"Тип: незалежний (слова окремі від інших)":"Тип: звичайний (слова глобально унікальні)";
-  document.querySelectorAll("#filterSeg button").forEach(b=>b.classList.toggle("on",b.dataset.f===filter));
-  const q=norm(document.getElementById("search").value);
-  let arr=cardsOf(currentList).slice().sort((a,b)=>a.word.toLowerCase()<b.word.toLowerCase()?-1:1);
-  if(filter!=="all") arr=arr.filter(c=>c.type===filter);
-  if(q) arr=arr.filter(c=>(c.word+" "+c.tr).toLowerCase().includes(q));
-  const total=cardsOf(currentList).length;
-  document.getElementById("wcount").innerHTML = total?`${total} ${total===1?'запис':'записів'} · <b>${buildQueue(currentList).all.length}</b> на повторення`:"";
-  const list=document.getElementById("list");
-  if(!total){ list.innerHTML=`<div class="empty"><div class="big">Список порожній</div>Натисни + щоб додати слово або фразу.</div>`; return; }
-  if(!arr.length){ list.innerHTML=`<div class="empty">Нічого не знайдено.</div>`; return; }
-  list.innerHTML=arr.map(c=>`<div class="entry" data-id="${c.id}">${isDue(c)||!c.seen?'<span class="dot"></span>':''}<span class="w">${esc(c.word)}</span>${c.type==="phrase"?'<span class="tag">фраза</span>':(c.ipa?`<span class="ipa">${esc(c.ipa)}</span>`:'')}<span class="tr">${esc(c.tr)}</span>${ttsOn()?`<button class="spk-ent" data-spk="${c.id}">🔊</button>`:''}</div>`).join("");
-  list.querySelectorAll(".entry").forEach(e=>e.onclick=()=>openWordEditor(e.dataset.id));
-  if(ttsOn()) list.querySelectorAll(".spk-ent").forEach(b=>b.onclick=ev=>{ ev.stopPropagation(); const c=cards.find(x=>x.id===b.dataset.spk); if(c) speak(c.word); });
+function wireEntries(root){
+  root.querySelectorAll(".entry").forEach(e=>e.onclick=()=>openWordEditor(e.dataset.id));
+  if(ttsOn()) root.querySelectorAll(".spk-ent").forEach(b=>b.onclick=ev=>{ ev.stopPropagation(); const c=cards.find(x=>x.id===b.dataset.spk); if(c) speak(c.word); });
+}
+function renderAccordion(){
+  const root=document.getElementById("lists");
+  document.getElementById("rootCount").innerHTML = lists.length?`${lists.length} ${plz(lists.length,'список','списки','списків')} · <b>${totalDue()}</b> на повторення`:"";
+  root.innerHTML=lists.map(l=>{
+    const cs=cardsOf(l.id).slice().sort((a,b)=>a.word.toLowerCase()<b.word.toLowerCase()?-1:1);
+    const n=cs.length, d=buildQueue(l.id).all.length, open=expanded.has(l.id);
+    const sb=`${n} ${plz(n,'запис','записи','записів')}${l.independent?' · незалежний':''}`;
+    let body="";
+    if(open){
+      const items=n?cs.map(c=>entryHTML(c,null)).join(""):`<div class="empty-mini">Список порожній.</div>`;
+      body=`<div class="list-body">${items}<button class="add-word" data-add="${l.id}">+ додати слово сюди</button></div>`;
+    }
+    return `<div class="list-card${open?' open':''}" data-id="${l.id}">
+      <div class="list-head" data-head="${l.id}"><span class="chev">›</span><div class="meta"><div class="nm">${esc(l.name)}</div><div class="sb">${sb}</div></div>${d?`<span class="due">${d}</span>`:''}<button class="gear" data-gear="${l.id}">⚙︎</button></div>
+      ${body}</div>`;
+  }).join("");
+  root.querySelectorAll(".list-head").forEach(h=>h.onclick=()=>{ const id=h.dataset.head; expanded.has(id)?expanded.delete(id):expanded.add(id); renderAccordion(); });
+  root.querySelectorAll(".gear").forEach(g=>g.onclick=ev=>{ ev.stopPropagation(); openListEditor(g.dataset.gear); });
+  root.querySelectorAll(".add-word").forEach(b=>b.onclick=ev=>{ ev.stopPropagation(); openWordEditor(null, b.dataset.add); });
+  wireEntries(root);
+}
+function renderSearch(q){
+  const res=document.getElementById("searchResults");
+  const hits=cards.filter(c=>((c.word||"")+" "+(c.tr||"")+" "+(c.cmt||"")+" "+(c.ex||"")).toLowerCase().includes(q))
+    .sort((a,b)=>a.word.toLowerCase()<b.word.toLowerCase()?-1:1);
+  if(!hits.length){ res.innerHTML=`<div class="empty"><div class="big">Нічого не знайдено</div>За запитом «${esc(q)}» немає слів у жодному списку.</div>`; return; }
+  res.innerHTML=`<div class="count">Знайдено <b>${hits.length}</b> у всіх списках</div>`+
+    hits.map(c=>{ const l=listById(c.listId); return entryHTML(c, l?l.name:""); }).join("");
+  wireEntries(res);
 }
 
 /* ---- word editor ---- */
-function setEditType(t){ editType=t; document.querySelectorAll("#typeSeg button").forEach(b=>b.classList.toggle("on",b.dataset.type===t)); document.getElementById("lblWord").textContent=t==="phrase"?"Фраза":"Слово"; document.getElementById("f-word").placeholder=t==="phrase"?"to make up for":"endeavour"; }
 function fillListSelect(sel){ const s=document.getElementById("f-list"); s.innerHTML=lists.map(l=>`<option value="${l.id}">${esc(l.name)}${l.independent?' (незал.)':''}</option>`).join(""); s.value=sel; }
-function openWordEditor(id){
+function presetAddList(){ for(const l of lists){ if(expanded.has(l.id)) return l.id; } return lists[0]&&lists[0].id; }
+function openWordEditor(id, preset){
   editingId=id||null;
   const c=id?cards.find(x=>x.id===id):null;
-  setEditType(c?c.type:"word");
   document.getElementById("edTitle").textContent=c?"Редагувати":"Новий запис";
   document.getElementById("f-word").value=c?c.word:"";
   document.getElementById("f-ipa").value=c?c.ipa:"";
   document.getElementById("f-tr").value=c?c.tr:"";
   document.getElementById("f-cmt").value=c?c.cmt:"";
   document.getElementById("f-ex").value=c?c.ex:"";
-  fillListSelect(c?c.listId:(currentList||(lists[0]&&lists[0].id)));
+  fillListSelect(c?c.listId:(preset||presetAddList()));
   document.getElementById("edDelete").style.display=c?"block":"none";
   document.getElementById("spkPreview").style.display=ttsOn()?"inline-block":"none";
   document.getElementById("editor").classList.add("on");
@@ -452,13 +488,14 @@ function saveWord(){
       return;
     }
   }
-  const data={ word, type:editType, listId:targetList,
+  const data={ word, type:"word", listId:targetList,
     ipa:document.getElementById("f-ipa").value.trim(),
     tr:document.getElementById("f-tr").value.trim(),
     cmt:document.getElementById("f-cmt").value.trim(),
     ex:document.getElementById("f-ex").value };
   if(editingId) Object.assign(orig,data);
   else cards.push({id:uid(),...data,ef:2.5,interval:0,reps:0,seen:false,due:todayStr(),created:todayStr()});
+  expanded.add(targetList);
   save(); closeWordEditor(); renderLists();
 }
 function deleteWord(){ if(!editingId) return; if(confirm("Видалити цей запис?")){ cards=cards.filter(x=>x.id!==editingId); save(); closeWordEditor(); renderLists(); } }
@@ -479,7 +516,7 @@ function saveList(){
   const name=document.getElementById("l-name").value.trim();
   if(!name){ document.getElementById("l-name").focus(); return; }
   if(editingListId){ const l=listById(editingListId); l.name=name; l.independent=editIndep; save(); closeListEditor(); renderLists(); }
-  else{ const id=uid(); lists.push({id,name,independent:editIndep,created:todayStr()}); save(); closeListEditor(); currentList=id; filter="all"; renderLists(); }
+  else{ const id=uid(); lists.push({id,name,independent:editIndep,created:todayStr()}); expanded.add(id); save(); closeListEditor(); renderLists(); }
 }
 function deleteList(){
   if(!editingListId) return;
@@ -489,7 +526,7 @@ function deleteList(){
   cards=cards.filter(c=>c.listId!==editingListId);
   lists=lists.filter(x=>x.id!==editingListId);
   if(!lists.length){ lists=[{id:uid(),name:"Загальний",independent:false,created:todayStr()}]; }
-  if(currentList===editingListId) currentList=null;
+  expanded.delete(editingListId);
   save(); closeListEditor(); renderLists();
 }
 
@@ -510,9 +547,15 @@ function renderHub(){
   document.getElementById("study-card").innerHTML="";
   const q=buildQueue(studyScope); const n=q.all.length;
   const scopeName=studyScope==="all"?"усіх списках":`«${listById(studyScope).name}»`;
-  const lim=newLimit(); const limTxt=lim>0?` (ліміт ${lim}/день)`:"";
-  hub.innerHTML=`<div class="big-num">${n}</div><div class="big-lbl">${n===1?'картка':'карток'} на повторення</div>
-    <div class="substat">у ${scopeName}<br>повторення: ${q.rev.length} · нові: ${q.nw.length}${limTxt}</div>
+  const goal=dailyGoal(), did=newToday();
+  let goalHtml="";
+  if(goal>0){
+    const done=did>=goal, pct=Math.min(100,Math.round(did/goal*100));
+    goalHtml=`<div class="goal${done?' done':''}">${done?'🎯 Денну ціль досягнуто':'🎯 Нові сьогодні: '+did+' / '+goal}<span class="bar"><i style="width:${pct}%"></i></span></div>`;
+  }
+  hub.innerHTML=`<div class="big-num">${n}</div><div class="big-lbl">${plz(n,'картка','картки','карток')} на повторення</div>
+    <div class="substat">у ${scopeName}<br>повторення: ${q.rev.length} · нові: ${q.nw.length}</div>
+    ${goalHtml}
     <button class="btn btn-primary" id="startBtn" ${n?'':'disabled'}>${n?'Почати':'Все повторено 🎉'}</button>`;
   const sb=document.getElementById("startBtn"); if(sb&&n) sb.onclick=startSession;
 }
@@ -532,17 +575,18 @@ function showCard(){
     document.getElementById("backHub").onclick=renderStudy; updateBadge(); return;
   }
   const {c,dir}=session[0]; const done=sessTotal-session.length+1;
-  const small=c.type==="phrase"?" small":"";
+  const smallW=(c.word||"").length>16?" small":"";
+  const smallT=(c.tr||"").length>16?" small":"";
   const exArr=(c.ex||"").split("\n").filter(x=>x.trim());
   const spkLine=i=>ttsOn()?` <button class="spk-line" data-i="${i}">🔊</button>`:'';
   const exHtml=exArr.length?`<div class="ex">${exArr.map((x,i)=>`<p>${esc(x)}${spkLine(i)}</p>`).join("")}</div>`:"";
   const wordSpk=ttsOn()?`<button class="spk spk-word" type="button">🔊</button>`:'';
   let front, back;
   if(dir==="rev"){
-    front=`<div class="dirhint">укр → англ</div><div class="headword${small}">${esc(c.tr||"—")}</div>`;
+    front=`<div class="dirhint">укр → англ</div><div class="headword${smallT}">${esc(c.tr||"—")}</div>`;
     back=`<div class="ans">${esc(c.word)}</div>${wordSpk}${c.ipa?`<div class="ipa">${esc(c.ipa)}</div>`:''}${c.cmt?`<div class="cmt">${esc(c.cmt)}</div>`:''}${exHtml}`;
   }else{
-    front=`<div class="dirhint">англ → укр</div><div class="headword${small}">${esc(c.word)}</div>${wordSpk}`;
+    front=`<div class="dirhint">англ → укр</div><div class="headword${smallW}">${esc(c.word)}</div>${wordSpk}`;
     back=`${c.ipa?`<div class="ipa">${esc(c.ipa)}</div>`:''}<div class="tr">${esc(c.tr)}</div>${c.cmt?`<div class="cmt">${esc(c.cmt)}</div>`:''}${exHtml}`;
   }
   card.innerHTML=`<div class="card"><div class="progress">${done} / ${sessTotal}</div>
@@ -585,16 +629,16 @@ function renderTts(){
   document.querySelectorAll("#ttsSpeedSeg button").forEach(b=>b.classList.toggle("on",(b.dataset.slow==="1")===slow));
 }
 function renderData(){
-  const phrases=cards.filter(c=>c.type==="phrase").length, words=cards.length-phrases;
+  const total=cards.length;
   const learned=cards.filter(c=>c.reps>=2).length;
+  const goal=dailyGoal();
   document.getElementById("stats").innerHTML=`
     <div class="stat-row"><span>Списків</span><span>${lists.length}</span></div>
-    <div class="stat-row"><span>Слів</span><span>${words}</span></div>
-    <div class="stat-row"><span>Фраз</span><span>${phrases}</span></div>
-    <div class="stat-row"><span>Нових сьогодні</span><span>${newToday()} / ${newLimit()||"∞"}</span></div>
+    <div class="stat-row"><span>Записів</span><span>${total}</span></div>
+    <div class="stat-row"><span>Нових сьогодні</span><span>${newToday()} / ${goal||"∞"}</span></div>
     <div class="stat-row"><span>На повторення</span><span>${totalDue()}</span></div>
     <div class="stat-row"><span>Засвоєні</span><span>${learned}</span></div>`;
-  document.getElementById("newLimit").value=newLimit();
+  document.getElementById("newLimit").value=goal;
   renderTts();
   const arr=getBackups();
   const sel=document.getElementById("bkpSel");
@@ -628,7 +672,7 @@ function importData(file){
   r.onload=()=>{ try{
     const {L,C}=normalizeImport(JSON.parse(r.result));
     if(!confirm(`Завантажити ${C.length} записів у ${L.length} списках? Поточні дані буде замінено.`)) return;
-    snapshotNow(); lists=L; cards=C; currentList=null; studyScope="all";
+    snapshotNow(); lists=L; cards=C; expanded=new Set(lists.map(l=>l.id)); studyScope="all";
     save(); renderData(); updateBadge(); alert("Готово. Завантажено "+C.length+" записів.");
   }catch(e){ alert("Не вдалося прочитати файл. Перевір, що це правильний .json з цього додатку."); } };
   r.readAsText(file);
@@ -638,7 +682,7 @@ function restoreBackup(){
   const i=parseInt(document.getElementById("bkpSel").value,10)||0; const b=arr[i]; if(!b||!b.cards.length){ alert("Ця копія порожня."); return; }
   if(!confirm(`Відновити ${b.cards.length} записів зі знімка від ${b.date}? Поточні дані буде замінено.`)) return;
   const {L,C}=normalizeImport({lists:b.lists,cards:b.cards});
-  lists=L; cards=C; currentList=null; studyScope="all";
+  lists=L; cards=C; expanded=new Set(lists.map(l=>l.id)); studyScope="all";
   save(); renderData(); updateBadge(); alert("Відновлено.");
 }
 function clearAll(){
@@ -646,7 +690,7 @@ function clearAll(){
   if(!confirm("Видалити ВСІ слова? Перед цим буде зроблено авто-копію.")) return;
   if(!confirm("Точно очистити все? Це останнє попередження.")) return;
   snapshotNow();
-  lists=[{id:uid(),name:"Загальний",independent:false,created:todayStr()}]; cards=[]; currentList=null; studyScope="all";
+  lists=[{id:uid(),name:"Загальний",independent:false,created:todayStr()}]; cards=[]; expanded=new Set(lists.map(l=>l.id)); studyScope="all";
   save(); renderData(); updateBadge(); alert("Готово. Залишився один порожній список.");
 }
 
@@ -676,14 +720,10 @@ const ICON512="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAYAAAD0eNT
 
 /* ---- wire up ---- */
 load(); dailySnapshot();
-document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{ if(b.dataset.view==="lists") currentList=null; show(b.dataset.view); });
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>show(b.dataset.view));
 document.getElementById("fab").onclick=()=>{ if(activeView!=="lists") return; openWordEditor(null); };
-document.getElementById("detailBack").onclick=()=>{ currentList=null; renderLists(); };
 document.getElementById("newListBtn").onclick=()=>openListEditor(null);
-document.getElementById("detailGear").onclick=()=>openListEditor(currentList);
-document.getElementById("search").oninput=renderDetail;
-document.querySelectorAll("#filterSeg button").forEach(b=>b.onclick=()=>{ filter=b.dataset.f; renderDetail(); });
-document.querySelectorAll("#typeSeg button").forEach(b=>b.onclick=()=>setEditType(b.dataset.type));
+document.getElementById("gsearch").oninput=renderLists;
 document.getElementById("edClose").onclick=closeWordEditor;
 document.getElementById("edSave").onclick=saveWord;
 document.getElementById("edDelete").onclick=deleteWord;
