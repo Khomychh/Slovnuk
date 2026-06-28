@@ -174,6 +174,29 @@
   .goal .bar{width:64px;height:6px;border-radius:3px;background:rgba(40,75,140,.18);overflow:hidden}
   .goal .bar i{display:block;height:100%;background:var(--accent);border-radius:3px;transition:width .3s}
   .goal.done .bar{background:rgba(31,107,92,.2)} .goal.done .bar i{background:var(--teal)}
+  /* --- багатозначність: редактор --- */
+  .sense{border:1px solid var(--line);border-radius:11px;padding:11px;margin-bottom:9px;background:var(--paper)}
+  .sense-top{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+  .sense-top .s-pos{flex:1;margin:0}
+  .sense .s-del{flex:none;background:none;border:none;color:var(--rose);font-size:22px;line-height:1;cursor:pointer;padding:0 6px}
+  .sense input,.sense textarea,.sense select{margin-bottom:8px}
+  .sense>*:last-child{margin-bottom:0}
+  .sense-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .sense .s-ex{min-height:44px;font-family:var(--serif)}
+  .add-sense{display:block;width:100%;text-align:center;border:1px dashed var(--line);background:transparent;color:var(--accent);font-size:14px;font-weight:600;font-family:var(--sans);border-radius:11px;padding:10px;cursor:pointer;margin-top:2px}
+  .add-sense:active{opacity:.6}
+  /* --- багатозначність: картка --- */
+  .back .sense-ans{padding:9px 0;border-bottom:1px solid var(--line)}
+  .back .sense-ans:last-of-type{border-bottom:none}
+  .pos-tag{display:inline-block;font-family:var(--sans);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:1px 6px;vertical-align:middle;margin-right:5px}
+  .back .s-tr-big{font-family:var(--serif);font-size:20px;font-weight:600}
+  .s-ipa-tag{font-family:var(--serif);font-style:italic;color:var(--accent);font-size:15px;margin-left:4px}
+  .back .gloss{color:var(--soft);font-size:13.5px;font-style:italic;margin-top:2px}
+  .rev-list{display:flex;flex-direction:column;gap:9px}
+  .rev-item{font-family:var(--serif);font-size:27px;font-weight:600;overflow-wrap:anywhere}
+  .rev-list.small .rev-item{font-size:20px;line-height:1.3}
+  .rev-meta{font-family:var(--sans);font-size:13px;font-style:normal;font-weight:500;color:var(--soft)}
+  .weak-hint{margin-top:13px;font-size:12.5px;color:var(--accent);background:var(--accent-soft);border-radius:9px;padding:8px 11px;line-height:1.4}
 </style>
 </head>
 <body>
@@ -238,11 +261,13 @@
   <div class="ed-head"><button class="x" id="edClose">×</button><h2 id="edTitle">Новий запис</h2><button class="save" id="edSave">Зберегти</button></div>
   <div class="ed-body">
     <div class="field"><label>Слово або фраза</label><input id="f-word" class="serif" autocapitalize="none" autocomplete="off" placeholder="endeavour"><button class="spk-prev" id="spkPreview" type="button" style="display:none">🔊 Прослухати</button><div class="dup-hint" id="dupHint"></div></div>
-    <div class="field"><label>Транскрипція</label><input id="f-ipa" class="serif" autocapitalize="none" placeholder="/ɪnˈdɛvə/"></div>
-    <div class="field"><label>Інші форми</label><input id="f-forms" class="serif" autocapitalize="none" autocomplete="off" placeholder="went, gone"><div class="hint">Неправильні форми через кому. Правильні (-s, -ed) додавати не треба — вони передбачувані.</div></div>
-    <div class="field"><label>Переклад</label><input id="f-tr" placeholder="зусилля; намагатися"></div>
-    <div class="field"><label>Мій коментар</label><textarea id="f-cmt" placeholder="Як запам'ятати, нюанси вживання…"></textarea></div>
-    <div class="field"><label>Речення-приклади</label><textarea id="f-ex" placeholder="Кожне речення з нового рядка"></textarea><div class="hint">Кожен приклад — з нового рядка.</div></div>
+    <div class="field"><label>Інші форми</label><input id="f-forms" class="serif" autocapitalize="none" autocomplete="off" placeholder="went, gone"><div class="hint">Неправильні граматичні форми того самого слова через кому (went, gone). Правильні (-s, -ed) додавати не треба.</div></div>
+    <div class="field"><label>Значення</label>
+      <div id="sensesWrap"></div>
+      <button class="add-sense" id="addSense" type="button">+ додати значення</button>
+      <div class="hint">Одне написання — кілька значень (hire: наймати / найм). Транскрипцію в окремому значенні став лише там, де вимова відрізняється (record /ˈrekɔːrd/ проти /rɪˈkɔːrd/). Англ. підказка допомагає розрізнити при вивченні укр→англ.</div>
+    </div>
+    <div class="field"><label>Мій коментар</label><textarea id="f-cmt" placeholder="Загальна нотатка до слова: як запамʼятати, нюанси…"></textarea></div>
     <div class="field"><label>Список</label><select id="f-list"></select><div class="hint">Зміни список, щоб перенести слово (прогрес збережеться).</div></div>
     <button class="del-link" id="edDelete" style="display:none">Видалити запис</button>
   </div>
@@ -266,7 +291,7 @@ const KEY="words_app_v1", BKP="words_app_backup_v1", META="words_app_meta_v1";
 const MAXBK=3, DEFGOAL=20;
 let storeOk=true, lists=[], cards=[];
 let activeView="lists", expanded=new Set();
-let editingId=null;
+let editingId=null, editSenses=[];
 let editingListId=null, editIndep=false;
 let studyScope="all", session=[], sessTotal=0;
 
@@ -283,7 +308,7 @@ function migrateInto(p){
   lists=[]; cards=[];
   if(Array.isArray(p)) cards=p;
   else if(p && Array.isArray(p.cards)){ lists=Array.isArray(p.lists)?p.lists:[]; cards=p.cards; }
-  cards.forEach(c=>{ if(c.type!=="phrase") c.type="word"; c.seen = (c.seen===true)||(c.reps>0); if(typeof c.forms!=="string") c.forms=""; });
+  cards.forEach(c=>{ c.seen = (c.seen===true)||(c.reps>0); if(typeof c.forms!=="string") c.forms=""; if(typeof c.cmt!=="string") c.cmt=c.cmt?String(c.cmt):""; ensureSenses(c); delete c.type; });
   lists.forEach(l=>{ if(typeof l.independent!=="boolean") l.independent = (l.mode==="independent"); delete l.mode; });
   if(cards.length && !lists.length) lists=[{id:uid(),name:"Мій список",independent:false,created:todayStr()}];
   ensureFallback();
@@ -361,6 +386,21 @@ function esc(s){ return (s||"").replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>
 function ivLabel(n){ if(n<=0) return "сьогодні"; if(n===1) return "1 дн"; if(n<30) return n+" дн"; if(n<365) return (n/30).toFixed(n<60?1:0)+" міс"; return (n/365).toFixed(1)+" р"; }
 function plz(n,one,few,many){ const m10=n%10,m100=n%100; if(m10===1&&m100!==11) return one; if(m10>=2&&m10<=4&&(m100<12||m100>14)) return few; return many; }
 
+/* ---- багатозначність (senses) ---- */
+const POS=[{v:"",label:"— частина мови",ab:""},{v:"n",label:"іменник",ab:"n."},{v:"v",label:"дієслово",ab:"v."},{v:"adj",label:"прикметник",ab:"adj."},{v:"adv",label:"прислівник",ab:"adv."},{v:"prep",label:"прийменник",ab:"prep."},{v:"phr",label:"фраза",ab:"phr."},{v:"other",label:"інше",ab:""}];
+function posAb(code){ const p=POS.find(x=>x.v===code); return p?p.ab:""; }
+function blankSense(){ return {pos:"",gloss:"",ipa:"",tr:"",ex:""}; }
+function senseFull(s){ return {pos:(s.pos||"").trim(),gloss:(s.gloss||"").trim(),ipa:(s.ipa||"").trim(),tr:(s.tr||"").trim(),ex:(s.ex||"")}; }
+function senseNonEmpty(s){ return !!((s.tr||"").trim()||(s.ipa||"").trim()||(s.gloss||"").trim()||(s.ex||"").trim()||(s.pos||"").trim()); }
+function ensureSenses(c){
+  let arr=Array.isArray(c.senses)?c.senses.map(senseFull).filter(senseNonEmpty):null;
+  if(!arr||!arr.length){ arr=[{pos:"",gloss:"",ipa:(c.ipa||"").trim(),tr:(c.tr||"").trim(),ex:(c.ex||"")}]; }
+  c.senses=arr; delete c.ipa; delete c.tr; delete c.ex; return c;
+}
+function distinctIpa(c){ const out=[]; (c.senses||[]).forEach(s=>{ const v=(s.ipa||"").trim(); if(v&&!out.includes(v)) out.push(v); }); return out; }
+function senseSummary(c){ return (c.senses||[]).map(s=>{ const t=(s.tr||"").trim(); if(!t) return ""; const ab=posAb(s.pos); return esc(t)+(ab?" ("+ab+")":""); }).filter(Boolean).join("; "); }
+function cardSearchText(c){ const p=[c.word||"",c.cmt||"",c.forms||""]; (c.senses||[]).forEach(s=>p.push(s.tr||"",s.gloss||"",s.ex||"")); return p.join(" ").toLowerCase(); }
+
 /* ---- унікальність ---- */
 function findConflict(w, listId, exceptId){
   const target=listById(listId); if(!target) return null;
@@ -422,9 +462,11 @@ function updateBadge(){ const n=totalDue(), b=document.getElementById("navBadge"
 
 function entryHTML(c, src){
   const dot=(isDue(c)||!c.seen)?'<span class="dot"></span>':'';
-  const ipa=c.ipa?`<span class="ipa">${esc(c.ipa)}</span>`:'';
+  const ipas=distinctIpa(c);
+  const ipa=ipas.length?`<span class="ipa">${esc(ipas.join(" · "))}</span>`:'';
   const srcTag=src?`<span class="src">${esc(src)}</span>`:'';
-  const tr=c.tr?`<div class="tr">${esc(c.tr)}</div>`:'';
+  const sum=senseSummary(c);
+  const tr=sum?`<div class="tr">${sum}</div>`:'';
   const spk=ttsOn()?`<button class="spk-ent" data-spk="${c.id}">🔊</button>`:'';
   return `<div class="entry" data-id="${c.id}">${dot}<div class="meta"><div class="w-line"><span class="w">${esc(c.word)}</span>${ipa}${srcTag}</div>${tr}</div>${spk}</div>`;
 }
@@ -455,7 +497,7 @@ function renderAccordion(){
 }
 function renderSearch(q){
   const res=document.getElementById("searchResults");
-  const hits=cards.filter(c=>((c.word||"")+" "+(c.tr||"")+" "+(c.cmt||"")+" "+(c.ex||"")+" "+(c.forms||"")).toLowerCase().includes(q))
+  const hits=cards.filter(c=>cardSearchText(c).includes(q))
     .sort((a,b)=>a.word.toLowerCase()<b.word.toLowerCase()?-1:1);
   if(!hits.length){ res.innerHTML=`<div class="empty"><div class="big">Нічого не знайдено</div>За запитом «${esc(q)}» немає слів у жодному списку.</div>`; return; }
   res.innerHTML=`<div class="count">Знайдено <b>${hits.length}</b> у всіх списках</div>`+
@@ -466,16 +508,36 @@ function renderSearch(q){
 /* ---- word editor ---- */
 function fillListSelect(sel){ const s=document.getElementById("f-list"); s.innerHTML=lists.map(l=>`<option value="${l.id}">${esc(l.name)}${l.independent?' (незал.)':''}</option>`).join(""); s.value=sel; }
 function presetAddList(){ for(const l of lists){ if(expanded.has(l.id)) return l.id; } return lists[0]&&lists[0].id; }
+function posSelectHTML(val){ return `<select class="s-pos">`+POS.map(p=>`<option value="${p.v}"${p.v===val?" selected":""}>${esc(p.label)}</option>`).join("")+`</select>`; }
+function renderSenseRows(){
+  const wrap=document.getElementById("sensesWrap"); const multi=editSenses.length>1;
+  wrap.innerHTML=editSenses.map((s,i)=>`<div class="sense" data-i="${i}">
+    <div class="sense-top">${posSelectHTML(s.pos)}${multi?`<button class="s-del" data-del="${i}" type="button" title="Прибрати значення">×</button>`:""}</div>
+    <input class="s-tr" data-f="tr" placeholder="переклад" value="${esc(s.tr)}">
+    <div class="sense-grid">
+      <input class="s-ipa serif" data-f="ipa" autocapitalize="none" autocomplete="off" placeholder="/.../" value="${esc(s.ipa)}">
+      <input class="s-gloss" data-f="gloss" autocapitalize="none" autocomplete="off" placeholder="англ. підказка (mail)" value="${esc(s.gloss)}">
+    </div>
+    <textarea class="s-ex" data-f="ex" placeholder="приклади, кожен з нового рядка">${esc(s.ex)}</textarea>
+  </div>`).join("");
+  wrap.querySelectorAll(".sense").forEach(el=>{
+    const i=+el.dataset.i;
+    el.querySelector(".s-pos").onchange=e=>{ editSenses[i].pos=e.target.value; };
+    el.querySelectorAll("[data-f]").forEach(inp=>{ inp.oninput=()=>{ editSenses[i][inp.dataset.f]=inp.value; }; });
+    const del=el.querySelector(".s-del"); if(del) del.onclick=()=>{ editSenses.splice(i,1); renderSenseRows(); };
+  });
+}
+function addSense(){ const prev=editSenses[editSenses.length-1]; editSenses.push({pos:"",gloss:"",ipa:prev?prev.ipa:"",tr:"",ex:""}); renderSenseRows(); const t=document.querySelector("#sensesWrap .sense:last-child .s-tr"); if(t) t.focus(); }
 function openWordEditor(id, preset){
   editingId=id||null;
   const c=id?cards.find(x=>x.id===id):null;
   document.getElementById("edTitle").textContent=c?"Редагувати":"Новий запис";
   document.getElementById("f-word").value=c?c.word:"";
-  document.getElementById("f-ipa").value=c?c.ipa:"";
   document.getElementById("f-forms").value=c?(c.forms||""):"";
-  document.getElementById("f-tr").value=c?c.tr:"";
-  document.getElementById("f-cmt").value=c?c.cmt:"";
-  document.getElementById("f-ex").value=c?c.ex:"";
+  document.getElementById("f-cmt").value=c?(c.cmt||""):"";
+  editSenses = c ? (c.senses||[]).map(senseFull) : [];
+  if(!editSenses.length) editSenses=[blankSense()];
+  renderSenseRows();
   fillListSelect(c?c.listId:(preset||presetAddList()));
   document.getElementById("edDelete").style.display=c?"block":"none";
   document.getElementById("spkPreview").style.display=ttsOn()?"inline-block":"none";
@@ -499,12 +561,12 @@ function saveWord(){
       return;
     }
   }
-  const data={ word, type:"word", listId:targetList,
-    ipa:document.getElementById("f-ipa").value.trim(),
+  let senses=editSenses.map(senseFull).filter(senseNonEmpty);
+  if(!senses.length) senses=[blankSense()];
+  const data={ word, listId:targetList,
     forms:document.getElementById("f-forms").value.trim(),
-    tr:document.getElementById("f-tr").value.trim(),
     cmt:document.getElementById("f-cmt").value.trim(),
-    ex:document.getElementById("f-ex").value };
+    senses };
   if(editingId) Object.assign(orig,data);
   else cards.push({id:uid(),...data,ef:2.5,interval:0,reps:0,seen:false,due:todayStr(),created:todayStr()});
   expanded.add(targetList);
@@ -615,20 +677,31 @@ function showCard(){
     document.getElementById("backHub").onclick=renderStudy; updateBadge(); return;
   }
   const {c,dir}=session[0]; const done=sessTotal-session.length+1;
-  const smallW=(c.word||"").length>16?" small":"";
-  const smallT=(c.tr||"").length>16?" small":"";
-  const exArr=(c.ex||"").split("\n").filter(x=>x.trim());
-  const spkLine=i=>ttsOn()?` <button class="spk-line" data-i="${i}">🔊</button>`:'';
-  const exHtml=exArr.length?`<div class="ex">${exArr.map((x,i)=>`<p>${esc(x)}${spkLine(i)}</p>`).join("")}</div>`:"";
+  const senses=(c.senses&&c.senses.length)?c.senses:[blankSense()];
+  const ipas=distinctIpa(c);
+  const multi=senses.length>1;
   const formsHtml=c.forms?`<div class="forms"><span class="flbl">форми</span>${esc(c.forms)}</div>`:"";
+  const cmtHtml=c.cmt?`<div class="cmt">${esc(c.cmt)}</div>`:"";
   const wordSpk=ttsOn()?`<button class="spk spk-word" type="button">🔊</button>`:'';
+  const weakHint=multi?`<div class="weak-hint">💡 Картка оцінюється цілком. Забув хоч одне значення — «Не згадав».</div>`:"";
+  let exList=[];
+  const exHtmlFor=s=>{ const arr=(s.ex||"").split("\n").filter(x=>x.trim()); if(!arr.length) return ""; return `<div class="ex">`+arr.map(x=>{ const idx=exList.length; exList.push(x); return `<p>${esc(x)}${ttsOn()?` <button class="spk-line" data-i="${idx}">🔊</button>`:""}</p>`; }).join("")+`</div>`; };
   let front, back;
   if(dir==="rev"){
-    front=`<div class="dirhint">укр → англ</div><div class="headword${smallT}">${esc(c.tr||"—")}</div>`;
-    back=`<div class="ans">${esc(c.word)}</div>${wordSpk}${c.ipa?`<div class="ipa">${esc(c.ipa)}</div>`:''}${formsHtml}${c.cmt?`<div class="cmt">${esc(c.cmt)}</div>`:''}${exHtml}`;
+    const items=senses.map(s=>{ const meta=[posAb(s.pos),(s.gloss||"").trim()].filter(Boolean).join(", "); return `<div class="rev-item">${esc(s.tr||"—")}${meta?` <span class="rev-meta">(${esc(meta)})</span>`:""}</div>`; }).join("");
+    const smallT=senses.length>2||(senses[0].tr||"").length>16;
+    front=`<div class="dirhint">укр → англ</div><div class="rev-list${smallT?" small":""}">${items}</div>`;
+    const ipaLine=ipas.length?`<div class="ipa">${esc(ipas.join("   ·   "))}</div>`:"";
+    let body="";
+    if(multi){ body=senses.map(s=>{ const ab=posAb(s.pos); const head=`<span class="pos-tag">${ab||"•"}</span><span class="s-tr-big">${esc(s.tr||"")}</span>${(s.ipa&&ipas.length>1)?` <span class="s-ipa-tag">${esc(s.ipa)}</span>`:""}`; return `<div class="sense-ans">${head}${exHtmlFor(s)}</div>`; }).join(""); }
+    else { body=exHtmlFor(senses[0]); }
+    back=`<div class="ans">${esc(c.word)}</div>${wordSpk}${ipaLine}${body}${formsHtml}${cmtHtml}${weakHint}`;
   }else{
+    const smallW=(c.word||"").length>16?" small":"";
     front=`<div class="dirhint">англ → укр</div><div class="headword${smallW}">${esc(c.word)}</div>${wordSpk}`;
-    back=`${c.ipa?`<div class="ipa">${esc(c.ipa)}</div>`:''}<div class="tr">${esc(c.tr)}</div>${formsHtml}${c.cmt?`<div class="cmt">${esc(c.cmt)}</div>`:''}${exHtml}`;
+    const sharedIpa=ipas.length===1?`<div class="ipa">${esc(ipas[0])}</div>`:"";
+    const blocks=senses.map(s=>{ const ab=posAb(s.pos); const head=`${ab?`<span class="pos-tag">${ab}</span>`:""}<span class="s-tr-big">${esc(s.tr||"—")}</span>${(s.ipa&&ipas.length>1)?` <span class="s-ipa-tag">${esc(s.ipa)}</span>`:""}`; const gl=(s.gloss||"").trim()?`<div class="gloss">(${esc(s.gloss.trim())})</div>`:""; return `<div class="sense-ans">${head}${gl}${exHtmlFor(s)}</div>`; }).join("");
+    back=`${sharedIpa}${blocks}${formsHtml}${cmtHtml}${weakHint}`;
   }
   card.innerHTML=`<div class="card"><div class="progress">${done} / ${sessTotal}</div>
     <div class="front">${front}<div class="tap-hint" id="th">торкнись, щоб побачити відповідь</div></div>
@@ -644,7 +717,7 @@ function showCard(){
   card.querySelector(".front").onclick=reveal; document.getElementById("reveal").onclick=reveal;
   if(ttsOn()){
     card.querySelectorAll(".spk-word").forEach(b=>b.onclick=ev=>{ ev.stopPropagation(); speak(c.word); });
-    card.querySelectorAll(".spk-line").forEach(b=>b.onclick=ev=>{ ev.stopPropagation(); speak(exArr[+b.dataset.i]); });
+    card.querySelectorAll(".spk-line").forEach(b=>b.onclick=ev=>{ ev.stopPropagation(); speak(exList[+b.dataset.i]); });
   }
   const btns=card.querySelectorAll(".rate button"); const qs=[2,3,4,5];
   btns.forEach((b,i)=>b.onclick=()=>rate(qs[i]));
@@ -697,10 +770,12 @@ function exportData(){
 function normalizeImport(p){
   let L=[],C=[];
   if(Array.isArray(p)) C=p; else if(p && Array.isArray(p.cards)){ L=Array.isArray(p.lists)?p.lists:[]; C=p.cards; } else throw new Error("bad");
-  C=C.map(c=>({ id:c.id||uid(), listId:c.listId, word:c.word||"", type:c.type==="phrase"?"phrase":"word",
-    ipa:c.ipa||"", forms:c.forms||"", tr:c.tr||"", cmt:c.cmt||"", ex:c.ex||"",
+  C=C.map(c=>{ const card={ id:c.id||uid(), listId:c.listId, word:c.word||"",
+    forms:c.forms||"", cmt:c.cmt||"",
+    senses:Array.isArray(c.senses)?c.senses:null, ipa:c.ipa||"", tr:c.tr||"", ex:c.ex||"",
     ef:c.ef||2.5, interval:c.interval||0, reps:c.reps||0, seen:(c.seen===true)||(c.reps>0),
-    due:c.due||todayStr(), created:c.created||todayStr() }));
+    due:c.due||todayStr(), created:c.created||todayStr() };
+    return ensureSenses(card); });
   L=L.map(l=>({ id:l.id||uid(), name:l.name||"Список", independent:(typeof l.independent==="boolean")?l.independent:(l.mode==="independent"), created:l.created||todayStr() }));
   if(C.length && !L.length) L=[{id:uid(),name:"Імпортований список",independent:false,created:todayStr()}];
   if(!L.length) L=[{id:uid(),name:"Загальний",independent:false,created:todayStr()}];
@@ -767,6 +842,7 @@ document.getElementById("newListBtn").onclick=()=>openListEditor(null);
 document.getElementById("gsearch").oninput=renderLists;
 document.getElementById("edClose").onclick=closeWordEditor;
 document.getElementById("edSave").onclick=saveWord;
+document.getElementById("addSense").onclick=addSense;
 document.getElementById("edDelete").onclick=deleteWord;
 document.getElementById("f-word").oninput=checkDup;
 document.getElementById("f-list").onchange=checkDup;
