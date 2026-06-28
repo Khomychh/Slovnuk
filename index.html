@@ -61,14 +61,16 @@
   .back-bar h2{margin:0;font-family:var(--serif);font-size:20px;flex:1;overflow-wrap:anywhere}
   .back-bar .gear{background:none;border:none;color:var(--soft);font-size:19px;cursor:pointer;padding:4px}
   .modeline{font-size:12px;color:var(--soft);margin:-6px 2px 12px}
-  .entry{background:var(--raised);border:1px solid var(--line);border-radius:var(--r);padding:13px 15px;margin-bottom:10px;display:flex;align-items:baseline;gap:10px;cursor:pointer}
+  .entry{background:var(--raised);border:1px solid var(--line);border-radius:var(--r);padding:13px 15px;margin-bottom:10px;display:flex;align-items:flex-start;gap:10px;cursor:pointer}
   .entry:active{border-color:var(--accent)}
-  .entry .w{font-family:var(--serif);font-size:18px;font-weight:600;overflow-wrap:anywhere}
-  .entry .ipa{font-family:var(--serif);font-style:italic;color:var(--soft);font-size:14px}
-  .entry .tr{margin-left:auto;color:var(--ink);font-size:14px;text-align:right;max-width:46%}
-  .entry .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none;align-self:center}
+  .entry .meta{flex:1;min-width:0}
+  .entry .w-line{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .entry .w{font-family:var(--serif);font-size:18px;font-weight:600;overflow-wrap:break-word;min-width:0}
+  .entry .ipa{font-family:var(--serif);font-style:italic;color:var(--soft);font-size:14px;overflow-wrap:break-word}
+  .entry .tr{color:var(--soft);font-size:14px;margin-top:3px;overflow-wrap:break-word}
+  .entry .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none;margin-top:7px}
   .tag{font-family:var(--sans);font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 5px;align-self:center}
-  .spk-ent{background:none;border:none;color:var(--accent);font-size:18px;cursor:pointer;padding:2px 4px;flex:none;align-self:center}
+  .spk-ent{background:none;border:none;color:var(--accent);font-size:18px;cursor:pointer;padding:2px 4px;flex:none;margin-top:2px}
   .spk{background:var(--accent-soft);border:none;color:var(--accent);border-radius:50%;width:40px;height:40px;font-size:19px;cursor:pointer;margin-top:14px}
   .spk:active{transform:scale(.93)}
   .spk-line{background:none;border:none;color:var(--accent);font-size:14px;cursor:pointer;padding:0 4px}
@@ -158,8 +160,14 @@
   .empty-mini{color:var(--soft);font-size:13.5px;padding:14px 2px 4px}
   .add-word{display:block;width:100%;text-align:left;border:none;background:none;color:var(--accent);font-size:14px;font-weight:600;font-family:var(--sans);padding:11px 2px 4px;cursor:pointer}
   .add-word:active{opacity:.6}
-  .entry.long .w{font-size:15.5px}
-  .entry .src{font-size:11px;color:var(--accent);background:var(--accent-soft);border-radius:7px;padding:2px 8px;align-self:center;flex:none;white-space:nowrap;font-weight:600}
+  .entry .src{font-size:11px;color:var(--accent);background:var(--accent-soft);border-radius:7px;padding:2px 8px;flex:none;white-space:nowrap;font-weight:600;align-self:center}
+  /* --- підказка про дублікат у редакторі --- */
+  .dup-hint{display:none;font-size:12.5px;line-height:1.35;margin-top:9px;padding:8px 11px;border-radius:9px}
+  .dup-hint.warn{background:#F7E4E4;color:var(--rose)}
+  .dup-hint.info{background:var(--accent-soft);color:var(--accent)}
+  /* --- форми слова на звороті картки --- */
+  .back .forms{margin-top:12px;font-family:var(--serif);font-size:16px;color:#39414d}
+  .back .forms .flbl{font-family:var(--sans);font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--soft);margin-right:6px}
   /* --- чип денної цілі --- */
   .goal{display:inline-flex;align-items:center;gap:10px;background:var(--accent-soft);color:var(--accent);border-radius:12px;padding:9px 15px;font-size:13.5px;font-weight:600;margin-top:16px}
   .goal.done{background:#E4F0EC;color:var(--teal)}
@@ -196,6 +204,7 @@
     <div class="panel" id="ttsPanel">
       <h3>Озвучення</h3>
       <div id="ttsControls">
+        <p>Озвучення англійських слів і прикладів голосом твого пристрою.</p>
         <div class="seg" id="ttsOnSeg"><button data-on="1">Увімкнено</button><button data-on="0">Вимкнено</button></div>
         <div class="seg" id="ttsAutoSeg"><button data-auto="1">Авто-озвучення</button><button data-auto="0">Лише вручну</button></div>
         <div class="seg" id="ttsAccSeg"><button data-acc="auto">Авто</button><button data-acc="us">🇺🇸 US</button><button data-acc="gb">🇬🇧 UK</button></div>
@@ -206,6 +215,7 @@
     </div>
     <div class="panel">
       <h3>Денна ціль нових слів</h3>
+      <p>Скільки нових слів ти прагнеш вивчати щодня. Це орієнтир-досягнення, а не обмеження — нові слова завжди доступні, а застосунок показує твій поступ до цілі.</p>
       <div class="numrow"><input type="number" id="newLimit" min="0" max="999" inputmode="numeric"><label>0 = без цілі</label></div>
     </div>
     <div class="panel">
@@ -227,8 +237,9 @@
 <div class="editor" id="editor">
   <div class="ed-head"><button class="x" id="edClose">×</button><h2 id="edTitle">Новий запис</h2><button class="save" id="edSave">Зберегти</button></div>
   <div class="ed-body">
-    <div class="field"><label>Слово або фраза</label><input id="f-word" class="serif" autocapitalize="none" autocomplete="off" placeholder="endeavour"><button class="spk-prev" id="spkPreview" type="button" style="display:none">🔊 Прослухати</button></div>
+    <div class="field"><label>Слово або фраза</label><input id="f-word" class="serif" autocapitalize="none" autocomplete="off" placeholder="endeavour"><button class="spk-prev" id="spkPreview" type="button" style="display:none">🔊 Прослухати</button><div class="dup-hint" id="dupHint"></div></div>
     <div class="field"><label>Транскрипція</label><input id="f-ipa" class="serif" autocapitalize="none" placeholder="/ɪnˈdɛvə/"></div>
+    <div class="field"><label>Інші форми</label><input id="f-forms" class="serif" autocapitalize="none" autocomplete="off" placeholder="went, gone"><div class="hint">Неправильні форми через кому. Правильні (-s, -ed) додавати не треба — вони передбачувані.</div></div>
     <div class="field"><label>Переклад</label><input id="f-tr" placeholder="зусилля; намагатися"></div>
     <div class="field"><label>Мій коментар</label><textarea id="f-cmt" placeholder="Як запам'ятати, нюанси вживання…"></textarea></div>
     <div class="field"><label>Речення-приклади</label><textarea id="f-ex" placeholder="Кожне речення з нового рядка"></textarea><div class="hint">Кожен приклад — з нового рядка.</div></div>
@@ -272,7 +283,7 @@ function migrateInto(p){
   lists=[]; cards=[];
   if(Array.isArray(p)) cards=p;
   else if(p && Array.isArray(p.cards)){ lists=Array.isArray(p.lists)?p.lists:[]; cards=p.cards; }
-  cards.forEach(c=>{ if(c.type!=="phrase") c.type="word"; c.seen = (c.seen===true)||(c.reps>0); });
+  cards.forEach(c=>{ if(c.type!=="phrase") c.type="word"; c.seen = (c.seen===true)||(c.reps>0); if(typeof c.forms!=="string") c.forms=""; });
   lists.forEach(l=>{ if(typeof l.independent!=="boolean") l.independent = (l.mode==="independent"); delete l.mode; });
   if(cards.length && !lists.length) lists=[{id:uid(),name:"Мій список",independent:false,created:todayStr()}];
   ensureFallback();
@@ -410,12 +421,12 @@ function renderLists(){
 function updateBadge(){ const n=totalDue(), b=document.getElementById("navBadge"); if(n){ b.style.display="inline-block"; b.textContent=n; } else b.style.display="none"; }
 
 function entryHTML(c, src){
-  const long=(c.word||"").length>22;
   const dot=(isDue(c)||!c.seen)?'<span class="dot"></span>':'';
   const ipa=c.ipa?`<span class="ipa">${esc(c.ipa)}</span>`:'';
   const srcTag=src?`<span class="src">${esc(src)}</span>`:'';
+  const tr=c.tr?`<div class="tr">${esc(c.tr)}</div>`:'';
   const spk=ttsOn()?`<button class="spk-ent" data-spk="${c.id}">🔊</button>`:'';
-  return `<div class="entry${long?' long':''}" data-id="${c.id}">${dot}<span class="w">${esc(c.word)}</span>${ipa}<span class="tr">${esc(c.tr)}</span>${srcTag}${spk}</div>`;
+  return `<div class="entry" data-id="${c.id}">${dot}<div class="meta"><div class="w-line"><span class="w">${esc(c.word)}</span>${ipa}${srcTag}</div>${tr}</div>${spk}</div>`;
 }
 function wireEntries(root){
   root.querySelectorAll(".entry").forEach(e=>e.onclick=()=>openWordEditor(e.dataset.id));
@@ -444,7 +455,7 @@ function renderAccordion(){
 }
 function renderSearch(q){
   const res=document.getElementById("searchResults");
-  const hits=cards.filter(c=>((c.word||"")+" "+(c.tr||"")+" "+(c.cmt||"")+" "+(c.ex||"")).toLowerCase().includes(q))
+  const hits=cards.filter(c=>((c.word||"")+" "+(c.tr||"")+" "+(c.cmt||"")+" "+(c.ex||"")+" "+(c.forms||"")).toLowerCase().includes(q))
     .sort((a,b)=>a.word.toLowerCase()<b.word.toLowerCase()?-1:1);
   if(!hits.length){ res.innerHTML=`<div class="empty"><div class="big">Нічого не знайдено</div>За запитом «${esc(q)}» немає слів у жодному списку.</div>`; return; }
   res.innerHTML=`<div class="count">Знайдено <b>${hits.length}</b> у всіх списках</div>`+
@@ -461,12 +472,14 @@ function openWordEditor(id, preset){
   document.getElementById("edTitle").textContent=c?"Редагувати":"Новий запис";
   document.getElementById("f-word").value=c?c.word:"";
   document.getElementById("f-ipa").value=c?c.ipa:"";
+  document.getElementById("f-forms").value=c?(c.forms||""):"";
   document.getElementById("f-tr").value=c?c.tr:"";
   document.getElementById("f-cmt").value=c?c.cmt:"";
   document.getElementById("f-ex").value=c?c.ex:"";
   fillListSelect(c?c.listId:(preset||presetAddList()));
   document.getElementById("edDelete").style.display=c?"block":"none";
   document.getElementById("spkPreview").style.display=ttsOn()?"inline-block":"none";
+  checkDup();
   document.getElementById("editor").classList.add("on");
   if(!c) setTimeout(()=>document.getElementById("f-word").focus(),100);
 }
@@ -488,6 +501,7 @@ function saveWord(){
   }
   const data={ word, type:"word", listId:targetList,
     ipa:document.getElementById("f-ipa").value.trim(),
+    forms:document.getElementById("f-forms").value.trim(),
     tr:document.getElementById("f-tr").value.trim(),
     cmt:document.getElementById("f-cmt").value.trim(),
     ex:document.getElementById("f-ex").value };
@@ -497,6 +511,34 @@ function saveWord(){
   save(); closeWordEditor(); renderLists();
 }
 function deleteWord(){ if(!editingId) return; if(confirm("Видалити цей запис?")){ cards=cards.filter(x=>x.id!==editingId); save(); closeWordEditor(); renderLists(); } }
+
+/* ---- жива перевірка дубліката (заздалегідь, ще під час набору) ---- */
+function checkDup(){
+  const hint=document.getElementById("dupHint");
+  if(!hint) return;
+  const w=norm(document.getElementById("f-word").value);
+  const targetList=document.getElementById("f-list").value;
+  if(!w){ hint.style.display="none"; hint.textContent=""; return; }
+  const conf=findConflict(w, targetList, editingId);
+  if(conf){
+    const inTarget=conf.listId===targetList;
+    hint.className="dup-hint warn";
+    hint.textContent = inTarget
+      ? "Це слово вже є у цьому списку."
+      : `Уже є у списку «${listById(conf.listId).name}». Слова унікальні між звичайними списками — збереження буде заблоковано.`;
+    hint.style.display="block";
+    return;
+  }
+  const other=cards.find(c=>c.id!==editingId && norm(c.word)===w);
+  if(other){
+    const ol=listById(other.listId);
+    hint.className="dup-hint info";
+    hint.textContent=`Таке саме слово вже є у «${ol?ol.name:"іншому списку"}» (незалежний). Тут це окремий запис — можна зберегти.`;
+    hint.style.display="block";
+    return;
+  }
+  hint.style.display="none"; hint.textContent="";
+}
 
 /* ---- list editor ---- */
 function setEditIndep(v){ editIndep=v; document.querySelectorAll("#modeSeg button").forEach(b=>b.classList.toggle("on",(b.dataset.indep==="true")===v)); }
@@ -578,14 +620,15 @@ function showCard(){
   const exArr=(c.ex||"").split("\n").filter(x=>x.trim());
   const spkLine=i=>ttsOn()?` <button class="spk-line" data-i="${i}">🔊</button>`:'';
   const exHtml=exArr.length?`<div class="ex">${exArr.map((x,i)=>`<p>${esc(x)}${spkLine(i)}</p>`).join("")}</div>`:"";
+  const formsHtml=c.forms?`<div class="forms"><span class="flbl">форми</span>${esc(c.forms)}</div>`:"";
   const wordSpk=ttsOn()?`<button class="spk spk-word" type="button">🔊</button>`:'';
   let front, back;
   if(dir==="rev"){
     front=`<div class="dirhint">укр → англ</div><div class="headword${smallT}">${esc(c.tr||"—")}</div>`;
-    back=`<div class="ans">${esc(c.word)}</div>${wordSpk}${c.ipa?`<div class="ipa">${esc(c.ipa)}</div>`:''}${c.cmt?`<div class="cmt">${esc(c.cmt)}</div>`:''}${exHtml}`;
+    back=`<div class="ans">${esc(c.word)}</div>${wordSpk}${c.ipa?`<div class="ipa">${esc(c.ipa)}</div>`:''}${formsHtml}${c.cmt?`<div class="cmt">${esc(c.cmt)}</div>`:''}${exHtml}`;
   }else{
     front=`<div class="dirhint">англ → укр</div><div class="headword${smallW}">${esc(c.word)}</div>${wordSpk}`;
-    back=`${c.ipa?`<div class="ipa">${esc(c.ipa)}</div>`:''}<div class="tr">${esc(c.tr)}</div>${c.cmt?`<div class="cmt">${esc(c.cmt)}</div>`:''}${exHtml}`;
+    back=`${c.ipa?`<div class="ipa">${esc(c.ipa)}</div>`:''}<div class="tr">${esc(c.tr)}</div>${formsHtml}${c.cmt?`<div class="cmt">${esc(c.cmt)}</div>`:''}${exHtml}`;
   }
   card.innerHTML=`<div class="card"><div class="progress">${done} / ${sessTotal}</div>
     <div class="front">${front}<div class="tap-hint" id="th">торкнись, щоб побачити відповідь</div></div>
@@ -655,7 +698,7 @@ function normalizeImport(p){
   let L=[],C=[];
   if(Array.isArray(p)) C=p; else if(p && Array.isArray(p.cards)){ L=Array.isArray(p.lists)?p.lists:[]; C=p.cards; } else throw new Error("bad");
   C=C.map(c=>({ id:c.id||uid(), listId:c.listId, word:c.word||"", type:c.type==="phrase"?"phrase":"word",
-    ipa:c.ipa||"", tr:c.tr||"", cmt:c.cmt||"", ex:c.ex||"",
+    ipa:c.ipa||"", forms:c.forms||"", tr:c.tr||"", cmt:c.cmt||"", ex:c.ex||"",
     ef:c.ef||2.5, interval:c.interval||0, reps:c.reps||0, seen:(c.seen===true)||(c.reps>0),
     due:c.due||todayStr(), created:c.created||todayStr() }));
   L=L.map(l=>({ id:l.id||uid(), name:l.name||"Список", independent:(typeof l.independent==="boolean")?l.independent:(l.mode==="independent"), created:l.created||todayStr() }));
@@ -725,6 +768,8 @@ document.getElementById("gsearch").oninput=renderLists;
 document.getElementById("edClose").onclick=closeWordEditor;
 document.getElementById("edSave").onclick=saveWord;
 document.getElementById("edDelete").onclick=deleteWord;
+document.getElementById("f-word").oninput=checkDup;
+document.getElementById("f-list").onchange=checkDup;
 document.querySelectorAll("#modeSeg button").forEach(b=>b.onclick=()=>setEditIndep(b.dataset.indep==="true"));
 document.getElementById("leClose").onclick=closeListEditor;
 document.getElementById("leSave").onclick=saveList;
