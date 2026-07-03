@@ -34,7 +34,7 @@
   main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .view{display:none;padding:14px 16px 26px}
   .view.on{display:block}
-  #view-lists{padding-bottom:96px}
+  #view-lists,#view-grammar{padding-bottom:96px}
   .seg{display:flex;gap:4px;background:#ECE6D8;border-radius:11px;padding:3px;margin-bottom:14px}
   .seg button{flex:1;border:none;background:none;border-radius:8px;padding:8px 4px;font-size:14px;font-family:var(--sans);color:var(--soft);font-weight:600;cursor:pointer}
   .seg button.on{background:var(--raised);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
@@ -128,7 +128,7 @@
   .stat-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
   .stat-row:last-child{border:none}
   .stat-row span:last-child{font-weight:600}
-  nav{flex:none;display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);background:var(--raised);padding-bottom:env(safe-area-inset-bottom)}
+  nav{flex:none;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);background:var(--raised);padding-bottom:env(safe-area-inset-bottom)}
   nav button{border:none;background:none;padding:10px 0 14px;color:var(--soft);font-size:12px;font-family:var(--sans);cursor:pointer}
   nav button .ic{display:block;font-size:21px;margin-bottom:2px}
   nav button.on{color:var(--accent)}
@@ -204,6 +204,26 @@
   .weak-hint{margin-top:13px;font-size:12.5px;color:var(--accent);background:var(--accent-soft);border-radius:9px;padding:8px 11px;line-height:1.4}
   .edit-card{display:block;margin:16px auto 0;background:none;border:1px solid var(--line);color:var(--soft);font-family:var(--sans);font-size:13px;border-radius:10px;padding:7px 15px;cursor:pointer}
   .edit-card:active{border-color:var(--accent);color:var(--accent)}
+  /* --- граматика: нотатки --- */
+  .note{border-bottom:1px solid var(--line)}
+  .note:last-of-type{border-bottom:none}
+  .note-head{display:flex;align-items:center;gap:10px;padding:12px 2px;cursor:pointer}
+  .note-head .chev{color:var(--soft);font-size:15px;line-height:1;flex:none;transition:transform .2s ease}
+  .note.open .note-head .chev{transform:rotate(90deg);color:var(--accent)}
+  .note-head .nt-title{font-family:var(--serif);font-size:16px;font-weight:600;overflow-wrap:anywhere}
+  .note-body{padding:2px 2px 14px 24px;animation:fade .2s ease}
+  .note-body .edit-note{display:inline-block;margin-top:10px;background:none;border:1px solid var(--line);color:var(--soft);font-family:var(--sans);font-size:13px;border-radius:10px;padding:6px 14px;cursor:pointer}
+  .note-body .edit-note:active{border-color:var(--accent);color:var(--accent)}
+  /* --- легкий markdown у тілі нотатки --- */
+  .md p{margin:0 0 9px;font-family:var(--serif);font-size:15.5px;color:#39414d;line-height:1.5;overflow-wrap:anywhere}
+  .md p:last-child{margin-bottom:0}
+  .md .md-h{font-family:var(--serif);margin:12px 0 6px;color:var(--ink);line-height:1.3}
+  .md h3.md-h{font-size:18px} .md h4.md-h{font-size:16px} .md h5.md-h{font-size:14.5px}
+  .md ul,.md ol{margin:0 0 9px;padding-left:20px}
+  .md li{font-family:var(--serif);font-size:15.5px;color:#39414d;line-height:1.5;margin:2px 0;overflow-wrap:anywhere}
+  .md code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;background:var(--accent-soft);color:var(--accent);border-radius:5px;padding:1px 5px}
+  .md strong{font-weight:700} .md em{font-style:italic}
+  #n-body{min-height:220px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -217,7 +237,7 @@
 <main>
   <section class="view on" id="view-lists">
     <div class="search-wrap">
-      <input class="search" id="gsearch" placeholder="Пошук серед усіх слів…" autocapitalize="none" autocomplete="off">
+      <input class="search" id="gsearch" placeholder="Пошук серед слів і граматики…" autocapitalize="none" autocomplete="off">
       <button class="search-clear" id="gsearchClear" type="button" aria-label="Очистити пошук">×</button>
     </div>
     <div id="searchResults" style="display:none"></div>
@@ -260,11 +280,16 @@
     <div class="panel"><h3>Імпорт</h3><p>Завантажити дані з файлу. Замінить усі поточні дані.</p><button class="btn ghost" id="importBtn">Вибрати файл</button><input type="file" id="importFile" accept=".json,application/json" style="display:none"></div>
     <div class="panel"><h3>Очистити все</h3><p>Видалити всі слова й залишити один порожній список. Перед очищенням робиться авто-копія — це можна відкотити.</p><button class="btn danger" id="clearBtn">Очистити всі дані</button></div>
   </section>
+  <section class="view" id="view-grammar">
+    <div class="count" id="grCount"></div>
+    <div id="grammar"></div>
+  </section>
 </main>
 <button class="fab" id="fab">+</button>
 <nav>
   <button class="on" data-view="lists"><span class="ic">📚</span>Списки</button>
   <button data-view="study"><span class="ic">🎯</span>Вчити <span class="badge" id="navBadge" style="display:none">0</span></button>
+  <button data-view="grammar"><span class="ic">📖</span>Граматика</button>
   <button data-view="data"><span class="ic">⚙︎</span>Дані</button>
 </nav>
 <div class="editor" id="editor">
@@ -295,6 +320,15 @@
     <button class="del-link" id="leDelete" style="display:none">Видалити список і всі його слова</button>
   </div>
 </div>
+<div class="editor" id="noteEditor">
+  <div class="ed-head"><button class="x" id="noteClose">×</button><h2 id="noteTitle">Нова нотатка</h2><button class="save" id="noteSave">Зберегти</button></div>
+  <div class="ed-body">
+    <div class="field"><label>Категорія</label><input id="n-cat" list="catList" autocapitalize="none" autocomplete="off" placeholder="Напр.: Часи, Артиклі, Прийменники"><datalist id="catList"></datalist><div class="hint">Групує правила у розділі. Можна лишити порожнім — потрапить до «Інше».</div></div>
+    <div class="field"><label>Заголовок</label><input id="n-title" class="serif" autocomplete="off" placeholder="Present Perfect"></div>
+    <div class="field"><label>Правило</label><textarea id="n-body" placeholder="Опис правила…"></textarea><div class="hint">Порожній рядок — новий абзац. «- » — список, «# » і «## » — заголовки. Виділення: **жирний**, *курсив*, `код`.</div></div>
+    <button class="del-link" id="noteDelete" style="display:none">Видалити нотатку</button>
+  </div>
+</div>
 <script>
 "use strict";
 const KEY="words_app_v1", BKP="words_app_backup_v1", META="words_app_meta_v1";
@@ -305,6 +339,7 @@ let editingId=null, editSenses=[];
 let editingListId=null, editIndep=false;
 let studyScope="all", session=[], sessTotal=0;
 let studyEditing=false, revealAfterRender=false;
+let notes=[], editingNoteId=null, grCatOpen=new Set(), grNoteOpen=new Set();
 
 function load(){
   let raw=null;
@@ -320,6 +355,7 @@ function migrateInto(p){
   lists=[]; cards=[];
   if(Array.isArray(p)) cards=p;
   else if(p && Array.isArray(p.cards)){ lists=Array.isArray(p.lists)?p.lists:[]; cards=p.cards; }
+  notes = (p && Array.isArray(p.notes)) ? p.notes.map(normNote) : [];
   cards.forEach(c=>{ c.seen = (c.seen===true)||(c.reps>0); if(typeof c.forms!=="string") c.forms=""; if(typeof c.cmt!=="string") c.cmt=c.cmt?String(c.cmt):""; ensureSenses(c); delete c.type; });
   lists.forEach(l=>{ if(typeof l.independent!=="boolean") l.independent = (l.mode==="independent"); delete l.mode; });
   if(cards.length && !lists.length) lists=[{id:uid(),name:"Мій список",independent:false,created:todayStr()}];
@@ -329,7 +365,7 @@ function ensureFallback(){
   const ids=new Set(lists.map(l=>l.id)); const fb=lists[0]?lists[0].id:null;
   cards.forEach(c=>{ if(!ids.has(c.listId)) c.listId=fb; });
 }
-function save(){ if(!storeOk) return; try{ localStorage.setItem(KEY,JSON.stringify({lists,cards})); }catch(e){ storeOk=false; document.getElementById("banner").style.display="block"; } }
+function save(){ if(!storeOk) return; try{ localStorage.setItem(KEY,JSON.stringify({lists,cards,notes})); }catch(e){ storeOk=false; document.getElementById("banner").style.display="block"; } }
 function getMeta(){ try{ return JSON.parse(localStorage.getItem(META))||{}; }catch(e){ return {}; } }
 function setMeta(m){ try{ localStorage.setItem(META,JSON.stringify(m)); }catch(e){} }
 /* прибрати застарілі ключі цього застосунку з попередніх версій (напр. датовані копії) */
@@ -388,7 +424,7 @@ function getBackups(){
 function writeBackup(){
   if(!storeOk || !cards.length) return;
   let arr=getBackups();
-  const snap={date:todayStr(),ts:Date.now(),lists:JSON.parse(JSON.stringify(lists)),cards:JSON.parse(JSON.stringify(cards))};
+  const snap={date:todayStr(),ts:Date.now(),lists:JSON.parse(JSON.stringify(lists)),cards:JSON.parse(JSON.stringify(cards)),notes:JSON.parse(JSON.stringify(notes))};
   if(arr[0] && arr[0].date===todayStr()) arr[0]=snap;             // оновити сьогоднішній
   else arr.unshift(snap);
   arr=arr.slice(0,MAXBK);
@@ -413,6 +449,30 @@ function norm(s){ return (s||"").trim().toLowerCase(); }
 function esc(s){ return (s||"").replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
 function ivLabel(n){ if(n<=0) return "сьогодні"; if(n===1) return "1 дн"; if(n<30) return n+" дн"; if(n<365) return (n/30).toFixed(n<60?1:0)+" міс"; return (n/365).toFixed(1)+" р"; }
 function plz(n,one,few,many){ const m10=n%10,m100=n%100; if(m10===1&&m100!==11) return one; if(m10>=2&&m10<=4&&(m100<12||m100>14)) return few; return many; }
+
+/* ---- граматичні нотатки ---- */
+function normNote(n){ n=n||{}; return { id:n.id||uid(), cat:(n.cat||"").trim(), title:(n.title||"").trim(), body:(typeof n.body==="string")?n.body:"", created:n.created||todayStr(), updated:n.updated||n.created||todayStr() }; }
+function noteCats(){ const out=[]; notes.forEach(n=>{ const c=(n.cat||"").trim(); if(c&&!out.includes(c)) out.push(c); }); out.sort((a,b)=>a.toLowerCase()<b.toLowerCase()?-1:1); return out; }
+function noteSearchText(n){ return ((n.title||"")+" "+(n.body||"")).toLowerCase(); }
+/* легкий markdown → безпечний HTML (спершу екрануємо, теги лише свої) */
+function mdRender(src){
+  const lines=esc(String(src||"")).split(/\r?\n/);
+  let html="", list=null, para=[];
+  const inline=t=>t.replace(/`([^`]+)`/g,"<code>$1</code>").replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>").replace(/\*([^*]+)\*/g,"<em>$1</em>").replace(/(^|[^\w])_([^_]+)_/g,"$1<em>$2</em>");
+  const closeList=()=>{ if(list){ html+="</"+list+">"; list=null; } };
+  const flushPara=()=>{ if(para.length){ html+="<p>"+para.map(inline).join("<br>")+"</p>"; para=[]; } };
+  lines.forEach(raw=>{
+    const line=raw.trim(); let m;
+    if(!line){ flushPara(); closeList(); return; }
+    if(m=line.match(/^(#{1,3})\s+(.*)$/)){ flushPara(); closeList(); const lv=m[1].length+2; html+="<h"+lv+" class=\"md-h\">"+inline(m[2])+"</h"+lv+">"; return; }
+    if(m=line.match(/^[-*]\s+(.*)$/)){ flushPara(); if(list!=="ul"){ closeList(); html+="<ul>"; list="ul"; } html+="<li>"+inline(m[1])+"</li>"; return; }
+    if(m=line.match(/^\d+\.\s+(.*)$/)){ flushPara(); if(list!=="ol"){ closeList(); html+="<ol>"; list="ol"; } html+="<li>"+inline(m[1])+"</li>"; return; }
+    if(list) closeList();
+    para.push(line);
+  });
+  flushPara(); closeList();
+  return html||"<p>—</p>";
+}
 
 /* ---- багатозначність (senses) ---- */
 const POS=[{v:"",label:"— частина мови",ab:""},{v:"n",label:"іменник",ab:"n."},{v:"v",label:"дієслово",ab:"v."},{v:"adj",label:"прикметник",ab:"adj."},{v:"adv",label:"прислівник",ab:"adv."},{v:"prep",label:"прийменник",ab:"prep."},{v:"phr",label:"фраза",ab:"phr."},{v:"other",label:"інше",ab:""}];
@@ -474,9 +534,10 @@ function show(v){
   document.querySelectorAll(".view").forEach(s=>s.classList.remove("on"));
   document.getElementById("view-"+v).classList.add("on");
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.view===v));
-  document.getElementById("fab").style.display = v==="lists" ? "block":"none";
+  document.getElementById("fab").style.display = (v==="lists"||v==="grammar") ? "block":"none";
   if(v==="lists") renderLists();
   if(v==="study"){ session=[]; renderStudy(); }
+  if(v==="grammar") renderGrammar();
   if(v==="data") renderData();
   updateBadge();
 }
@@ -523,14 +584,82 @@ function renderAccordion(){
   root.querySelectorAll(".add-word").forEach(b=>b.onclick=ev=>{ ev.stopPropagation(); openWordEditor(null, b.dataset.add); });
   wireEntries(root);
 }
+function noteHitHTML(n){
+  const cat=(n.cat||"").trim()||"Інше";
+  const snip=(n.body||"").replace(/\s+/g," ").trim().slice(0,90);
+  return `<div class="entry" data-noteopen="${n.id}"><div class="meta"><div class="w-line"><span class="w">${esc(n.title||"(без назви)")}</span><span class="src">📖 ${esc(cat)}</span></div>${snip?`<div class="tr">${esc(snip)}</div>`:""}</div></div>`;
+}
 function renderSearch(q){
   const res=document.getElementById("searchResults");
   const hits=cards.filter(c=>cardSearchText(c).includes(q))
     .sort((a,b)=>a.word.toLowerCase()<b.word.toLowerCase()?-1:1);
-  if(!hits.length){ res.innerHTML=`<div class="empty"><div class="big">Нічого не знайдено</div>За запитом «${esc(q)}» немає слів у жодному списку.</div>`; return; }
-  res.innerHTML=`<div class="count">Знайдено <b>${hits.length}</b> у всіх списках</div>`+
+  const nHits=notes.filter(n=>noteSearchText(n).includes(q))
+    .sort((a,b)=>(b.updated||"").localeCompare(a.updated||""));
+  if(!hits.length && !nHits.length){ res.innerHTML=`<div class="empty"><div class="big">Нічого не знайдено</div>За запитом «${esc(q)}» немає ні слів, ні граматичних нотаток.</div>`; return; }
+  let html="";
+  if(hits.length) html+=`<div class="count">Слова: <b>${hits.length}</b> у всіх списках</div>`+
     hits.map(c=>{ const l=listById(c.listId); return entryHTML(c, l?l.name:""); }).join("");
+  if(nHits.length) html+=`<div class="count">Граматика: <b>${nHits.length}</b></div>`+
+    nHits.map(noteHitHTML).join("");
+  res.innerHTML=html;
   wireEntries(res);
+  res.querySelectorAll("[data-noteopen]").forEach(el=>el.onclick=()=>openNoteEditor(el.dataset.noteopen));
+}
+
+/* ---- граматика: рендер вкладки ---- */
+function noteRowHTML(n){
+  const open=grNoteOpen.has(n.id);
+  const body=open?`<div class="note-body"><div class="md">${mdRender(n.body)}</div><button class="edit-note" data-edit="${n.id}" type="button">✏️ Редагувати</button></div>`:"";
+  return `<div class="note${open?' open':''}"><div class="note-head" data-nt="${n.id}"><span class="chev">›</span><span class="nt-title">${esc(n.title||"(без назви)")}</span></div>${body}</div>`;
+}
+function renderGrammar(){
+  const root=document.getElementById("grammar");
+  document.getElementById("grCount").innerHTML = notes.length?`${notes.length} ${plz(notes.length,'нотатка','нотатки','нотаток')}`:"";
+  if(!notes.length){ root.innerHTML=`<div class="empty"><div class="big">Ще немає нотаток</div>Записуй граматичні правила кнопкою + внизу. Групуй їх за категоріями — і знаходь через пошук на вкладці «Списки».</div>`; return; }
+  const cats=[], map={};
+  notes.forEach(n=>{ const c=(n.cat||"").trim()||"Інше"; if(!map[c]){ map[c]=[]; cats.push(c); } map[c].push(n); });
+  cats.sort((a,b)=>{ if(a==="Інше") return 1; if(b==="Інше") return -1; return a.toLowerCase()<b.toLowerCase()?-1:1; });
+  root.innerHTML=cats.map(c=>{
+    const arr=map[c].slice().sort((a,b)=>(b.updated||"").localeCompare(a.updated||""));
+    const open=grCatOpen.has(c);
+    const body=open?`<div class="list-body">${arr.map(noteRowHTML).join("")}</div>`:"";
+    return `<div class="list-card${open?' open':''}"><div class="list-head" data-cat="${esc(c)}"><span class="chev">›</span><div class="meta"><div class="nm">${esc(c)}</div><div class="sb">${arr.length} ${plz(arr.length,'правило','правила','правил')}</div></div></div>${body}</div>`;
+  }).join("");
+  root.querySelectorAll(".list-head").forEach(h=>h.onclick=()=>{ const c=h.dataset.cat; grCatOpen.has(c)?grCatOpen.delete(c):grCatOpen.add(c); renderGrammar(); });
+  root.querySelectorAll(".note-head").forEach(h=>h.onclick=()=>{ const id=h.dataset.nt; grNoteOpen.has(id)?grNoteOpen.delete(id):grNoteOpen.add(id); renderGrammar(); });
+  root.querySelectorAll(".edit-note").forEach(b=>b.onclick=ev=>{ ev.stopPropagation(); openNoteEditor(b.dataset.edit); });
+}
+
+/* ---- граматика: редактор нотатки ---- */
+function fillCatList(){ document.getElementById("catList").innerHTML=noteCats().map(c=>`<option value="${esc(c)}"></option>`).join(""); }
+function openNoteEditor(id){
+  editingNoteId=id||null; const n=id?notes.find(x=>x.id===id):null;
+  document.getElementById("noteTitle").textContent=n?"Редагувати нотатку":"Нова нотатка";
+  document.getElementById("n-cat").value=n?(n.cat||""):"";
+  document.getElementById("n-title").value=n?(n.title||""):"";
+  document.getElementById("n-body").value=n?(n.body||""):"";
+  fillCatList();
+  document.getElementById("noteDelete").style.display=n?"block":"none";
+  document.getElementById("noteEditor").classList.add("on");
+  if(!n) setTimeout(()=>document.getElementById("n-title").focus(),100);
+}
+function closeNoteEditor(){ document.getElementById("noteEditor").classList.remove("on"); editingNoteId=null; }
+function afterNoteSave(){ if(activeView==="grammar") renderGrammar(); else if(activeView==="lists") renderLists(); }
+function saveNote(){
+  const title=document.getElementById("n-title").value.trim();
+  const body=document.getElementById("n-body").value;
+  const cat=document.getElementById("n-cat").value.trim();
+  if(!title && !body.trim()){ document.getElementById("n-title").focus(); return; }
+  if(editingNoteId){ const n=notes.find(x=>x.id===editingNoteId); if(n){ n.cat=cat; n.title=title; n.body=body; n.updated=todayStr(); grNoteOpen.add(n.id); } }
+  else{ const id=uid(); notes.push({id,cat,title,body,created:todayStr(),updated:todayStr()}); grNoteOpen.add(id); }
+  grCatOpen.add(cat||"Інше");
+  save(); closeNoteEditor(); afterNoteSave();
+}
+function deleteNote(){
+  if(!editingNoteId) return;
+  if(!confirm("Видалити цю нотатку?")) return;
+  notes=notes.filter(x=>x.id!==editingNoteId);
+  save(); closeNoteEditor(); afterNoteSave();
 }
 
 /* ---- word editor ---- */
@@ -807,7 +936,7 @@ function renderData(){
   document.getElementById("bkpInfo").textContent = (arr.length?`Зберігається до ${MAXBK} останніх знімків. Якщо щось зіпсуєш — відкоти потрібний. `:"Авто-копія зʼявиться при наступному відкритті. ")+`Зараз у сховищі ~${storageKB()} КБ.`;
 }
 function exportData(){
-  const blob=new Blob([JSON.stringify({lists,cards},null,2)],{type:"application/json"});
+  const blob=new Blob([JSON.stringify({lists,cards,notes},null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob); const a=document.createElement("a");
   a.href=url; a.download="slovnyk-"+todayStr()+".json"; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -827,14 +956,15 @@ function normalizeImport(p){
   if(!L.length) L=[{id:uid(),name:"Загальний",independent:false,created:todayStr()}];
   const ids=new Set(L.map(l=>l.id)); const fb=L[0].id;
   C.forEach(c=>{ if(!ids.has(c.listId)) c.listId=fb; });
-  return {L,C};
+  const N=Array.isArray(p&&p.notes)?p.notes.map(normNote):[];
+  return {L,C,N};
 }
 function importData(file){
   const r=new FileReader();
   r.onload=()=>{ try{
-    const {L,C}=normalizeImport(JSON.parse(r.result));
-    if(!confirm(`Завантажити ${C.length} записів у ${L.length} списках? Поточні дані буде замінено.`)) return;
-    snapshotNow(); lists=L; cards=C; expanded=new Set(lists.map(l=>l.id)); studyScope="all";
+    const {L,C,N}=normalizeImport(JSON.parse(r.result));
+    if(!confirm(`Завантажити ${C.length} записів у ${L.length} списках${N.length?` та ${N.length} ${plz(N.length,'нотатку','нотатки','нотаток')} граматики`:""}? Поточні дані буде замінено.`)) return;
+    snapshotNow(); lists=L; cards=C; notes=N; expanded=new Set(lists.map(l=>l.id)); studyScope="all"; grCatOpen=new Set(); grNoteOpen=new Set();
     save(); renderData(); updateBadge(); alert("Готово. Завантажено "+C.length+" записів.");
   }catch(e){ alert("Не вдалося прочитати файл. Перевір, що це правильний .json з цього додатку."); } };
   r.readAsText(file);
@@ -843,8 +973,8 @@ function restoreBackup(){
   const arr=getBackups(); if(!arr.length){ alert("Авто-копій ще немає."); return; }
   const i=parseInt(document.getElementById("bkpSel").value,10)||0; const b=arr[i]; if(!b||!b.cards.length){ alert("Ця копія порожня."); return; }
   if(!confirm(`Відновити ${b.cards.length} записів зі знімка від ${b.date}? Поточні дані буде замінено.`)) return;
-  const {L,C}=normalizeImport({lists:b.lists,cards:b.cards});
-  lists=L; cards=C; expanded=new Set(lists.map(l=>l.id)); studyScope="all";
+  const {L,C,N}=normalizeImport({lists:b.lists,cards:b.cards,notes:b.notes});
+  lists=L; cards=C; notes=N; expanded=new Set(lists.map(l=>l.id)); studyScope="all"; grCatOpen=new Set(); grNoteOpen=new Set();
   save(); renderData(); updateBadge(); alert("Відновлено.");
 }
 function clearAll(){
@@ -883,7 +1013,7 @@ const ICON512="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAYAAAD0eNT
 /* ---- wire up ---- */
 load(); dailySnapshot();
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>show(b.dataset.view));
-document.getElementById("fab").onclick=()=>{ if(activeView!=="lists") return; openWordEditor(null); };
+document.getElementById("fab").onclick=()=>{ if(activeView==="lists") openWordEditor(null); else if(activeView==="grammar") openNoteEditor(null); };
 document.getElementById("newListBtn").onclick=()=>openListEditor(null);
 (function(){
   const gs=document.getElementById("gsearch"), gc=document.getElementById("gsearchClear");
@@ -901,6 +1031,9 @@ document.querySelectorAll("#modeSeg button").forEach(b=>b.onclick=()=>setEditInd
 document.getElementById("leClose").onclick=closeListEditor;
 document.getElementById("leSave").onclick=saveList;
 document.getElementById("leDelete").onclick=deleteList;
+document.getElementById("noteClose").onclick=closeNoteEditor;
+document.getElementById("noteSave").onclick=saveNote;
+document.getElementById("noteDelete").onclick=deleteNote;
 document.getElementById("scopeSel").onchange=e=>{ studyScope=e.target.value; renderHub(); };
 document.querySelectorAll("#dirSeg button").forEach(b=>b.onclick=()=>setDir(b.dataset.dir));
 document.getElementById("newLimit").onchange=e=>{ let v=parseInt(e.target.value,10); if(isNaN(v)||v<0) v=0; const m=getMeta(); m.newLimit=v; setMeta(m); e.target.value=v; renderData(); };
