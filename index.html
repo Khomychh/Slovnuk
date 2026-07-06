@@ -128,9 +128,9 @@
   .stat-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
   .stat-row:last-child{border:none}
   .stat-row span:last-child{font-weight:600}
-  nav{flex:none;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);background:var(--raised);padding-bottom:env(safe-area-inset-bottom)}
-  nav button{border:none;background:none;padding:10px 0 14px;color:var(--soft);font-size:12px;font-family:var(--sans);cursor:pointer}
-  nav button .ic{display:block;font-size:21px;margin-bottom:2px}
+  nav{flex:none;display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--line);background:var(--raised);padding-bottom:env(safe-area-inset-bottom)}
+  nav button{border:none;background:none;padding:10px 0 14px;color:var(--soft);font-size:11px;font-family:var(--sans);cursor:pointer;white-space:nowrap;overflow:hidden}
+  nav button .ic{display:block;font-size:20px;margin-bottom:2px}
   nav button.on{color:var(--accent)}
   nav .badge{display:inline-block;min-width:17px;background:var(--accent);color:#fff;border-radius:9px;font-size:11px;padding:0 5px;margin-left:4px;vertical-align:top}
   .editor{position:fixed;inset:0;background:var(--paper);z-index:50;display:none;flex-direction:column}
@@ -179,9 +179,46 @@
   .goal .bar{width:64px;height:6px;border-radius:3px;background:rgba(40,75,140,.18);overflow:hidden}
   .goal .bar i{display:block;height:100%;background:var(--accent);border-radius:3px;transition:width .3s}
   .goal.done .bar{background:rgba(31,107,92,.2)} .goal.done .bar i{background:var(--teal)}
-  /* --- цілі на вкладці «Списки» --- */
-  .lists-goal{background:var(--raised);border:1px solid var(--line);border-radius:var(--r);padding:13px 15px;margin-bottom:14px}
-  .lists-goal .goal{margin-top:0}
+  /* --- панель прогресу на вкладці «Списки» --- */
+  .prog-card{background:var(--raised);border:1px solid var(--line);border-radius:var(--r);margin-bottom:14px;overflow:hidden}
+  .prog-head{display:flex;align-items:center;gap:9px;width:100%;background:none;border:none;padding:12px 14px;cursor:pointer;font-family:var(--sans);color:var(--ink);text-align:left}
+  .streak-pill{display:inline-flex;align-items:center;gap:4px;font-size:13.5px;font-weight:700;color:var(--soft);background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:3px 10px 3px 8px;flex:none;font-variant-numeric:tabular-nums}
+  .streak-pill.hot{color:var(--amber);border-color:#EAD9B8;background:#FBF3E3}
+  .prog-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--serif);font-size:16px;font-weight:600}
+  .prog-mini{flex:none;font-size:12.5px;color:var(--soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .prog-head .chev{color:var(--soft);font-size:20px;line-height:1;flex:none;transition:transform .22s ease}
+  .prog-card.open .prog-head .chev{transform:rotate(90deg);color:var(--accent)}
+  .prog-card:not(.open) .prog-body{display:none}
+  .prog-body{padding:0 14px 14px;animation:fade .2s ease}
+  .prog-sec{padding:13px 0;border-bottom:1px solid var(--line)}
+  .prog-sec.last{border-bottom:none;padding-bottom:2px}
+  .prog-lbl{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--soft);margin-bottom:10px}
+  .prog-bar{margin-bottom:12px}
+  .prog-bar:last-child{margin-bottom:0}
+  .pb-top{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;margin-bottom:6px}
+  .pb-num{font-weight:600;color:var(--soft);font-variant-numeric:tabular-nums}
+  .prog-bar.done .pb-num{color:var(--teal)}
+  .pb-track{height:7px;border-radius:4px;background:rgba(40,75,140,.12);overflow:hidden}
+  .pb-track i{display:block;height:100%;background:var(--accent);border-radius:4px;transition:width .35s ease}
+  .prog-bar.done .pb-track i{background:var(--teal)}
+  .prog-win{margin-top:12px;font-size:13px;font-weight:600;color:var(--teal);background:#E4F0EC;border-radius:10px;padding:8px 12px;text-align:center}
+  .streak-row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+  .streak-big{display:flex;align-items:baseline;gap:8px;min-width:0}
+  .streak-big b{font-family:var(--serif);font-size:32px;font-weight:700;color:var(--accent);line-height:1}
+  .streak-big.zero b{color:var(--soft)}
+  .streak-big span{font-size:13px;color:var(--soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .streak-best{flex:none;font-size:12.5px;color:var(--soft);white-space:nowrap}
+  .day-dots{display:flex;gap:6px;margin-top:13px}
+  .day-dot{flex:1;height:9px;border-radius:4px;background:rgba(40,75,140,.1)}
+  .day-dot.met{background:var(--accent)}
+  .day-dot.today{box-shadow:inset 0 0 0 1.5px var(--soft)}
+  .day-dot.met.today{box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.85)}
+  .stat-pills{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+  .stat-pill{background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:10px 6px;text-align:center}
+  .stat-pill b{display:block;font-family:var(--serif);font-size:22px;font-weight:700;color:var(--accent);line-height:1}
+  .stat-pill span{display:block;font-size:11px;color:var(--soft);margin-top:3px;text-transform:uppercase;letter-spacing:.4px}
+  .prog-hint{color:var(--soft);font-size:13.5px;line-height:1.45}
+  #view-progress .day-dots{margin-top:0}
   /* --- багатозначність: редактор --- */
   .sense{border:1px solid var(--line);border-radius:11px;padding:11px;margin-bottom:9px;background:var(--paper)}
   .sense-top{display:flex;gap:8px;align-items:center;margin-bottom:8px}
@@ -246,7 +283,6 @@
     <div id="searchResults" style="display:none"></div>
     <div id="listsWrap">
       <div class="count" id="rootCount"></div>
-      <div id="listsGoal"></div>
       <div id="lists"></div>
       <button class="newlist-btn" id="newListBtn">+ Новий список</button>
     </div>
@@ -257,7 +293,6 @@
     <div id="study-hub" class="study-hub"></div><div id="study-card"></div>
   </section>
   <section class="view" id="view-data">
-    <div class="panel"><h3>Статистика</h3><div id="stats"></div></div>
     <div class="panel" id="ttsPanel">
       <h3>Озвучення</h3>
       <div id="ttsControls">
@@ -269,12 +304,6 @@
         <button class="btn ghost" id="ttsTest">▶ Перевірити</button>
       </div>
       <p class="tts-note" id="ttsUnsupported" style="display:none">Твій пристрій або браузер не підтримує озвучення. На Android встанови/онови «Google Синтез мовлення» та англомовний голос у налаштуваннях системи.</p>
-    </div>
-    <div class="panel">
-      <h3>Денні цілі</h3>
-      <p>Орієнтири-досягнення, а не обмеження. Ціль нових слів видно на вкладці «Списки», ціль повторів — на вкладці «Вчити». День рахується виконаним, коли досягнуто обидві задані цілі.</p>
-      <div class="numrow"><input type="number" id="newLimit" min="0" max="999" inputmode="numeric"><label>нових слів на день · 0 = без цілі</label></div>
-      <div class="numrow"><input type="number" id="reviewLimit" min="0" max="999" inputmode="numeric"><label>повторів на день · 0 = без цілі</label></div>
     </div>
     <div class="panel">
       <h3>Авто-копії</h3><p id="bkpInfo"></p>
@@ -290,12 +319,23 @@
     <div class="count" id="grCount"></div>
     <div id="grammar"></div>
   </section>
+  <section class="view" id="view-progress">
+    <div id="progressTop"></div>
+    <div class="panel">
+      <h3>Мої цілі</h3>
+      <p>Орієнтир, а не обмеження — черга на повторення ніколи не блокується. Постав 0, щоб вимкнути ціль.</p>
+      <div class="numrow"><input type="number" id="newLimit" min="0" max="999" inputmode="numeric"><label>нових слів на день · 0 = вимкнено</label></div>
+      <div class="numrow"><input type="number" id="reviewLimit" min="0" max="999" inputmode="numeric"><label>повторів на день · 0 = вимкнено</label></div>
+      <p class="tts-note">День зараховується як виконаний, коли досягнуто всі увімкнені цілі. Лічильник виконаних днів лише зростає — пропуск дня нічого не обнуляє.</p>
+    </div>
+  </section>
 </main>
 <button class="fab" id="fab">+</button>
 <nav>
-  <button class="on" data-view="lists"><span class="ic">📚</span>Списки</button>
-  <button data-view="study"><span class="ic">🎯</span>Вчити <span class="badge" id="navBadge" style="display:none">0</span></button>
+  <button class="on" data-view="lists"><span class="ic">📚</span>Слова</button>
   <button data-view="grammar"><span class="ic">📖</span>Граматика</button>
+  <button data-view="study"><span class="ic">🎯</span>Вчити <span class="badge" id="navBadge" style="display:none">0</span></button>
+  <button data-view="progress"><span class="ic">📊</span>Прогрес</button>
   <button data-view="data"><span class="ic">⚙︎</span>Дані</button>
 </nav>
 <div class="editor" id="editor">
@@ -352,6 +392,7 @@ function load(){
   try{ raw=localStorage.getItem(KEY); }catch(e){ storeOk=false; document.getElementById("banner").style.display="block"; }
   let p=null; try{ p=raw?JSON.parse(raw):null; }catch(e){ p=null; }
   migrateInto(p);
+  migrateMeta();
   pruneStorage();
   if(!lists.length){ lists=[{id:uid(),name:"Загальний",independent:false,created:todayStr()}]; ensureFallback(); }
   if(lists.length===1) expanded.add(lists[0].id);
@@ -508,14 +549,26 @@ function findConflict(w, listId, exceptId){
 }
 
 /* ---- денні цілі (орієнтир, не обмеження) ---- */
+/* журнал по днях: meta.log[date] = {n:нові, r:повтори} */
+function logDay(d){ const m=getMeta(); const e=(m.log&&m.log[d])||{}; return {n:e.n||0, r:e.r||0}; }
+function bumpLog(field){ const m=getMeta(); if(!m.log||typeof m.log!=="object") m.log={}; const d=todayStr(); const e=m.log[d]||{n:0,r:0}; e[field]=(e[field]||0)+1; m.log[d]=e; setMeta(m); }
+/* одноразова міграція старих лічильників у log */
+function migrateMeta(){
+  const m=getMeta(); let ch=false;
+  if(!m.log||typeof m.log!=="object"){ m.log={}; ch=true; }
+  if(m.newDate && typeof m.newCount==="number"){ const e=m.log[m.newDate]||{n:0,r:0}; if(m.newCount>e.n) e.n=m.newCount; m.log[m.newDate]=e; delete m.newDate; delete m.newCount; ch=true; }
+  if(m.revDate && typeof m.revCount==="number"){ const e=m.log[m.revDate]||{n:0,r:0}; if(m.revCount>e.r) e.r=m.revCount; m.log[m.revDate]=e; delete m.revDate; delete m.revCount; ch=true; }
+  if("progressOpen" in m){ delete m.progressOpen; ch=true; }   // акордеон прогресу більше не потрібен
+  if(ch) setMeta(m);
+}
 /* ціль нових слів */
 function dailyGoal(){ const m=getMeta(); return (typeof m.newLimit==="number")?m.newLimit:DEFGOAL; }
-function newToday(){ const m=getMeta(); return m.newDate===todayStr()?(m.newCount||0):0; }
-function bumpNew(){ const m=getMeta(); if(m.newDate!==todayStr()){ m.newDate=todayStr(); m.newCount=0; } m.newCount=(m.newCount||0)+1; setMeta(m); markGoalDone(); }
+function newToday(){ return logDay(todayStr()).n; }
+function bumpNew(){ bumpLog("n"); markGoalDone(); }
 /* ціль повторів */
 function reviewGoal(){ const m=getMeta(); return (typeof m.reviewLimit==="number")?m.reviewLimit:DEFREVGOAL; }
-function reviewsToday(){ const m=getMeta(); return m.revDate===todayStr()?(m.revCount||0):0; }
-function bumpReview(){ const m=getMeta(); if(m.revDate!==todayStr()){ m.revDate=todayStr(); m.revCount=0; } m.revCount=(m.revCount||0)+1; setMeta(m); markGoalDone(); }
+function reviewsToday(){ return logDay(todayStr()).r; }
+function bumpReview(){ bumpLog("r"); markGoalDone(); }
 /* чи виконано обидві цілі сьогодні (0 = ціль не вимагається) */
 function goalMetToday(){
   const ng=dailyGoal(), rg=reviewGoal();
@@ -530,14 +583,20 @@ function markGoalDone(){
   let arr=Array.isArray(m.goalDates)?m.goalDates:[];
   if(!arr.includes(t)){ arr.push(t); m.goalDates=arr; setMeta(m); }
 }
-/* межі поточного тижня (пн) для підрахунку */
-function weekStartStr(){ const d=today(); const wd=(d.getDay()+6)%7; d.setDate(d.getDate()-wd); return d.toISOString().slice(0,10); }
 function goalStats(){
-  const m=getMeta(); const arr=Array.isArray(m.goalDates)?m.goalDates:[];
-  const t=todayStr(), ws=weekStartStr(), ym=t.slice(0,7), yy=t.slice(0,4);
-  let week=0,month=0,year=0;
-  arr.forEach(d=>{ if(d>=ws&&d<=t) week++; if(d.slice(0,7)===ym) month++; if(d.slice(0,4)===yy) year++; });
-  return {week,month,year,today:arr.includes(t)};
+  const m=getMeta(); const arr=[...new Set(Array.isArray(m.goalDates)?m.goalDates:[])];
+  const t=todayStr(), ym=t.slice(0,7), yy=t.slice(0,4);
+  let month=0,year=0;
+  arr.forEach(d=>{ if(d.slice(0,7)===ym) month++; if(d.slice(0,4)===yy) year++; });
+  return {all:arr.length,month,year,today:arr.includes(t)};
+}
+/* ---- набір виконаних днів (для точок останніх днів) ---- */
+function metSet(){ const m=getMeta(); const a=Array.isArray(m.goalDates)?m.goalDates:[]; return new Set(a); }
+function dayKey(d){ return d.toISOString().slice(0,10); }   // узгоджено з todayStr()
+function last7Days(){
+  const s=metSet(), out=[], base=today(), tk=todayStr();
+  for(let i=6;i>=0;i--){ const dd=new Date(base); dd.setDate(dd.getDate()-i); const k=dayKey(dd); out.push({met:s.has(k),today:k===tk}); }
+  return out;
 }
 
 /* ---- черга повторення ---- */
@@ -572,6 +631,7 @@ function show(v){
   if(v==="lists") renderLists();
   if(v==="study"){ session=[]; renderStudy(); }
   if(v==="grammar") renderGrammar();
+  if(v==="progress") renderProgress();
   if(v==="data") renderData();
   updateBadge();
 }
@@ -597,23 +657,54 @@ function wireEntries(root){
   root.querySelectorAll(".entry").forEach(e=>e.onclick=()=>openWordEditor(e.dataset.id));
   if(ttsOn()) root.querySelectorAll(".spk-ent").forEach(b=>b.onclick=ev=>{ ev.stopPropagation(); const c=cards.find(x=>x.id===b.dataset.spk); if(c) speak(c.word); });
 }
-function renderListsGoal(){
-  const box=document.getElementById("listsGoal"); if(!box) return;
-  const ng=dailyGoal(), nrg=reviewGoal();
-  if(ng<=0 && nrg<=0){ box.innerHTML=""; box.style.display="none"; return; }
-  let chip="";
-  if(ng>0){
-    const did=newToday(), done=did>=ng, pct=Math.min(100,Math.round(did/ng*100));
-    chip=`<div class="goal${done?' done':''}">${done?'🎯 Ціль нових досягнута':'🎯 Нові сьогодні: '+did+' / '+ng}<span class="bar"><i style="width:${pct}%"></i></span></div>`;
-  }
-  if(!chip){ box.innerHTML=""; box.style.display="none"; return; }
-  box.style.display="block";
-  box.innerHTML=chip;
+function progBar(label,val,goal){
+  if(goal<=0) return `<div class="prog-bar"><div class="pb-top"><span>${label}</span><span class="pb-num">без цілі</span></div></div>`;
+  const done=val>=goal, pct=Math.min(100,Math.round(val/goal*100));
+  return `<div class="prog-bar${done?' done':''}"><div class="pb-top"><span>${label}</span><span class="pb-num">${val} / ${goal}</span></div><div class="pb-track"><i style="width:${pct}%"></i></div></div>`;
+}
+/* ---- вкладка «Прогрес» ---- */
+function renderProgress(){
+  const ng=dailyGoal(), rg=reviewGoal();
+  const nl=document.getElementById("newLimit"); if(nl) nl.value=ng;
+  const rl=document.getElementById("reviewLimit"); if(rl) rl.value=rg;
+
+  const nd=newToday(), rd=reviewsToday(), gs=goalStats(), days=last7Days();
+  const anyGoal=(ng>0||rg>0);
+
+  let today="";
+  if(ng>0) today+=progBar("Нові слова",nd,ng);
+  if(rg>0) today+=progBar("Повтори",rd,rg);
+  const bothDone=anyGoal && (ng<=0||nd>=ng) && (rg<=0||rd>=rg);
+  if(!anyGoal) today=`<div class="prog-hint">Цілі вимкнено. Задай ціль нижче, щоб бачити щоденний прогрес.</div>`;
+  else if(bothDone) today+=`<div class="prog-win">🎯 День виконано — так тримати</div>`;
+
+  const dots=days.map(d=>`<span class="day-dot${d.met?' met':''}${d.today?' today':''}"></span>`).join("");
+  const total=cards.length, learned=cards.filter(c=>c.reps>=2).length, due=totalDue();
+
+  document.getElementById("progressTop").innerHTML=`
+    <div class="panel"><h3>Сьогодні</h3>${today}</div>
+    <div class="panel">
+      <h3>Виконано днів</h3>
+      <p>Скільки днів ти досягав своєї цілі. Лічильник лише зростає — пропущений день нічого не скидає.</p>
+      <div class="stat-pills">
+        <div class="stat-pill"><b>${gs.all}</b><span>весь час</span></div>
+        <div class="stat-pill"><b>${gs.year}</b><span>цей рік</span></div>
+        <div class="stat-pill"><b>${gs.month}</b><span>цей місяць</span></div>
+      </div>
+      <div class="prog-lbl" style="margin:16px 0 9px">Останні 7 днів</div>
+      <div class="day-dots">${dots}</div>
+    </div>
+    <div class="panel">
+      <h3>Словник</h3>
+      <div class="stat-row"><span>Списків</span><span>${lists.length}</span></div>
+      <div class="stat-row"><span>Усього слів</span><span>${total}</span></div>
+      <div class="stat-row"><span>На повторення</span><span>${due}</span></div>
+      <div class="stat-row"><span>Засвоєно</span><span>${learned}</span></div>
+    </div>`;
 }
 function renderAccordion(){
   const root=document.getElementById("lists");
   document.getElementById("rootCount").innerHTML = lists.length?`${lists.length} ${plz(lists.length,'список','списки','списків')} · <b>${totalDue()}</b> на повторення`:"";
-  renderListsGoal();
   root.innerHTML=lists.map(l=>{
     const cs=cardsOf(l.id).slice().reverse();
     const n=cs.length, d=buildQueue(l.id).all.length, open=expanded.has(l.id);
@@ -663,7 +754,7 @@ function noteRowHTML(n){
 function renderGrammar(){
   const root=document.getElementById("grammar");
   document.getElementById("grCount").innerHTML = notes.length?`${notes.length} ${plz(notes.length,'нотатка','нотатки','нотаток')}`:"";
-  if(!notes.length){ root.innerHTML=`<div class="empty"><div class="big">Ще немає нотаток</div>Записуй граматичні правила кнопкою + внизу. Групуй їх за категоріями — і знаходь через пошук на вкладці «Списки».</div>`; return; }
+  if(!notes.length){ root.innerHTML=`<div class="empty"><div class="big">Ще немає нотаток</div>Записуй граматичні правила кнопкою + внизу. Групуй їх за категоріями — і знаходь через пошук на вкладці «Слова».</div>`; return; }
   const cats=[], map={};
   notes.forEach(n=>{ const c=(n.cat||"").trim()||"Інше"; if(!map[c]){ map[c]=[]; cats.push(c); } map[c].push(n); });
   cats.sort((a,b)=>{ if(a==="Інше") return 1; if(b==="Інше") return -1; return a.toLowerCase()<b.toLowerCase()?-1:1; });
@@ -966,21 +1057,6 @@ function renderTts(){
   document.querySelectorAll("#ttsSpeedSeg button").forEach(b=>b.classList.toggle("on",(b.dataset.slow==="1")===slow));
 }
 function renderData(){
-  const total=cards.length;
-  const learned=cards.filter(c=>c.reps>=2).length;
-  const goal=dailyGoal(), rgoal=reviewGoal(), gs=goalStats();
-  document.getElementById("stats").innerHTML=`
-    <div class="stat-row"><span>Списків</span><span>${lists.length}</span></div>
-    <div class="stat-row"><span>Записів</span><span>${total}</span></div>
-    <div class="stat-row"><span>Нових сьогодні</span><span>${newToday()} / ${goal||"∞"}</span></div>
-    <div class="stat-row"><span>Повторів сьогодні</span><span>${reviewsToday()} / ${rgoal||"∞"}</span></div>
-    <div class="stat-row"><span>Днів із ціллю (тиждень)</span><span>${gs.week}</span></div>
-    <div class="stat-row"><span>Днів із ціллю (місяць)</span><span>${gs.month}</span></div>
-    <div class="stat-row"><span>Днів із ціллю (рік)</span><span>${gs.year}</span></div>
-    <div class="stat-row"><span>На повторення</span><span>${totalDue()}</span></div>
-    <div class="stat-row"><span>Засвоєні</span><span>${learned}</span></div>`;
-  document.getElementById("newLimit").value=goal;
-  document.getElementById("reviewLimit").value=rgoal;
   renderTts();
   const arr=getBackups();
   const sel=document.getElementById("bkpSel");
@@ -1071,7 +1147,7 @@ function importWordList(file){
     lists.push(res.list); res.cards.forEach(c=>cards.push(c));
     expanded.add(res.list.id);
     save(); updateBadge();
-    alert(`Готово. Додано список «${res.list.name}» (${res.cards.length}). Знайдеш його на вкладці «Списки».`);
+    alert(`Готово. Додано список «${res.list.name}» (${res.cards.length}). Знайдеш його на вкладці «Слова».`);
     show("lists");
   }catch(e){ alert("Не вдалося прочитати файл списку. Це має бути .json з полем «words» (масив слів). Натисни «Показати формат файлу» для прикладу."); } };
   r.readAsText(file);
@@ -1180,8 +1256,8 @@ document.getElementById("noteSave").onclick=saveNote;
 document.getElementById("noteDelete").onclick=deleteNote;
 document.getElementById("scopeSel").onchange=e=>{ studyScope=e.target.value; renderHub(); };
 document.querySelectorAll("#dirSeg button").forEach(b=>b.onclick=()=>setDir(b.dataset.dir));
-document.getElementById("newLimit").onchange=e=>{ let v=parseInt(e.target.value,10); if(isNaN(v)||v<0) v=0; const m=getMeta(); m.newLimit=v; setMeta(m); e.target.value=v; markGoalDone(); renderData(); };
-document.getElementById("reviewLimit").onchange=e=>{ let v=parseInt(e.target.value,10); if(isNaN(v)||v<0) v=0; const m=getMeta(); m.reviewLimit=v; setMeta(m); e.target.value=v; markGoalDone(); renderData(); };
+document.getElementById("newLimit").onchange=e=>{ let v=parseInt(e.target.value,10); if(isNaN(v)||v<0) v=0; const m=getMeta(); m.newLimit=v; setMeta(m); e.target.value=v; markGoalDone(); renderProgress(); updateBadge(); };
+document.getElementById("reviewLimit").onchange=e=>{ let v=parseInt(e.target.value,10); if(isNaN(v)||v<0) v=0; const m=getMeta(); m.reviewLimit=v; setMeta(m); e.target.value=v; markGoalDone(); renderProgress(); };
 document.getElementById("spkPreview").onclick=()=>speak(document.getElementById("f-word").value.trim());
 document.querySelectorAll("#ttsOnSeg button").forEach(b=>b.onclick=()=>{ const m=getMeta(); m.tts=b.dataset.on==="1"; setMeta(m); renderTts(); });
 document.querySelectorAll("#ttsAutoSeg button").forEach(b=>b.onclick=()=>{ const m=getMeta(); m.auto=b.dataset.auto==="1"; setMeta(m); renderTts(); });
