@@ -179,6 +179,9 @@
   .goal .bar{width:64px;height:6px;border-radius:3px;background:rgba(40,75,140,.18);overflow:hidden}
   .goal .bar i{display:block;height:100%;background:var(--accent);border-radius:3px;transition:width .3s}
   .goal.done .bar{background:rgba(31,107,92,.2)} .goal.done .bar i{background:var(--teal)}
+  /* --- цілі на вкладці «Списки» --- */
+  .lists-goal{background:var(--raised);border:1px solid var(--line);border-radius:var(--r);padding:13px 15px;margin-bottom:14px}
+  .lists-goal .goal{margin-top:0}
   /* --- багатозначність: редактор --- */
   .sense{border:1px solid var(--line);border-radius:11px;padding:11px;margin-bottom:9px;background:var(--paper)}
   .sense-top{display:flex;gap:8px;align-items:center;margin-bottom:8px}
@@ -243,6 +246,7 @@
     <div id="searchResults" style="display:none"></div>
     <div id="listsWrap">
       <div class="count" id="rootCount"></div>
+      <div id="listsGoal"></div>
       <div id="lists"></div>
       <button class="newlist-btn" id="newListBtn">+ Новий список</button>
     </div>
@@ -267,9 +271,10 @@
       <p class="tts-note" id="ttsUnsupported" style="display:none">Твій пристрій або браузер не підтримує озвучення. На Android встанови/онови «Google Синтез мовлення» та англомовний голос у налаштуваннях системи.</p>
     </div>
     <div class="panel">
-      <h3>Денна ціль нових слів</h3>
-      <p>Скільки нових слів ти прагнеш вивчати щодня. Це орієнтир-досягнення, а не обмеження — нові слова завжди доступні, а застосунок показує твій поступ до цілі.</p>
-      <div class="numrow"><input type="number" id="newLimit" min="0" max="999" inputmode="numeric"><label>0 = без цілі</label></div>
+      <h3>Денні цілі</h3>
+      <p>Орієнтири-досягнення, а не обмеження. Ціль нових слів видно на вкладці «Списки», ціль повторів — на вкладці «Вчити». День рахується виконаним, коли досягнуто обидві задані цілі.</p>
+      <div class="numrow"><input type="number" id="newLimit" min="0" max="999" inputmode="numeric"><label>нових слів на день · 0 = без цілі</label></div>
+      <div class="numrow"><input type="number" id="reviewLimit" min="0" max="999" inputmode="numeric"><label>повторів на день · 0 = без цілі</label></div>
     </div>
     <div class="panel">
       <h3>Авто-копії</h3><p id="bkpInfo"></p>
@@ -278,6 +283,7 @@
     </div>
     <div class="panel"><h3>Експорт</h3><p>Зберегти всі списки й слова у файл. Перед зміною телефона або як резервну копію.</p><button class="btn" id="export">Зберегти у файл (.json)</button></div>
     <div class="panel"><h3>Імпорт</h3><p>Завантажити дані з файлу. Замінить усі поточні дані.</p><button class="btn ghost" id="importBtn">Вибрати файл</button><input type="file" id="importFile" accept=".json,application/json" style="display:none"></div>
+    <div class="panel"><h3>Підвантажити список слів</h3><p>Додати готовий список (напр. завдання від викладача) окремим незалежним списком. Поточні дані НЕ змінюються — новий список просто додається. Формат — .json, схема нижче.</p><button class="btn" id="importListBtn">Вибрати файл списку</button><input type="file" id="importListFile" accept=".json,application/json" style="display:none"><button class="btn ghost" id="importListHelp" type="button">Показати формат файлу</button><div id="importListSchema" class="md" style="display:none;margin-top:12px"></div></div>
     <div class="panel"><h3>Очистити все</h3><p>Видалити всі слова й залишити один порожній список. Перед очищенням робиться авто-копія — це можна відкотити.</p><button class="btn danger" id="clearBtn">Очистити всі дані</button></div>
   </section>
   <section class="view" id="view-grammar">
@@ -332,7 +338,7 @@
 <script>
 "use strict";
 const KEY="words_app_v1", BKP="words_app_backup_v1", META="words_app_meta_v1";
-const MAXBK=3, DEFGOAL=20;
+const MAXBK=3, DEFGOAL=20, DEFREVGOAL=30;
 let storeOk=true, lists=[], cards=[];
 let activeView="lists", expanded=new Set();
 let editingId=null, editSenses=[];
@@ -501,10 +507,38 @@ function findConflict(w, listId, exceptId){
   });
 }
 
-/* ---- денна ціль нових (орієнтир, не обмеження) ---- */
+/* ---- денні цілі (орієнтир, не обмеження) ---- */
+/* ціль нових слів */
 function dailyGoal(){ const m=getMeta(); return (typeof m.newLimit==="number")?m.newLimit:DEFGOAL; }
 function newToday(){ const m=getMeta(); return m.newDate===todayStr()?(m.newCount||0):0; }
-function bumpNew(){ const m=getMeta(); if(m.newDate!==todayStr()){ m.newDate=todayStr(); m.newCount=0; } m.newCount=(m.newCount||0)+1; setMeta(m); }
+function bumpNew(){ const m=getMeta(); if(m.newDate!==todayStr()){ m.newDate=todayStr(); m.newCount=0; } m.newCount=(m.newCount||0)+1; setMeta(m); markGoalDone(); }
+/* ціль повторів */
+function reviewGoal(){ const m=getMeta(); return (typeof m.reviewLimit==="number")?m.reviewLimit:DEFREVGOAL; }
+function reviewsToday(){ const m=getMeta(); return m.revDate===todayStr()?(m.revCount||0):0; }
+function bumpReview(){ const m=getMeta(); if(m.revDate!==todayStr()){ m.revDate=todayStr(); m.revCount=0; } m.revCount=(m.revCount||0)+1; setMeta(m); markGoalDone(); }
+/* чи виконано обидві цілі сьогодні (0 = ціль не вимагається) */
+function goalMetToday(){
+  const ng=dailyGoal(), rg=reviewGoal();
+  const okNew=(ng<=0)||(newToday()>=ng), okRev=(rg<=0)||(reviewsToday()>=rg);
+  if(ng<=0 && rg<=0) return false;   // жодної цілі не задано — день не рахуємо
+  return okNew && okRev;
+}
+/* зафіксувати сьогоднішній день як виконаний (без дублів) */
+function markGoalDone(){
+  if(!goalMetToday()) return;
+  const m=getMeta(); const t=todayStr();
+  let arr=Array.isArray(m.goalDates)?m.goalDates:[];
+  if(!arr.includes(t)){ arr.push(t); m.goalDates=arr; setMeta(m); }
+}
+/* межі поточного тижня (пн) для підрахунку */
+function weekStartStr(){ const d=today(); const wd=(d.getDay()+6)%7; d.setDate(d.getDate()-wd); return d.toISOString().slice(0,10); }
+function goalStats(){
+  const m=getMeta(); const arr=Array.isArray(m.goalDates)?m.goalDates:[];
+  const t=todayStr(), ws=weekStartStr(), ym=t.slice(0,7), yy=t.slice(0,4);
+  let week=0,month=0,year=0;
+  arr.forEach(d=>{ if(d>=ws&&d<=t) week++; if(d.slice(0,7)===ym) month++; if(d.slice(0,4)===yy) year++; });
+  return {week,month,year,today:arr.includes(t)};
+}
 
 /* ---- черга повторення ---- */
 function poolOf(scope){ return scope==="all"?cards:cardsOf(scope); }
@@ -563,9 +597,23 @@ function wireEntries(root){
   root.querySelectorAll(".entry").forEach(e=>e.onclick=()=>openWordEditor(e.dataset.id));
   if(ttsOn()) root.querySelectorAll(".spk-ent").forEach(b=>b.onclick=ev=>{ ev.stopPropagation(); const c=cards.find(x=>x.id===b.dataset.spk); if(c) speak(c.word); });
 }
+function renderListsGoal(){
+  const box=document.getElementById("listsGoal"); if(!box) return;
+  const ng=dailyGoal(), nrg=reviewGoal();
+  if(ng<=0 && nrg<=0){ box.innerHTML=""; box.style.display="none"; return; }
+  let chip="";
+  if(ng>0){
+    const did=newToday(), done=did>=ng, pct=Math.min(100,Math.round(did/ng*100));
+    chip=`<div class="goal${done?' done':''}">${done?'🎯 Ціль нових досягнута':'🎯 Нові сьогодні: '+did+' / '+ng}<span class="bar"><i style="width:${pct}%"></i></span></div>`;
+  }
+  if(!chip){ box.innerHTML=""; box.style.display="none"; return; }
+  box.style.display="block";
+  box.innerHTML=chip;
+}
 function renderAccordion(){
   const root=document.getElementById("lists");
   document.getElementById("rootCount").innerHTML = lists.length?`${lists.length} ${plz(lists.length,'список','списки','списків')} · <b>${totalDue()}</b> на повторення`:"";
+  renderListsGoal();
   root.innerHTML=lists.map(l=>{
     const cs=cardsOf(l.id).slice().reverse();
     const n=cs.length, d=buildQueue(l.id).all.length, open=expanded.has(l.id);
@@ -821,11 +869,11 @@ function renderHub(){
   document.getElementById("study-card").innerHTML="";
   const q=buildQueue(studyScope); const n=q.all.length;
   const scopeName=studyScope==="all"?"усіх списках":`«${listById(studyScope).name}»`;
-  const goal=dailyGoal(), did=newToday();
+  const rgoal=reviewGoal(), rdid=reviewsToday();
   let goalHtml="";
-  if(goal>0){
-    const done=did>=goal, pct=Math.min(100,Math.round(did/goal*100));
-    goalHtml=`<div class="goal${done?' done':''}">${done?'🎯 Денну ціль досягнуто':'🎯 Нові сьогодні: '+did+' / '+goal}<span class="bar"><i style="width:${pct}%"></i></span></div>`;
+  if(rgoal>0){
+    const done=rdid>=rgoal, pct=Math.min(100,Math.round(rdid/rgoal*100));
+    goalHtml=`<div class="goal${done?' done':''}">${done?'🔁 Ціль повторів досягнута':'🔁 Повтори сьогодні: '+rdid+' / '+rgoal}<span class="bar"><i style="width:${pct}%"></i></span></div>`;
   }
   hub.innerHTML=`<div class="big-num">${n}</div><div class="big-lbl">${plz(n,'картка','картки','карток')} на повторення</div>
     <div class="substat">у ${scopeName}<br>повторення: ${q.rev.length} · нові: ${q.nw.length}</div>
@@ -900,7 +948,7 @@ function showCard(){
 }
 function rate(q){
   const item=session.shift(); const c=item.c; const isNew=!c.seen;
-  applyReview(c,q); if(isNew){ c.seen=true; bumpNew(); }
+  applyReview(c,q); if(isNew){ c.seen=true; bumpNew(); } else bumpReview();
   save(); if(q<3) session.push(item); showCard();
 }
 
@@ -920,14 +968,19 @@ function renderTts(){
 function renderData(){
   const total=cards.length;
   const learned=cards.filter(c=>c.reps>=2).length;
-  const goal=dailyGoal();
+  const goal=dailyGoal(), rgoal=reviewGoal(), gs=goalStats();
   document.getElementById("stats").innerHTML=`
     <div class="stat-row"><span>Списків</span><span>${lists.length}</span></div>
     <div class="stat-row"><span>Записів</span><span>${total}</span></div>
     <div class="stat-row"><span>Нових сьогодні</span><span>${newToday()} / ${goal||"∞"}</span></div>
+    <div class="stat-row"><span>Повторів сьогодні</span><span>${reviewsToday()} / ${rgoal||"∞"}</span></div>
+    <div class="stat-row"><span>Днів із ціллю (тиждень)</span><span>${gs.week}</span></div>
+    <div class="stat-row"><span>Днів із ціллю (місяць)</span><span>${gs.month}</span></div>
+    <div class="stat-row"><span>Днів із ціллю (рік)</span><span>${gs.year}</span></div>
     <div class="stat-row"><span>На повторення</span><span>${totalDue()}</span></div>
     <div class="stat-row"><span>Засвоєні</span><span>${learned}</span></div>`;
   document.getElementById("newLimit").value=goal;
+  document.getElementById("reviewLimit").value=rgoal;
   renderTts();
   const arr=getBackups();
   const sel=document.getElementById("bkpSel");
@@ -968,6 +1021,97 @@ function importData(file){
     save(); renderData(); updateBadge(); alert("Готово. Завантажено "+C.length+" записів.");
   }catch(e){ alert("Не вдалося прочитати файл. Перевір, що це правильний .json з цього додатку."); } };
   r.readAsText(file);
+}
+/* ---- підвантаження зовнішнього списку слів (окремий незалежний список) ---- */
+function buildImportedCard(raw, listId){
+  if(!raw || typeof raw!=="object") return null;
+  const word=(typeof raw.word==="string"?raw.word:"").trim();
+  if(!word) return null;
+  const card={ id:uid(), listId, word,
+    forms:(typeof raw.forms==="string")?raw.forms.trim():"",
+    cmt:(typeof raw.cmt==="string")?raw.cmt.trim():"",
+    senses:Array.isArray(raw.senses)?raw.senses:null,
+    ipa:(typeof raw.ipa==="string")?raw.ipa:"", tr:(typeof raw.tr==="string")?raw.tr:"", ex:(typeof raw.ex==="string")?raw.ex:"",
+    ef:2.5, interval:0, reps:0, seen:false, due:todayStr(), created:todayStr() };
+  return ensureSenses(card);   // усі стартують як нові; SM-2 з нуля
+}
+function normalizeWordList(p, fallbackName){
+  let name="", words=null;
+  if(Array.isArray(p)){ words=p; }
+  else if(p && typeof p==="object"){
+    words=Array.isArray(p.words)?p.words:(Array.isArray(p.cards)?p.cards:null);
+    if(typeof p.listName==="string") name=p.listName.trim();
+    else if(typeof p.name==="string") name=p.name.trim();
+  }
+  if(!Array.isArray(words)) throw new Error("no-words");
+  if(!name) name=(fallbackName||"").replace(/\.[^.]+$/,"").trim();
+  if(!name) name="Імпортований список";
+  const listId=uid();
+  const seenW=new Set(); let dup=0, bad=0; const out=[];
+  words.forEach(w=>{
+    const card=buildImportedCard(w, listId);
+    if(!card){ bad++; return; }
+    const key=norm(card.word);
+    if(seenW.has(key)){ dup++; return; }   // м'який дубль усередині файлу — пропускаємо
+    seenW.add(key); out.push(card);
+  });
+  return { list:{id:listId,name,independent:true,created:todayStr()}, cards:out, dup, bad };
+}
+function importWordList(file){
+  const r=new FileReader();
+  r.onload=()=>{ try{
+    const res=normalizeWordList(JSON.parse(r.result), file.name);
+    if(!res.cards.length){ alert("У файлі не знайдено жодного придатного слова. Перевір, що є поле «words» з об'єктами, кожен із «word»."); return; }
+    let msg=`Додати список «${res.list.name}» — ${res.cards.length} ${plz(res.cards.length,'слово','слова','слів')}?`;
+    const extra=[]; if(res.dup) extra.push(`пропущено дублів у файлі: ${res.dup}`); if(res.bad) extra.push(`пропущено битих записів: ${res.bad}`);
+    if(extra.length) msg+="\n("+extra.join("; ")+")";
+    msg+="\nПоточні дані не зміняться — список додається окремо.";
+    if(!confirm(msg)) return;
+    snapshotNow();
+    lists.push(res.list); res.cards.forEach(c=>cards.push(c));
+    expanded.add(res.list.id);
+    save(); updateBadge();
+    alert(`Готово. Додано список «${res.list.name}» (${res.cards.length}). Знайдеш його на вкладці «Списки».`);
+    show("lists");
+  }catch(e){ alert("Не вдалося прочитати файл списку. Це має бути .json з полем «words» (масив слів). Натисни «Показати формат файлу» для прикладу."); } };
+  r.readAsText(file);
+}
+function toggleImportSchema(){
+  const box=document.getElementById("importListSchema");
+  if(box.style.display!=="none"){ box.style.display="none"; return; }
+  const sample=[
+    '```',
+    '{',
+    '  "listName": "Завдання від викладача №3",',
+    '  "words": [',
+    '    {',
+    '      "word": "endeavour",',
+    '      "forms": "",',
+    '      "cmt": "",',
+    '      "senses": [',
+    '        {',
+    '          "pos": "n",',
+    '          "tr": "зусилля",',
+    '          "ipa": "/ɪnˈdevə/",',
+    '          "gloss": "effort",',
+    '          "ex": "A worthy endeavour. | Гідне зусилля."',
+    '        }',
+    '      ]',
+    '    }',
+    '  ]',
+    '}',
+    '```',
+    '',
+    '**Обов’язкове:** `words` — масив, у кожному об’єкті поле `word`.',
+    '',
+    '**Необов’язкове:** `listName` (інакше — імʼя файлу), `forms` (неправильні форми через кому), `cmt` (коментар).',
+    '',
+    'У кожному значенні (`senses`): `tr` — переклад, `pos` — частина мови (`n`,`v`,`adj`,`adv`,`prep`,`phr`,`other`), `ipa` — транскрипція, `gloss` — англ. підказка, `ex` — приклади (кожен з нового рядка; переклад через `|`).',
+    '',
+    'Слово може мати кілька значень — додай кілька об’єктів у `senses`. Список створюється як **незалежний**; усі слова стартують як нові.'
+  ].join("\n");
+  box.innerHTML=mdRender(sample);
+  box.style.display="block";
 }
 function restoreBackup(){
   const arr=getBackups(); if(!arr.length){ alert("Авто-копій ще немає."); return; }
@@ -1036,7 +1180,8 @@ document.getElementById("noteSave").onclick=saveNote;
 document.getElementById("noteDelete").onclick=deleteNote;
 document.getElementById("scopeSel").onchange=e=>{ studyScope=e.target.value; renderHub(); };
 document.querySelectorAll("#dirSeg button").forEach(b=>b.onclick=()=>setDir(b.dataset.dir));
-document.getElementById("newLimit").onchange=e=>{ let v=parseInt(e.target.value,10); if(isNaN(v)||v<0) v=0; const m=getMeta(); m.newLimit=v; setMeta(m); e.target.value=v; renderData(); };
+document.getElementById("newLimit").onchange=e=>{ let v=parseInt(e.target.value,10); if(isNaN(v)||v<0) v=0; const m=getMeta(); m.newLimit=v; setMeta(m); e.target.value=v; markGoalDone(); renderData(); };
+document.getElementById("reviewLimit").onchange=e=>{ let v=parseInt(e.target.value,10); if(isNaN(v)||v<0) v=0; const m=getMeta(); m.reviewLimit=v; setMeta(m); e.target.value=v; markGoalDone(); renderData(); };
 document.getElementById("spkPreview").onclick=()=>speak(document.getElementById("f-word").value.trim());
 document.querySelectorAll("#ttsOnSeg button").forEach(b=>b.onclick=()=>{ const m=getMeta(); m.tts=b.dataset.on==="1"; setMeta(m); renderTts(); });
 document.querySelectorAll("#ttsAutoSeg button").forEach(b=>b.onclick=()=>{ const m=getMeta(); m.auto=b.dataset.auto==="1"; setMeta(m); renderTts(); });
@@ -1046,6 +1191,9 @@ document.getElementById("ttsTest").onclick=()=>speak("Hello, this is a test.");
 document.getElementById("export").onclick=exportData;
 document.getElementById("importBtn").onclick=()=>document.getElementById("importFile").click();
 document.getElementById("importFile").onchange=e=>{ if(e.target.files[0]) importData(e.target.files[0]); e.target.value=""; };
+document.getElementById("importListBtn").onclick=()=>document.getElementById("importListFile").click();
+document.getElementById("importListFile").onchange=e=>{ if(e.target.files[0]) importWordList(e.target.files[0]); e.target.value=""; };
+document.getElementById("importListHelp").onclick=toggleImportSchema;
 document.getElementById("restoreBtn").onclick=restoreBackup;
 document.getElementById("clearBtn").onclick=clearAll;
 document.getElementById("remExport").onclick=exportData;
