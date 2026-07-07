@@ -13,17 +13,28 @@
 <title>Словник</title>
 <style>
   :root{
-    --paper:#F6F2E9; --raised:#FFFDF8; --ink:#21262E; --soft:#5C6470;
-    --line:#E6DFCF; --accent:#284B8C; --accent-soft:#E9EEF8;
+    --paper:#F6F2E9; --raised:#FFFDF8; --ink:#21262E; --ink2:#39414d; --soft:#5C6470;
+    --line:#E6DFCF; --line2:#D8CFB8; --accent:#284B8C; --accent-soft:#E9EEF8;
     --teal:#1F6B5C; --amber:#9C6618; --rose:#A23A3A;
+    --seg-bg:#ECE6D8; --track:rgba(40,75,140,.12); --tint:rgba(40,75,140,.018);
+    --ok-soft:#E4F0EC; --warn-soft:#F7E4E4; --banner-bg:#FBE9C7; --banner-ink:#7a5a14;
     --serif:Georgia,'Times New Roman',serif;
     --sans:system-ui,-apple-system,Roboto,'Segoe UI',sans-serif;
     --r:14px;
   }
+  html[data-theme="dark"]{
+    --paper:#191C22; --raised:#232830; --ink:#E9E4D8; --ink2:#C3C9D2; --soft:#8A929F;
+    --line:#333A45; --line2:#414954; --accent:#4F82D6; --accent-soft:#22303F;
+    --teal:#3E9B84; --amber:#C08A3C; --rose:#CF6B6B;
+    --seg-bg:#2A2F39; --track:rgba(255,255,255,.10); --tint:rgba(110,155,230,.05);
+    --ok-soft:#1F3A33; --warn-soft:#3A2626; --banner-bg:#463A1A; --banner-ink:#EAD6A2;
+  }
+  html[data-theme="dark"] .seg button.on{box-shadow:0 1px 2px rgba(0,0,0,.35)}
+  html[data-theme="dark"] .card,html[data-theme="dark"] .list-card,html[data-theme="dark"] .prog-card{box-shadow:0 1px 2px rgba(0,0,0,.25)}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%}
   body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.45;display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
-  .banner{display:none;background:#FBE9C7;color:#7a5a14;font-size:13px;padding:8px 16px;text-align:center}
+  .banner{display:none;background:var(--banner-bg);color:var(--banner-ink);font-size:13px;padding:8px 16px;text-align:center}
   .reminder{display:none;align-items:center;gap:10px;background:var(--accent-soft);color:var(--accent);font-size:13.5px;padding:9px 14px}
   .reminder span{flex:1}
   .reminder .rdo{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer}
@@ -35,7 +46,7 @@
   .view{display:none;padding:14px 16px 26px}
   .view.on{display:block}
   #view-lists,#view-grammar{padding-bottom:96px}
-  .seg{display:flex;gap:4px;background:#ECE6D8;border-radius:11px;padding:3px;margin-bottom:14px}
+  .seg{display:flex;gap:4px;background:var(--seg-bg);border-radius:11px;padding:3px;margin-bottom:14px}
   .seg button{flex:1;border:none;background:none;border-radius:8px;padding:8px 4px;font-size:14px;font-family:var(--sans);color:var(--soft);font-weight:600;cursor:pointer}
   .seg button.on{background:var(--raised);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
   .seg.vert{flex-direction:column;gap:4px}
@@ -106,7 +117,7 @@
   .back .tr{font-size:21px;font-weight:600;margin-top:6px}
   .back .cmt{color:var(--soft);font-size:14.5px;margin-top:10px;font-style:italic}
   .back .ex{margin-top:14px}
-  .back .ex p{font-family:var(--serif);font-style:italic;font-size:15px;border-left:3px solid var(--accent-soft);padding-left:12px;margin:8px 0;color:#39414d}
+  .back .ex p{font-family:var(--serif);font-style:italic;font-size:15px;border-left:3px solid var(--accent-soft);padding-left:12px;margin:8px 0;color:var(--ink2)}
   .back .ex .ex-tr{display:block;font-family:var(--sans);font-style:normal;font-size:13px;color:var(--soft);margin-top:4px}
   .reveal-btn{margin:auto auto 0;background:var(--accent-soft);color:var(--accent);font-weight:600;border:none;border-radius:var(--r);padding:14px;width:100%;font-size:16px;cursor:pointer}
   .rate{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:16px}
@@ -150,7 +161,7 @@
   .del-link{display:block;width:100%;text-align:center;background:none;border:none;color:var(--rose);font-size:14px;padding:10px;margin-top:6px;cursor:pointer}
   /* --- розкривні списки --- */
   .list-card{background:var(--raised);border:1px solid var(--line);border-radius:var(--r);margin-bottom:10px;overflow:hidden;transition:border-color .15s}
-  .list-card.open{border-color:#D8CFB8}
+  .list-card.open{border-color:var(--line2)}
   .list-head{display:flex;align-items:center;gap:11px;padding:14px 15px;cursor:pointer}
   .list-head .chev{color:var(--soft);font-size:17px;line-height:1;flex:none;transition:transform .22s ease}
   .list-card.open .list-head .chev{transform:rotate(90deg);color:var(--accent)}
@@ -159,7 +170,7 @@
   .list-head .sb{font-size:12.5px;color:var(--soft);margin-top:2px}
   .list-head .due{background:var(--accent);color:#fff;border-radius:9px;font-size:12px;font-weight:600;padding:2px 8px;flex:none}
   .list-head .gear{background:none;border:none;color:var(--soft);font-size:19px;flex:none;padding:4px;cursor:pointer}
-  .list-body{border-top:1px solid var(--line);padding:0 15px 10px;background:rgba(40,75,140,.018)}
+  .list-body{border-top:1px solid var(--line);padding:0 15px 10px;background:var(--tint)}
   .list-body .entry{background:none;border:none;border-bottom:1px solid var(--line);border-radius:0;padding:12px 2px;margin:0}
   .list-body .entry:last-of-type{border-bottom:none}
   .empty-mini{color:var(--soft);font-size:13.5px;padding:14px 2px 4px}
@@ -168,17 +179,17 @@
   .entry .src{font-size:11px;color:var(--accent);background:var(--accent-soft);border-radius:7px;padding:2px 8px;flex:none;white-space:nowrap;font-weight:600;align-self:center}
   /* --- підказка про дублікат у редакторі --- */
   .dup-hint{display:none;font-size:12.5px;line-height:1.35;margin-top:9px;padding:8px 11px;border-radius:9px}
-  .dup-hint.warn{background:#F7E4E4;color:var(--rose)}
+  .dup-hint.warn{background:var(--warn-soft);color:var(--rose)}
   .dup-hint.info{background:var(--accent-soft);color:var(--accent)}
   /* --- форми слова на звороті картки --- */
-  .back .forms{margin-top:12px;font-family:var(--serif);font-size:16px;color:#39414d}
+  .back .forms{margin-top:12px;font-family:var(--serif);font-size:16px;color:var(--ink2)}
   .back .forms .flbl{font-family:var(--sans);font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--soft);margin-right:6px}
   /* --- чип денної цілі --- */
   .goal{display:inline-flex;align-items:center;gap:10px;background:var(--accent-soft);color:var(--accent);border-radius:12px;padding:9px 15px;font-size:13.5px;font-weight:600;margin-top:16px}
-  .goal.done{background:#E4F0EC;color:var(--teal)}
-  .goal .bar{width:64px;height:6px;border-radius:3px;background:rgba(40,75,140,.18);overflow:hidden}
+  .goal.done{background:var(--ok-soft);color:var(--teal)}
+  .goal .bar{width:64px;height:6px;border-radius:3px;background:var(--track);overflow:hidden}
   .goal .bar i{display:block;height:100%;background:var(--accent);border-radius:3px;transition:width .3s}
-  .goal.done .bar{background:rgba(31,107,92,.2)} .goal.done .bar i{background:var(--teal)}
+  .goal.done .bar{background:var(--track)} .goal.done .bar i{background:var(--teal)}
   /* --- панель прогресу на вкладці «Списки» --- */
   .prog-card{background:var(--raised);border:1px solid var(--line);border-radius:var(--r);margin-bottom:14px;overflow:hidden}
   .prog-head{display:flex;align-items:center;gap:9px;width:100%;background:none;border:none;padding:12px 14px;cursor:pointer;font-family:var(--sans);color:var(--ink);text-align:left}
@@ -198,10 +209,10 @@
   .pb-top{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;margin-bottom:6px}
   .pb-num{font-weight:600;color:var(--soft);font-variant-numeric:tabular-nums}
   .prog-bar.done .pb-num{color:var(--teal)}
-  .pb-track{height:7px;border-radius:4px;background:rgba(40,75,140,.12);overflow:hidden}
+  .pb-track{height:7px;border-radius:4px;background:var(--track);overflow:hidden}
   .pb-track i{display:block;height:100%;background:var(--accent);border-radius:4px;transition:width .35s ease}
   .prog-bar.done .pb-track i{background:var(--teal)}
-  .prog-win{margin-top:12px;font-size:13px;font-weight:600;color:var(--teal);background:#E4F0EC;border-radius:10px;padding:8px 12px;text-align:center}
+  .prog-win{margin-top:12px;font-size:13px;font-weight:600;color:var(--teal);background:var(--ok-soft);border-radius:10px;padding:8px 12px;text-align:center}
   .streak-row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
   .streak-big{display:flex;align-items:baseline;gap:8px;min-width:0}
   .streak-big b{font-family:var(--serif);font-size:32px;font-weight:700;color:var(--accent);line-height:1}
@@ -209,7 +220,7 @@
   .streak-big span{font-size:13px;color:var(--soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .streak-best{flex:none;font-size:12.5px;color:var(--soft);white-space:nowrap}
   .day-dots{display:flex;gap:6px;margin-top:13px}
-  .day-dot{flex:1;height:9px;border-radius:4px;background:rgba(40,75,140,.1)}
+  .day-dot{flex:1;height:9px;border-radius:4px;background:var(--track)}
   .day-dot.met{background:var(--accent)}
   .day-dot.today{box-shadow:inset 0 0 0 1.5px var(--soft)}
   .day-dot.met.today{box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.85)}
@@ -219,6 +230,22 @@
   .stat-pill span{display:block;font-size:11px;color:var(--soft);margin-top:3px;text-transform:uppercase;letter-spacing:.4px}
   .prog-hint{color:var(--soft);font-size:13.5px;line-height:1.45}
   #view-progress .day-dots{margin-top:0}
+  /* --- календар виконаних днів --- */
+  .cal-nav{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .cal-nav .cal-title{flex:1;text-align:center;font-family:var(--serif);font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
+  .cal-nav button{background:var(--paper);border:1px solid var(--line);color:var(--accent);width:34px;height:34px;border-radius:10px;font-size:18px;line-height:1;cursor:pointer;flex:none;display:flex;align-items:center;justify-content:center}
+  .cal-nav button:active{border-color:var(--accent)}
+  .cal-nav button:disabled{color:var(--line);cursor:default}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+  .cal-dow{text-align:center;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--soft);padding-bottom:2px}
+  .cal-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--soft);border-radius:9px;font-variant-numeric:tabular-nums}
+  .cal-cell.blank{visibility:hidden}
+  .cal-cell.future{color:var(--line)}
+  .cal-cell.met{background:var(--accent);color:#fff;font-weight:600}
+  .cal-cell.today{box-shadow:inset 0 0 0 1.5px var(--soft)}
+  .cal-cell.met.today{box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.85)}
+  .cal-foot{margin-top:12px;font-size:12.5px;color:var(--soft);display:flex;align-items:center;gap:7px}
+  .cal-foot .swatch{width:13px;height:13px;border-radius:4px;background:var(--accent);flex:none}
   /* --- багатозначність: редактор --- */
   .sense{border:1px solid var(--line);border-radius:11px;padding:11px;margin-bottom:9px;background:var(--paper)}
   .sense-top{display:flex;gap:8px;align-items:center;margin-bottom:8px}
@@ -255,16 +282,26 @@
   .note-body .edit-note{display:inline-block;margin-top:10px;background:none;border:1px solid var(--line);color:var(--soft);font-family:var(--sans);font-size:13px;border-radius:10px;padding:6px 14px;cursor:pointer}
   .note-body .edit-note:active{border-color:var(--accent);color:var(--accent)}
   /* --- легкий markdown у тілі нотатки --- */
-  .md p{margin:0 0 9px;font-family:var(--serif);font-size:15.5px;color:#39414d;line-height:1.5;overflow-wrap:anywhere}
+  .md p{margin:0 0 9px;font-family:var(--serif);font-size:15.5px;color:var(--ink2);line-height:1.5;overflow-wrap:anywhere}
   .md p:last-child{margin-bottom:0}
   .md .md-h{font-family:var(--serif);margin:12px 0 6px;color:var(--ink);line-height:1.3}
   .md h3.md-h{font-size:18px} .md h4.md-h{font-size:16px} .md h5.md-h{font-size:14.5px}
   .md ul,.md ol{margin:0 0 9px;padding-left:20px}
-  .md li{font-family:var(--serif);font-size:15.5px;color:#39414d;line-height:1.5;margin:2px 0;overflow-wrap:anywhere}
+  .md li{font-family:var(--serif);font-size:15.5px;color:var(--ink2);line-height:1.5;margin:2px 0;overflow-wrap:anywhere}
   .md code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;background:var(--accent-soft);color:var(--accent);border-radius:5px;padding:1px 5px}
   .md strong{font-weight:700} .md em{font-style:italic}
   #n-body{min-height:220px;line-height:1.5}
 </style>
+<script>
+/* застосувати тему ще до першого малювання (без спалаху світлого) */
+(function(){try{
+  var m=JSON.parse(localStorage.getItem("words_app_meta_v1"))||{};
+  var t=m.theme||"system";
+  var eff=(t==="system")?((window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light"):t;
+  document.documentElement.setAttribute("data-theme",eff);
+  var tc=document.querySelector('meta[name="theme-color"]'); if(tc) tc.setAttribute("content",eff==="dark"?"#191C22":"#F6F2E9");
+}catch(e){}})();
+</script>
 </head>
 <body>
 <div class="banner" id="banner">Сховище недоступне — дані не збережуться. Відкрий файл через Chrome на телефоні.</div>
@@ -293,6 +330,11 @@
     <div id="study-hub" class="study-hub"></div><div id="study-card"></div>
   </section>
   <section class="view" id="view-data">
+    <div class="panel">
+      <h3>Тема</h3>
+      <p>Оформлення застосунку. «Системна» слідує за налаштуванням телефона.</p>
+      <div class="seg" id="themeSeg"><button data-theme-opt="light">Світла</button><button data-theme-opt="dark">Темна</button><button data-theme-opt="system">Системна</button></div>
+    </div>
     <div class="panel" id="ttsPanel">
       <h3>Озвучення</h3>
       <div id="ttsControls">
@@ -324,7 +366,7 @@
     <div class="panel">
       <h3>Мої цілі</h3>
       <p>Орієнтир, а не обмеження — черга на повторення ніколи не блокується. Постав 0, щоб вимкнути ціль.</p>
-      <div class="numrow"><input type="number" id="newLimit" min="0" max="999" inputmode="numeric"><label>нових слів на день · 0 = вимкнено</label></div>
+      <div class="numrow"><input type="number" id="newLimit" min="0" max="999" inputmode="numeric"><label>нових слів у словник за день · 0 = вимкнено</label></div>
       <div class="numrow"><input type="number" id="reviewLimit" min="0" max="999" inputmode="numeric"><label>повторів на день · 0 = вимкнено</label></div>
       <p class="tts-note">День зараховується як виконаний, коли досягнуто всі увімкнені цілі. Лічильник виконаних днів лише зростає — пропуск дня нічого не обнуляє.</p>
     </div>
@@ -431,6 +473,19 @@ function storageKB(){
   let n=0; try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i)||""; n+=k.length+((localStorage.getItem(k)||"").length); } }catch(e){}
   return Math.max(1,Math.round(n/1024));
 }
+
+/* ---- тема оформлення (світла / темна / системна) ---- */
+const LIGHT_BG="#F6F2E9", DARK_BG="#191C22";
+function themePref(){ const t=getMeta().theme; return (t==="light"||t==="dark"||t==="system")?t:"system"; }
+function effectiveTheme(){ const t=themePref(); if(t!=="system") return t; return (window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light"; }
+function applyTheme(){
+  const eff=effectiveTheme();
+  document.documentElement.setAttribute("data-theme",eff);
+  const tc=document.querySelector('meta[name="theme-color"]'); if(tc) tc.setAttribute("content",eff==="dark"?DARK_BG:LIGHT_BG);
+}
+function setTheme(t){ const m=getMeta(); m.theme=t; setMeta(m); applyTheme(); renderTheme(); }
+function renderTheme(){ const cur=themePref(); document.querySelectorAll("#themeSeg button").forEach(b=>b.classList.toggle("on",b.dataset.themeOpt===cur)); }
+if(window.matchMedia){ try{ window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{ if(themePref()==="system") applyTheme(); }); }catch(e){} }
 
 /* ---- озвучення (Web Speech API) ---- */
 const ttsAvail = (typeof window!=="undefined") && ("speechSynthesis" in window) && ("SpeechSynthesisUtterance" in window);
@@ -549,7 +604,7 @@ function findConflict(w, listId, exceptId){
 }
 
 /* ---- денні цілі (орієнтир, не обмеження) ---- */
-/* журнал по днях: meta.log[date] = {n:нові, r:повтори} */
+/* журнал по днях: meta.log[date] = {n:слова, додані того дня, r:повтори} */
 function logDay(d){ const m=getMeta(); const e=(m.log&&m.log[d])||{}; return {n:e.n||0, r:e.r||0}; }
 function bumpLog(field){ const m=getMeta(); if(!m.log||typeof m.log!=="object") m.log={}; const d=todayStr(); const e=m.log[d]||{n:0,r:0}; e[field]=(e[field]||0)+1; m.log[d]=e; setMeta(m); }
 /* одноразова міграція старих лічильників у log */
@@ -561,7 +616,7 @@ function migrateMeta(){
   if("progressOpen" in m){ delete m.progressOpen; ch=true; }   // акордеон прогресу більше не потрібен
   if(ch) setMeta(m);
 }
-/* ціль нових слів */
+/* ціль нових слів — рахуємо слова, ДОДАНІ у словник сьогодні (див. saveWord) */
 function dailyGoal(){ const m=getMeta(); return (typeof m.newLimit==="number")?m.newLimit:DEFGOAL; }
 function newToday(){ return logDay(todayStr()).n; }
 function bumpNew(){ bumpLog("n"); markGoalDone(); }
@@ -597,6 +652,39 @@ function last7Days(){
   const s=metSet(), out=[], base=today(), tk=todayStr();
   for(let i=6;i>=0;i--){ const dd=new Date(base); dd.setDate(dd.getDate()-i); const k=dayKey(dd); out.push({met:s.has(k),today:k===tk}); }
   return out;
+}
+/* ---- місячний календар виконаних днів ---- */
+const MONTHS_UK=["Січень","Лютий","Березень","Квітень","Травень","Червень","Липень","Серпень","Вересень","Жовтень","Листопад","Грудень"];
+let calCursor=null;   // {y, m} — m 0-based
+function calInit(){ const d=today(); calCursor={y:d.getFullYear(), m:d.getMonth()}; }
+function calIsCurrent(){ const n=today(); return calCursor && calCursor.y===n.getFullYear() && calCursor.m===n.getMonth(); }
+function calShift(delta){
+  if(!calCursor) calInit();
+  let y=calCursor.y, m=calCursor.m+delta;
+  if(m<0){ m=11; y--; } if(m>11){ m=0; y++; }
+  const n=today();
+  if(y>n.getFullYear() || (y===n.getFullYear() && m>n.getMonth())) return;   // не заходимо в майбутнє
+  calCursor={y,m}; renderCal();
+}
+function renderCal(){
+  const grid=document.getElementById("calGrid"), title=document.getElementById("calTitle"), foot=document.getElementById("calFoot");
+  if(!grid||!calCursor) return;
+  const {y,m}=calCursor, s=metSet(), tk=todayStr();
+  if(title) title.textContent=MONTHS_UK[m]+" "+y;
+  const startIdx=(new Date(y,m,1).getDay()+6)%7;   // тиждень з понеділка
+  const days=new Date(y,m+1,0).getDate();
+  const dow=["Пн","Вт","Ср","Чт","Пт","Сб","Нд"].map(d=>`<div class="cal-dow">${d}</div>`).join("");
+  let cells="", metCount=0;
+  for(let i=0;i<startIdx;i++) cells+=`<div class="cal-cell blank"></div>`;
+  for(let d=1;d<=days;d++){
+    const key=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const met=s.has(key), isToday=key===tk, future=key>tk;
+    if(met) metCount++;
+    cells+=`<div class="cal-cell${met?' met':''}${isToday?' today':''}${future?' future':''}">${d}</div>`;
+  }
+  grid.innerHTML=dow+cells;
+  if(foot) foot.innerHTML=`<span class="swatch"></span>виконано днів цього місяця: <b style="color:var(--accent);margin-left:2px">${metCount}</b>`;
+  const nb=document.getElementById("calNext"); if(nb) nb.disabled=calIsCurrent();
 }
 
 /* ---- черга повторення ---- */
@@ -695,12 +783,22 @@ function renderProgress(){
       <div class="day-dots">${dots}</div>
     </div>
     <div class="panel">
+      <h3>Календар</h3>
+      <div class="cal-nav"><button id="calPrev" type="button" aria-label="Попередній місяць">‹</button><div class="cal-title" id="calTitle"></div><button id="calNext" type="button" aria-label="Наступний місяць">›</button></div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-foot" id="calFoot"></div>
+    </div>
+    <div class="panel">
       <h3>Словник</h3>
       <div class="stat-row"><span>Списків</span><span>${lists.length}</span></div>
       <div class="stat-row"><span>Усього слів</span><span>${total}</span></div>
       <div class="stat-row"><span>На повторення</span><span>${due}</span></div>
       <div class="stat-row"><span>Засвоєно</span><span>${learned}</span></div>
     </div>`;
+  calInit(); renderCal();
+  const cp=document.getElementById("calPrev"), cn=document.getElementById("calNext");
+  if(cp) cp.onclick=()=>calShift(-1);
+  if(cn) cn.onclick=()=>calShift(1);
 }
 function renderAccordion(){
   const root=document.getElementById("lists");
@@ -864,7 +962,7 @@ function saveWord(){
     cmt:document.getElementById("f-cmt").value.trim(),
     senses };
   if(editingId) Object.assign(orig,data);
-  else cards.push({id:uid(),...data,ef:2.5,interval:0,reps:0,seen:false,due:todayStr(),created:todayStr()});
+  else { cards.push({id:uid(),...data,ef:2.5,interval:0,reps:0,seen:false,due:todayStr(),created:todayStr()}); bumpNew(); }
   expanded.add(targetList);
   const wasStudy=studyEditing;
   save(); closeWordEditor();
@@ -1039,7 +1137,7 @@ function showCard(){
 }
 function rate(q){
   const item=session.shift(); const c=item.c; const isNew=!c.seen;
-  applyReview(c,q); if(isNew){ c.seen=true; bumpNew(); } else bumpReview();
+  applyReview(c,q); if(isNew){ c.seen=true; } else bumpReview();
   save(); if(q<3) session.push(item); showCard();
 }
 
@@ -1057,6 +1155,7 @@ function renderTts(){
   document.querySelectorAll("#ttsSpeedSeg button").forEach(b=>b.classList.toggle("on",(b.dataset.slow==="1")===slow));
 }
 function renderData(){
+  renderTheme();
   renderTts();
   const arr=getBackups();
   const sel=document.getElementById("bkpSel");
@@ -1231,7 +1330,7 @@ const ICON512="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAYAAAD0eNT
 })();
 
 /* ---- wire up ---- */
-load(); dailySnapshot();
+load(); dailySnapshot(); applyTheme();
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>show(b.dataset.view));
 document.getElementById("fab").onclick=()=>{ if(activeView==="lists") openWordEditor(null); else if(activeView==="grammar") openNoteEditor(null); };
 document.getElementById("newListBtn").onclick=()=>openListEditor(null);
@@ -1259,6 +1358,7 @@ document.querySelectorAll("#dirSeg button").forEach(b=>b.onclick=()=>setDir(b.da
 document.getElementById("newLimit").onchange=e=>{ let v=parseInt(e.target.value,10); if(isNaN(v)||v<0) v=0; const m=getMeta(); m.newLimit=v; setMeta(m); e.target.value=v; markGoalDone(); renderProgress(); updateBadge(); };
 document.getElementById("reviewLimit").onchange=e=>{ let v=parseInt(e.target.value,10); if(isNaN(v)||v<0) v=0; const m=getMeta(); m.reviewLimit=v; setMeta(m); e.target.value=v; markGoalDone(); renderProgress(); };
 document.getElementById("spkPreview").onclick=()=>speak(document.getElementById("f-word").value.trim());
+document.querySelectorAll("#themeSeg button").forEach(b=>b.onclick=()=>setTheme(b.dataset.themeOpt));
 document.querySelectorAll("#ttsOnSeg button").forEach(b=>b.onclick=()=>{ const m=getMeta(); m.tts=b.dataset.on==="1"; setMeta(m); renderTts(); });
 document.querySelectorAll("#ttsAutoSeg button").forEach(b=>b.onclick=()=>{ const m=getMeta(); m.auto=b.dataset.auto==="1"; setMeta(m); renderTts(); });
 document.querySelectorAll("#ttsAccSeg button").forEach(b=>b.onclick=()=>{ const m=getMeta(); m.accent=b.dataset.acc; setMeta(m); renderTts(); });
