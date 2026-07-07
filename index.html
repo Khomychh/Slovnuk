@@ -6,11 +6,11 @@
 <meta name="theme-color" content="#F6F2E9">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Словник">
+<meta name="apple-mobile-web-app-title" content="Slovnuk">
 <link id="manifest" rel="manifest">
 <link id="appleIcon" rel="apple-touch-icon">
 <link id="favIcon" rel="icon">
-<title>Словник</title>
+<title>Slovnuk</title>
 <style>
   :root{
     --paper:#F6F2E9; --raised:#FFFDF8; --ink:#21262E; --ink2:#39414d; --soft:#5C6470;
@@ -1320,7 +1320,7 @@ const ICON512="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAYAAAD0eNT
   try{
     document.getElementById("appleIcon").href=ICON192;
     document.getElementById("favIcon").href=ICON192;
-    const manifest={name:"Мій словник",short_name:"Словник",start_url:".",scope:".",display:"standalone",orientation:"portrait",background_color:"#F6F2E9",theme_color:"#F6F2E9",icons:[{src:ICON192,sizes:"192x192",type:"image/png",purpose:"any"},{src:ICON512,sizes:"512x512",type:"image/png",purpose:"any maskable"}]};
+    const manifest={name:"Slovnuk",short_name:"Slovnuk",start_url:".",scope:".",display:"standalone",orientation:"portrait",background_color:"#F6F2E9",theme_color:"#F6F2E9",icons:[{src:ICON192,sizes:"192x192",type:"image/png",purpose:"any"},{src:ICON512,sizes:"512x512",type:"image/png",purpose:"any maskable"}]};
     const mb=new Blob([JSON.stringify(manifest)],{type:"application/manifest+json"});
     document.getElementById("manifest").href=URL.createObjectURL(mb);
   }catch(e){}
