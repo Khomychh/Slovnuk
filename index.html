@@ -310,7 +310,7 @@
   <button class="rdo" id="remExport">Зберегти файл</button>
   <button class="rx" id="remClose">×</button>
 </div>
-<header><h1>Мій словник</h1><div class="sub">англійська лексика</div></header>
+<header><h1>Slovnuk</h1><div class="sub">Слова та граматика</div></header>
 <main>
   <section class="view on" id="view-lists">
     <div class="search-wrap">
@@ -332,13 +332,11 @@
   <section class="view" id="view-data">
     <div class="panel">
       <h3>Тема</h3>
-      <p>Оформлення застосунку. «Системна» слідує за налаштуванням телефона.</p>
       <div class="seg" id="themeSeg"><button data-theme-opt="light">Світла</button><button data-theme-opt="dark">Темна</button><button data-theme-opt="system">Системна</button></div>
     </div>
     <div class="panel" id="ttsPanel">
       <h3>Озвучення</h3>
       <div id="ttsControls">
-        <p>Озвучення англійських слів і прикладів голосом твого пристрою.</p>
         <div class="seg" id="ttsOnSeg"><button data-on="1">Увімкнено</button><button data-on="0">Вимкнено</button></div>
         <div class="seg" id="ttsAutoSeg"><button data-auto="1">Авто-озвучення</button><button data-auto="0">Лише вручну</button></div>
         <div class="seg" id="ttsAccSeg"><button data-acc="auto">Авто</button><button data-acc="us">🇺🇸 US</button><button data-acc="gb">🇬🇧 UK</button></div>
@@ -365,10 +363,9 @@
     <div id="progressTop"></div>
     <div class="panel">
       <h3>Мої цілі</h3>
-      <p>Орієнтир, а не обмеження — черга на повторення ніколи не блокується. Постав 0, щоб вимкнути ціль.</p>
+      <p>Постав 0, щоб вимкнути ціль.</p>
       <div class="numrow"><input type="number" id="newLimit" min="0" max="999" inputmode="numeric"><label>нових слів у словник за день · 0 = вимкнено</label></div>
       <div class="numrow"><input type="number" id="reviewLimit" min="0" max="999" inputmode="numeric"><label>повторів на день · 0 = вимкнено</label></div>
-      <p class="tts-note">День зараховується як виконаний, коли досягнуто всі увімкнені цілі. Лічильник виконаних днів лише зростає — пропуск дня нічого не обнуляє.</p>
     </div>
   </section>
 </main>
@@ -1057,7 +1054,7 @@ function renderHub(){
   const hub=document.getElementById("study-hub"); hub.style.display="block";
   document.getElementById("study-card").innerHTML="";
   const q=buildQueue(studyScope); const n=q.all.length;
-  const scopeName=studyScope==="all"?"усіх списках":`«${listById(studyScope).name}»`;
+  const scopeName=studyScope==="all"?"всіх списках":`«${listById(studyScope).name}»`;
   const rgoal=reviewGoal(), rdid=reviewsToday();
   let goalHtml="";
   if(rgoal>0){
@@ -1161,7 +1158,7 @@ function renderData(){
   const sel=document.getElementById("bkpSel");
   if(arr.length){ sel.innerHTML=arr.map((b,i)=>`<option value="${i}">${b.date} — ${b.cards.length} записів</option>`).join(""); sel.disabled=false; document.getElementById("restoreBtn").disabled=false; }
   else{ sel.innerHTML=`<option>Копій ще немає</option>`; sel.disabled=true; document.getElementById("restoreBtn").disabled=true; }
-  document.getElementById("bkpInfo").textContent = (arr.length?`Зберігається до ${MAXBK} останніх знімків. Якщо щось зіпсуєш — відкоти потрібний. `:"Авто-копія зʼявиться при наступному відкритті. ")+`Зараз у сховищі ~${storageKB()} КБ.`;
+  document.getElementById("bkpInfo").textContent = (arr.length?`Зберігається до ${MAXBK} останніх знімків. `:"Авто-копія зʼявиться при наступному відкритті. ")+`Зараз у сховищі ~${storageKB()} КБ.`;
 }
 function exportData(){
   const blob=new Blob([JSON.stringify({lists,cards,notes},null,2)],{type:"application/json"});
