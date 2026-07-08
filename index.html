@@ -181,9 +181,29 @@
   .dup-hint{display:none;font-size:12.5px;line-height:1.35;margin-top:9px;padding:8px 11px;border-radius:9px}
   .dup-hint.warn{background:var(--warn-soft);color:var(--rose)}
   .dup-hint.info{background:var(--accent-soft);color:var(--accent)}
-  /* --- форми слова на звороті картки --- */
-  .back .forms{margin-top:12px;font-family:var(--serif);font-size:16px;color:var(--ink2)}
-  .back .forms .flbl{font-family:var(--sans);font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--soft);margin-right:6px}
+  /* --- форми слова на звороті картки (довідка) --- */
+  .back .forms{margin-top:12px;font-family:var(--serif);font-size:16px;color:var(--ink2);display:flex;flex-direction:column;gap:3px}
+  .back .forms .frow{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
+  .back .forms .flbl{font-family:var(--sans);font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--soft);flex:none;min-width:30px}
+  .back .forms .fipa{font-family:var(--serif);font-style:italic;color:var(--accent);font-size:14px}
+  /* --- редактор неправильних форм --- */
+  .vf-row{display:grid;grid-template-columns:44px 1fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px}
+  .vf-row .vf-lbl{font-family:var(--sans);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--soft);text-align:right}
+  .vf-row input{margin-bottom:0}
+  .vf-row .vf-spk{background:var(--accent-soft);border:none;color:var(--accent);border-radius:9px;width:38px;height:40px;font-size:17px;cursor:pointer;flex:none}
+  .vf-row .vf-spk:active{transform:scale(.93)}
+  .vf-row .vf-spk:disabled{opacity:.35;cursor:default}
+  /* --- картка тренування форм --- */
+  .card .fd-hint{font-size:11px;color:var(--soft);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+  .back .fd{display:flex;flex-direction:column;gap:12px;margin-top:4px}
+  .back .fd-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .back .fd-lbl{font-family:var(--sans);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:2px 7px;flex:none;align-self:center}
+  .back .fd-form{font-family:var(--serif);font-size:26px;font-weight:600;overflow-wrap:anywhere}
+  .back .fd-ipa{font-family:var(--serif);font-style:italic;color:var(--accent);font-size:16px}
+  .back .fd-spk{background:none;border:none;color:var(--accent);font-size:17px;cursor:pointer;padding:0 4px}
+  .back .fd-tr{margin-top:16px;font-size:14px;color:var(--soft)}
+  .back .fd-tr .fdt-lbl{font-family:var(--sans);font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;margin-right:6px}
+  .entry .drill-tag{font-family:var(--sans);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--teal);border:1px solid var(--teal);border-radius:6px;padding:1px 5px;align-self:center;opacity:.8}
   /* --- чип денної цілі --- */
   .goal{display:inline-flex;align-items:center;gap:10px;background:var(--accent-soft);color:var(--accent);border-radius:12px;padding:9px 15px;font-size:13.5px;font-weight:600;margin-top:16px}
   .goal.done{background:var(--ok-soft);color:var(--teal)}
@@ -381,7 +401,12 @@
   <div class="ed-head"><button class="x" id="edClose">×</button><h2 id="edTitle">Новий запис</h2><button class="save" id="edSave">Зберегти</button></div>
   <div class="ed-body">
     <div class="field"><label>Слово або фраза</label><input id="f-word" class="serif" autocapitalize="none" autocomplete="off" placeholder="endeavour"><button class="spk-prev" id="spkPreview" type="button" style="display:none">🔊 Прослухати</button><div class="dup-hint" id="dupHint"></div></div>
-    <div class="field"><label>Інші форми</label><input id="f-forms" class="serif" autocapitalize="none" autocomplete="off" placeholder="went, gone"><div class="hint">Неправильні граматичні форми того самого слова через кому (went, gone). Правильні (-s, -ed) додавати не треба.</div></div>
+    <div class="field"><label>Неправильні форми</label>
+      <div class="vf-row"><span class="vf-lbl">Past</span><input id="f-past" class="serif" autocapitalize="none" autocomplete="off" placeholder="went"><input id="f-past-ipa" class="serif" autocapitalize="none" autocomplete="off" placeholder="/wɛnt/"><button class="vf-spk" id="spkPast" type="button" title="Прослухати">🔊</button></div>
+      <div class="vf-row"><span class="vf-lbl">P.P.</span><input id="f-pp" class="serif" autocapitalize="none" autocomplete="off" placeholder="gone"><input id="f-pp-ipa" class="serif" autocapitalize="none" autocomplete="off" placeholder="/ɡɒn/"><button class="vf-spk" id="spkPp" type="button" title="Прослухати">🔊</button></div>
+      <div class="seg" id="drillSeg" style="margin-top:4px"><button data-drill="1" class="on">Тренувати окремо</button><button data-drill="0">Лише довідка</button></div>
+      <div class="hint">Для неправильних дієслів. «Тренувати окремо» — форми повторюються як власна картка (база → форми) зі своїм графіком, незалежним від перекладу. Однакові форми (cut–cut–cut) впиши в обидва поля. Правильні (-s, -ed) додавати не треба.</div>
+    </div>
     <div class="field"><label>Значення</label>
       <div id="sensesWrap"></div>
       <button class="add-sense" id="addSense" type="button">+ додати значення</button>
@@ -420,7 +445,7 @@ const KEY="words_app_v1", BKP="words_app_backup_v1", META="words_app_meta_v1";
 const MAXBK=3, DEFGOAL=20, DEFREVGOAL=30;
 let storeOk=true, lists=[], cards=[];
 let activeView="lists", expanded=new Set();
-let editingId=null, editSenses=[];
+let editingId=null, editSenses=[], editDrill=true;
 let editingListId=null, editIndep=false;
 let studyScope="all", session=[], sessTotal=0;
 let studyEditing=false, revealAfterRender=false;
@@ -442,7 +467,7 @@ function migrateInto(p){
   if(Array.isArray(p)) cards=p;
   else if(p && Array.isArray(p.cards)){ lists=Array.isArray(p.lists)?p.lists:[]; cards=p.cards; }
   notes = (p && Array.isArray(p.notes)) ? p.notes.map(normNote) : [];
-  cards.forEach(c=>{ c.seen = (c.seen===true)||(c.reps>0); if(typeof c.forms!=="string") c.forms=""; if(typeof c.cmt!=="string") c.cmt=c.cmt?String(c.cmt):""; ensureSenses(c); delete c.type; });
+  cards.forEach(c=>{ c.seen = (c.seen===true)||(c.reps>0); normForms(c); if(typeof c.cmt!=="string") c.cmt=c.cmt?String(c.cmt):""; ensureSenses(c); delete c.type; });
   lists.forEach(l=>{ if(typeof l.independent!=="boolean") l.independent = (l.mode==="independent"); delete l.mode; });
   if(cards.length && !lists.length) lists=[{id:uid(),name:"Мій список",independent:false,created:todayStr()}];
   ensureFallback();
@@ -586,7 +611,32 @@ function ensureSenses(c){
 }
 function distinctIpa(c){ const out=[]; (c.senses||[]).forEach(s=>{ const v=(s.ipa||"").trim(); if(v&&!out.includes(v)) out.push(v); }); return out; }
 function senseSummary(c){ return (c.senses||[]).map(s=>{ const t=(s.tr||"").trim(); if(!t) return ""; const ab=posAb(s.pos); return esc(t)+(ab?" ("+ab+")":""); }).filter(Boolean).join("; "); }
-function cardSearchText(c){ const p=[c.word||"",c.cmt||"",c.forms||""]; (c.senses||[]).forEach(s=>p.push(s.tr||"",s.gloss||"",s.ex||"")); return p.join(" ").toLowerCase(); }
+function cardSearchText(c){ const p=[c.word||"",c.cmt||""]; if(c.forms){ p.push(c.forms.past&&c.forms.past.f||"", c.forms.pp&&c.forms.pp.f||""); } (c.senses||[]).forEach(s=>p.push(s.tr||"",s.gloss||"",s.ex||"")); return p.join(" ").toLowerCase(); }
+
+/* ---- неправильні форми (окрема доріжка SM-2) ---- */
+function numOr(v,d){ return (typeof v==="number"&&isFinite(v))?v:d; }
+function blankFormsSm(){ return {ef:2.5,interval:0,reps:0,seen:false,due:todayStr(),last:null}; }
+/* нормалізувати будь-яке значення forms → {past,pp,drill,+SM-2} або null. Приймає новий обʼєкт, старий рядок "went, gone" чи порожнє */
+function normFormsValue(f){
+  if(f && typeof f==="object" && !Array.isArray(f)){
+    const past=(f.past&&typeof f.past==="object")?f.past:{}; const pp=(f.pp&&typeof f.pp==="object")?f.pp:{};
+    const pf=(past.f||"").trim(), pi=(past.ipa||"").trim(), qf=(pp.f||"").trim(), qi=(pp.ipa||"").trim();
+    if(!pf && !qf) return null;
+    return { past:{f:pf,ipa:pi}, pp:{f:qf,ipa:qi}, drill:f.drill!==false,
+      ef:numOr(f.ef,2.5), interval:numOr(f.interval,0), reps:numOr(f.reps,0),
+      seen:!!f.seen, due:f.due||todayStr(), last:f.last||null };
+  }
+  if(typeof f==="string" && f.trim()){                         // міграція старого формату
+    const parts=f.split(",").map(s=>s.trim()).filter(Boolean);
+    if(!parts.length) return null;
+    return { past:{f:parts[0]||"",ipa:""}, pp:{f:parts[1]||"",ipa:""}, drill:true, ...blankFormsSm() };
+  }
+  return null;
+}
+function normForms(c){ c.forms=normFormsValue(c.forms); }
+/* чи має картка активну доріжку тренування форм */
+function hasDrill(c){ const f=c.forms; return !!(f && f.drill && ((f.past&&f.past.f)||(f.pp&&f.pp.f))); }
+function formsDueDate(c){ return (c.forms&&c.forms.due)||todayStr(); }
 
 /* ---- унікальність ---- */
 function findConflict(w, listId, exceptId){
@@ -684,27 +734,38 @@ function renderCal(){
   const nb=document.getElementById("calNext"); if(nb) nb.disabled=calIsCurrent();
 }
 
-/* ---- черга повторення ---- */
+/* ---- черга повторення ----
+   Кожна картка дає до двох незалежних питань (items):
+   mode:"tr"    — переклад (SM-2 на рівні картки)
+   mode:"forms" — неправильні форми (SM-2 у c.forms), лише коли hasDrill        */
 function poolOf(scope){ return scope==="all"?cards:cardsOf(scope); }
-function reviewsOf(scope){ return poolOf(scope).filter(c=>c.seen && isDue(c)); }
-function newOf(scope){ return poolOf(scope).filter(c=>!c.seen); }
 function buildQueue(scope){
-  const rev=reviewsOf(scope), nw=newOf(scope);
+  const pool=poolOf(scope), rev=[], nw=[];
+  pool.forEach(c=>{
+    if(c.seen){ if(isDue(c)) rev.push({c,mode:"tr"}); }        // переклад
+    else nw.push({c,mode:"tr"});
+    if(hasDrill(c)){                                           // форми
+      if(c.forms.seen){ if(formsDueDate(c)<=todayStr()) rev.push({c,mode:"forms"}); }
+      else nw.push({c,mode:"forms"});
+    }
+  });
   return {rev, nw, all:rev.concat(nw)};   // ціль нічого не ріже — усі нові доступні
 }
 function totalDue(){ return buildQueue("all").all.length; }
 
-/* ---- SM-2 ---- */
-function applyReview(c,q){
-  if(q<3){ c.reps=0; c.interval=0; }
+/* ---- SM-2 (працює над будь-якою доріжкою: сама картка або c.forms) ---- */
+function applyReviewTo(t,q){
+  if(q<3){ t.reps=0; t.interval=0; }
   else{
-    if(c.reps===0) c.interval=1; else if(c.reps===1) c.interval=6; else c.interval=Math.round(c.interval*c.ef);
-    c.reps+=1; if(q===5) c.interval=Math.round(c.interval*1.3);
+    if(t.reps===0) t.interval=1; else if(t.reps===1) t.interval=6; else t.interval=Math.round(t.interval*t.ef);
+    t.reps+=1; if(q===5) t.interval=Math.round(t.interval*1.3);
   }
-  c.ef=c.ef+(0.1-(5-q)*(0.08+(5-q)*0.02)); if(c.ef<1.3) c.ef=1.3;
-  c.due=addDays(c.interval); c.last=todayStr();
+  t.ef=t.ef+(0.1-(5-q)*(0.08+(5-q)*0.02)); if(t.ef<1.3) t.ef=1.3;
+  t.due=addDays(t.interval); t.last=todayStr();
 }
-function previewIv(c,q){ const t=JSON.parse(JSON.stringify(c)); applyReview(t,q); return ivLabel(t.interval); }
+function applyReview(c,q){ applyReviewTo(c,q); }
+function previewIvTrack(t,q){ const x=JSON.parse(JSON.stringify(t)); applyReviewTo(x,q); return ivLabel(x.interval); }
+function previewIv(c,q){ return previewIvTrack(c,q); }
 
 /* ---- routing ---- */
 function show(v){
@@ -733,10 +794,11 @@ function entryHTML(c, src){
   const ipas=distinctIpa(c);
   const ipa=ipas.length?`<span class="ipa">${esc(ipas.join(" · "))}</span>`:'';
   const srcTag=src?`<span class="src">${esc(src)}</span>`:'';
+  const drillTag=hasDrill(c)?`<span class="drill-tag" title="Форми тренуються окремо">форми</span>`:'';
   const sum=senseSummary(c);
   const tr=sum?`<div class="tr">${sum}</div>`:'';
   const spk=ttsOn()?`<button class="spk-ent" data-spk="${c.id}">🔊</button>`:'';
-  return `<div class="entry" data-id="${c.id}">${dot}<div class="meta"><div class="w-line"><span class="w">${esc(c.word)}</span>${ipa}${srcTag}</div>${tr}</div>${spk}</div>`;
+  return `<div class="entry" data-id="${c.id}">${dot}<div class="meta"><div class="w-line"><span class="w">${esc(c.word)}</span>${ipa}${srcTag}${drillTag}</div>${tr}</div>${spk}</div>`;
 }
 function wireEntries(root){
   root.querySelectorAll(".entry").forEach(e=>e.onclick=()=>openWordEditor(e.dataset.id));
@@ -919,12 +981,28 @@ function renderSenseRows(){
   });
 }
 function addSense(){ const prev=editSenses[editSenses.length-1]; editSenses.push({pos:"",gloss:"",ipa:prev?prev.ipa:"",tr:"",ex:""}); renderSenseRows(); const t=document.querySelector("#sensesWrap .sense:last-child .s-tr"); if(t) t.focus(); }
+function setEditDrill(v){ editDrill=!!v; document.querySelectorAll("#drillSeg button").forEach(b=>b.classList.toggle("on",(b.dataset.drill==="1")===editDrill)); }
+/* зібрати forms з полів редактора; prev — попередній forms-обʼєкт (щоб зберегти графік SM-2) */
+function collectForms(prev){
+  const pf=document.getElementById("f-past").value.trim(), pi=document.getElementById("f-past-ipa").value.trim();
+  const qf=document.getElementById("f-pp").value.trim(), qi=document.getElementById("f-pp-ipa").value.trim();
+  if(!pf && !qf) return null;
+  const base=(prev&&typeof prev==="object")?prev:blankFormsSm();
+  return { past:{f:pf,ipa:pi}, pp:{f:qf,ipa:qi}, drill:editDrill,
+    ef:numOr(base.ef,2.5), interval:numOr(base.interval,0), reps:numOr(base.reps,0),
+    seen:!!base.seen, due:base.due||todayStr(), last:base.last||null };
+}
 function openWordEditor(id, preset){
   editingId=id||null;
   const c=id?cards.find(x=>x.id===id):null;
   document.getElementById("edTitle").textContent=c?"Редагувати":"Новий запис";
   document.getElementById("f-word").value=c?c.word:"";
-  document.getElementById("f-forms").value=c?(c.forms||""):"";
+  const f=c&&c.forms?c.forms:null;
+  document.getElementById("f-past").value=f&&f.past?(f.past.f||""):"";
+  document.getElementById("f-past-ipa").value=f&&f.past?(f.past.ipa||""):"";
+  document.getElementById("f-pp").value=f&&f.pp?(f.pp.f||""):"";
+  document.getElementById("f-pp-ipa").value=f&&f.pp?(f.pp.ipa||""):"";
+  setEditDrill(f?f.drill!==false:true);
   document.getElementById("f-cmt").value=c?(c.cmt||""):"";
   editSenses = c ? (c.senses||[]).map(senseFull) : [];
   if(!editSenses.length) editSenses=[blankSense()];
@@ -932,6 +1010,7 @@ function openWordEditor(id, preset){
   fillListSelect(c?c.listId:(preset||presetAddList()));
   document.getElementById("edDelete").style.display=c?"block":"none";
   document.getElementById("spkPreview").style.display=ttsOn()?"inline-block":"none";
+  const ttsHere=ttsOn(); document.getElementById("spkPast").disabled=!ttsHere; document.getElementById("spkPp").disabled=!ttsHere;
   checkDup();
   document.getElementById("editor").classList.add("on");
   if(!c) setTimeout(()=>document.getElementById("f-word").focus(),100);
@@ -954,8 +1033,9 @@ function saveWord(){
   }
   let senses=editSenses.map(senseFull).filter(senseNonEmpty);
   if(!senses.length) senses=[blankSense()];
+  const forms=collectForms(orig?orig.forms:null);
   const data={ word, listId:targetList,
-    forms:document.getElementById("f-forms").value.trim(),
+    forms,
     cmt:document.getElementById("f-cmt").value.trim(),
     senses };
   if(editingId) Object.assign(orig,data);
@@ -1071,7 +1151,8 @@ function startSession(){
   const q=buildQueue(studyScope).all.slice();
   for(let i=q.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [q[i],q[j]]=[q[j],q[i]]; }
   const d=studyDir();
-  session=q.map(c=>({c, dir: d==="mix"?(Math.random()<0.5?"fwd":"rev"):d}));
+  session=q.map(it=>({c:it.c, mode:it.mode,
+    dir: it.mode==="forms" ? "fwd" : (d==="mix"?(Math.random()<0.5?"fwd":"rev"):d)}));
   sessTotal=session.length;
   document.getElementById("study-hub").style.display="none";
   showCard();
@@ -1082,18 +1163,29 @@ function showCard(){
     card.innerHTML=`<div class="done"><div class="big">Сесію завершено</div><div class="substat">Гарна робота. Повертайся завтра.</div><button class="btn btn-primary" id="backHub">До огляду</button></div>`;
     document.getElementById("backHub").onclick=renderStudy; updateBadge(); return;
   }
-  const {c,dir}=session[0]; const done=sessTotal-session.length+1;
+  const {c,dir,mode}=session[0]; const done=sessTotal-session.length+1;
+  const track=(mode==="forms")?c.forms:c;
   const senses=(c.senses&&c.senses.length)?c.senses:[blankSense()];
   const ipas=distinctIpa(c);
   const multi=senses.length>1;
-  const formsHtml=c.forms?`<div class="forms"><span class="flbl">форми</span>${esc(c.forms)}</div>`:"";
+  const fmt=c.forms;
+  const formsHtml=fmt?`<div class="forms">`
+    +(fmt.past.f?`<div class="frow"><span class="flbl">Past</span>${esc(fmt.past.f)}${fmt.past.ipa?` <span class="fipa">${esc(fmt.past.ipa)}</span>`:""}</div>`:"")
+    +(fmt.pp.f?`<div class="frow"><span class="flbl">P.P.</span>${esc(fmt.pp.f)}${fmt.pp.ipa?` <span class="fipa">${esc(fmt.pp.ipa)}</span>`:""}</div>`:"")
+    +`</div>`:"";
   const cmtHtml=c.cmt?`<div class="cmt">${esc(c.cmt)}</div>`:"";
   const wordSpk=ttsOn()?`<button class="spk spk-word" type="button">🔊</button>`:'';
   const weakHint=multi?`<div class="weak-hint">💡 Картка оцінюється цілком. Забув хоч одне значення — «Не згадав».</div>`:"";
   let exList=[];
   const exHtmlFor=s=>{ const arr=(s.ex||"").split("\n").map(x=>x.trim()).filter(Boolean); if(!arr.length) return ""; return `<div class="ex">`+arr.map(line=>{ const bar=line.indexOf("|"); const en=(bar>=0?line.slice(0,bar):line).trim(); const uk=(bar>=0?line.slice(bar+1):"").trim(); const idx=exList.length; exList.push(en); const spk=ttsOn()?` <button class="spk-line" data-i="${idx}">🔊</button>`:""; const trHtml=uk?`<span class="ex-tr">${esc(uk)}</span>`:""; return `<p>${esc(en)}${spk}${trHtml}</p>`; }).join("")+`</div>`; };
   let front, back;
-  if(dir==="rev"){
+  if(mode==="forms"){
+    const smallW=(c.word||"").length>16?" small":"";
+    front=`<div class="fd-hint">згадай форми · past + participle</div><div class="headword${smallW}">${esc(c.word)}</div>${wordSpk}`;
+    const fdRow=(lbl,o)=>{ if(!o||!o.f) return ""; const idx=exList.length; exList.push(o.f); const spk=ttsOn()?`<button class="fd-spk spk-line" data-i="${idx}" type="button">🔊</button>`:""; return `<div class="fd-row"><span class="fd-lbl">${lbl}</span><span class="fd-form">${esc(o.f)}</span>${o.ipa?`<span class="fd-ipa">${esc(o.ipa)}</span>`:""}${spk}</div>`; };
+    const trRef=senseSummary(c);
+    back=`<div class="fd">${fdRow("Past",fmt.past)}${fdRow("P.P.",fmt.pp)}</div>${trRef?`<div class="fd-tr"><span class="fdt-lbl">значення</span>${trRef}</div>`:""}${cmtHtml}`;
+  }else if(dir==="rev"){
     const items=senses.map(s=>{ const meta=[posAb(s.pos),(s.gloss||"").trim()].filter(Boolean).join(", "); return `<div class="rev-item">${esc(s.tr||"—")}${meta?` <span class="rev-meta">(${esc(meta)})</span>`:""}</div>`; }).join("");
     const smallT=senses.length>2||(senses[0].tr||"").length>16;
     front=`<div class="dirhint">укр → англ</div><div class="rev-list${smallT?" small":""}">${items}</div>`;
@@ -1114,10 +1206,10 @@ function showCard(){
     <div class="back" id="back">${back}<button class="edit-card" id="editCard" type="button">✏️ Редагувати картку</button></div>
     <button class="reveal-btn" id="reveal">Показати відповідь</button>
     <div class="rate" id="rate" style="display:none">
-      <button class="r-again">Не згадав<span class="iv">${previewIv(c,2)}</span></button>
-      <button class="r-hard">Важко<span class="iv">${previewIv(c,3)}</span></button>
-      <button class="r-good">Добре<span class="iv">${previewIv(c,4)}</span></button>
-      <button class="r-easy">Легко<span class="iv">${previewIv(c,5)}</span></button>
+      <button class="r-again">Не згадав<span class="iv">${previewIvTrack(track,2)}</span></button>
+      <button class="r-hard">Важко<span class="iv">${previewIvTrack(track,3)}</span></button>
+      <button class="r-good">Добре<span class="iv">${previewIvTrack(track,4)}</span></button>
+      <button class="r-easy">Легко<span class="iv">${previewIvTrack(track,5)}</span></button>
     </div></div>`;
   const reveal=()=>{ document.getElementById("back").classList.add("on"); document.getElementById("reveal").style.display="none"; document.getElementById("rate").style.display="grid"; const th=document.getElementById("th"); if(th) th.style.display="none"; if(autoOn() && dir==="rev") speak(c.word); };
   card.querySelector(".front").onclick=reveal; document.getElementById("reveal").onclick=reveal;
@@ -1133,8 +1225,14 @@ function showCard(){
   if(revealAfterRender){ revealAfterRender=false; reveal(); }
 }
 function rate(q){
-  const item=session.shift(); const c=item.c; const isNew=!c.seen;
-  applyReview(c,q); if(isNew){ c.seen=true; } else bumpReview();
+  const item=session.shift(); const c=item.c;
+  if(item.mode==="forms" && c.forms){
+    const isNew=!c.forms.seen;
+    applyReviewTo(c.forms,q); if(isNew){ c.forms.seen=true; } else bumpReview();
+  }else{
+    const isNew=!c.seen;
+    applyReview(c,q); if(isNew){ c.seen=true; } else bumpReview();
+  }
   save(); if(q<3) session.push(item); showCard();
 }
 
@@ -1171,11 +1269,11 @@ function normalizeImport(p){
   let L=[],C=[];
   if(Array.isArray(p)) C=p; else if(p && Array.isArray(p.cards)){ L=Array.isArray(p.lists)?p.lists:[]; C=p.cards; } else throw new Error("bad");
   C=C.map(c=>{ const card={ id:c.id||uid(), listId:c.listId, word:c.word||"",
-    forms:c.forms||"", cmt:c.cmt||"",
+    forms:c.forms, cmt:c.cmt||"",
     senses:Array.isArray(c.senses)?c.senses:null, ipa:c.ipa||"", tr:c.tr||"", ex:c.ex||"",
     ef:c.ef||2.5, interval:c.interval||0, reps:c.reps||0, seen:(c.seen===true)||(c.reps>0),
     due:c.due||todayStr(), created:c.created||todayStr() };
-    return ensureSenses(card); });
+    ensureSenses(card); normForms(card); return card; });
   L=L.map(l=>({ id:l.id||uid(), name:l.name||"Список", independent:(typeof l.independent==="boolean")?l.independent:(l.mode==="independent"), created:l.created||todayStr() }));
   if(C.length && !L.length) L=[{id:uid(),name:"Імпортований список",independent:false,created:todayStr()}];
   if(!L.length) L=[{id:uid(),name:"Загальний",independent:false,created:todayStr()}];
@@ -1200,12 +1298,12 @@ function buildImportedCard(raw, listId){
   const word=(typeof raw.word==="string"?raw.word:"").trim();
   if(!word) return null;
   const card={ id:uid(), listId, word,
-    forms:(typeof raw.forms==="string")?raw.forms.trim():"",
+    forms:raw.forms,
     cmt:(typeof raw.cmt==="string")?raw.cmt.trim():"",
     senses:Array.isArray(raw.senses)?raw.senses:null,
     ipa:(typeof raw.ipa==="string")?raw.ipa:"", tr:(typeof raw.tr==="string")?raw.tr:"", ex:(typeof raw.ex==="string")?raw.ex:"",
     ef:2.5, interval:0, reps:0, seen:false, due:todayStr(), created:todayStr() };
-  return ensureSenses(card);   // усі стартують як нові; SM-2 з нуля
+  ensureSenses(card); normForms(card); return card;   // усі стартують як нові; SM-2 з нуля
 }
 function normalizeWordList(p, fallbackName){
   let name="", words=null;
@@ -1257,8 +1355,8 @@ function toggleImportSchema(){
     '  "listName": "Завдання від викладача №3",',
     '  "words": [',
     '    {',
-    '      "word": "endeavour",',
-    '      "forms": "",',
+    '      "word": "go",',
+    '      "forms": { "past": {"f":"went","ipa":"/wɛnt/"}, "pp": {"f":"gone","ipa":"/ɡɒn/"} },',
     '      "cmt": "",',
     '      "senses": [',
     '        {',
@@ -1276,7 +1374,7 @@ function toggleImportSchema(){
     '',
     '**Обов’язкове:** `words` — масив, у кожному об’єкті поле `word`.',
     '',
-    '**Необов’язкове:** `listName` (інакше — імʼя файлу), `forms` (неправильні форми через кому), `cmt` (коментар).',
+    '**Необов’язкове:** `listName` (інакше — імʼя файлу), `cmt` (коментар), `forms` — неправильні форми дієслова: обʼєкт `{past:{f,ipa}, pp:{f,ipa}}` (тренуються окремою карткою). Старий формат — рядок `"went, gone"` — теж приймається.',
     '',
     'У кожному значенні (`senses`): `tr` — переклад, `pos` — частина мови (`n`,`v`,`adj`,`adv`,`prep`,`phr`,`other`), `ipa` — транскрипція, `gloss` — англ. підказка, `ex` — приклади (кожен з нового рядка; переклад через `|`).',
     '',
@@ -1355,6 +1453,9 @@ document.querySelectorAll("#dirSeg button").forEach(b=>b.onclick=()=>setDir(b.da
 document.getElementById("newLimit").onchange=e=>{ let v=parseInt(e.target.value,10); if(isNaN(v)||v<0) v=0; const m=getMeta(); m.newLimit=v; setMeta(m); e.target.value=v; markGoalDone(); renderProgress(); updateBadge(); };
 document.getElementById("reviewLimit").onchange=e=>{ let v=parseInt(e.target.value,10); if(isNaN(v)||v<0) v=0; const m=getMeta(); m.reviewLimit=v; setMeta(m); e.target.value=v; markGoalDone(); renderProgress(); };
 document.getElementById("spkPreview").onclick=()=>speak(document.getElementById("f-word").value.trim());
+document.querySelectorAll("#drillSeg button").forEach(b=>b.onclick=()=>setEditDrill(b.dataset.drill==="1"));
+document.getElementById("spkPast").onclick=()=>speak(document.getElementById("f-past").value.trim());
+document.getElementById("spkPp").onclick=()=>speak(document.getElementById("f-pp").value.trim());
 document.querySelectorAll("#themeSeg button").forEach(b=>b.onclick=()=>setTheme(b.dataset.themeOpt));
 document.querySelectorAll("#ttsOnSeg button").forEach(b=>b.onclick=()=>{ const m=getMeta(); m.tts=b.dataset.on==="1"; setMeta(m); renderTts(); });
 document.querySelectorAll("#ttsAutoSeg button").forEach(b=>b.onclick=()=>{ const m=getMeta(); m.auto=b.dataset.auto==="1"; setMeta(m); renderTts(); });
