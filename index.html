@@ -86,6 +86,7 @@
   .entry .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none;margin-top:7px}
   .tag{font-family:var(--sans);font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 5px;align-self:center}
   .spk-ent{background:none;border:none;color:var(--accent);font-size:18px;cursor:pointer;padding:2px 4px;flex:none;margin-top:2px}
+  .forgot-ent{background:none;border:none;color:var(--rose);font-size:18px;cursor:pointer;padding:2px 4px;flex:none;margin-top:2px}
   .spk{background:var(--accent-soft);border:none;color:var(--accent);border-radius:50%;width:40px;height:40px;font-size:19px;cursor:pointer;margin-top:14px}
   .spk:active{transform:scale(.93)}
   .spk-line{background:none;border:none;color:var(--accent);font-size:14px;cursor:pointer;padding:0 4px}
@@ -252,10 +253,12 @@
   .day-dot.met{background:var(--accent)}
   .day-dot.today{box-shadow:inset 0 0 0 1.5px var(--soft)}
   .day-dot.met.today{box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.85)}
-  .stat-pills{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
-  .stat-pill{background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:10px 6px;text-align:center}
-  .stat-pill b{display:block;font-family:var(--serif);font-size:22px;font-weight:700;color:var(--accent);line-height:1}
-  .stat-pill span{display:block;font-size:11px;color:var(--soft);margin-top:3px;text-transform:uppercase;letter-spacing:.4px}
+  .stat-pills{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+  .stat-pill{background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:9px 4px;text-align:center;cursor:pointer}
+  .stat-pill:active{transform:scale(.94)}
+  .stat-pill.sel{border-color:var(--accent);box-shadow:inset 0 0 0 1.5px var(--accent)}
+  .stat-pill b{display:block;font-family:var(--serif);font-size:19px;font-weight:700;color:var(--accent);line-height:1}
+  .stat-pill span{display:block;font-size:10px;color:var(--soft);margin-top:3px;text-transform:uppercase;letter-spacing:.3px}
   .prog-hint{color:var(--soft);font-size:13.5px;line-height:1.45}
   #view-progress .day-dots{margin-top:0}
   /* --- календар виконаних днів --- */
@@ -280,8 +283,11 @@
   .cal-detail.on{display:block}
   .cal-detail .cd-date{font-family:var(--serif);font-size:16px;color:var(--ink)}
   .cal-detail .cd-dow{font-size:12px;color:var(--soft);text-transform:capitalize;margin-top:1px;margin-bottom:11px}
-  .cal-detail .cd-row{display:flex;justify-content:space-between;font-size:14px;padding:5px 0;color:var(--ink2)}
-  .cal-detail .cd-row b{color:var(--accent);font-variant-numeric:tabular-nums}
+  .cal-detail .cd-row,.stat-detail .cd-row{display:flex;justify-content:space-between;font-size:14px;padding:5px 0;color:var(--ink2)}
+  .cal-detail .cd-row b,.stat-detail .cd-row b{color:var(--accent);font-variant-numeric:tabular-nums}
+  .stat-detail{margin-top:2px;border-top:1px solid var(--line);padding-top:12px;display:none}
+  .stat-detail.on{display:block}
+  .stat-detail .sd-lbl{font-family:var(--serif);font-size:15px;color:var(--ink);margin-bottom:6px}
   .cal-detail .cd-goal{margin-top:9px;font-size:13px;color:var(--accent);font-weight:600}
   .cal-detail .cd-empty{font-size:13.5px;color:var(--soft)}
   .cal-foot{margin-top:12px;font-size:12.5px;color:var(--soft);display:flex;align-items:center;gap:7px}
@@ -723,12 +729,33 @@ function markGoalDone(){
   let arr=Array.isArray(m.goalDates)?m.goalDates:[];
   if(!arr.includes(t)){ arr.push(t); m.goalDates=arr; setMeta(m); }
 }
+function periodTest(period){
+  /* повертає функцію-фільтр дат "YYYY-MM-DD" для періоду; тиждень — з понеділка по неділю */
+  const t=todayStr();
+  if(period==="year") return d=>d.slice(0,4)===t.slice(0,4);
+  if(period==="month") return d=>d.slice(0,7)===t.slice(0,7);
+  if(period==="week"){
+    const n=today(), dow=(n.getDay()+6)%7;
+    const mon=new Date(n); mon.setDate(n.getDate()-dow);
+    const sun=new Date(mon); sun.setDate(mon.getDate()+6);
+    const mk=dayKey(mon), sk=dayKey(sun);
+    return d=>d>=mk && d<=sk;
+  }
+  return ()=>true;   // "all"
+}
+function periodLogStats(period){
+  /* сума нових слів і повторів по журналу за період */
+  const m=getMeta(), log=(m.log&&typeof m.log==="object")?m.log:{}, test=periodTest(period);
+  let n=0,r=0;
+  Object.keys(log).forEach(d=>{ if(test(d)){ const e=log[d]; n+=e.n||0; r+=e.r||0; } });
+  return {n,r};
+}
 function goalStats(){
   const m=getMeta(); const arr=[...new Set(Array.isArray(m.goalDates)?m.goalDates:[])];
-  const t=todayStr(), ym=t.slice(0,7), yy=t.slice(0,4);
-  let month=0,year=0;
-  arr.forEach(d=>{ if(d.slice(0,7)===ym) month++; if(d.slice(0,4)===yy) year++; });
-  return {all:arr.length,month,year,today:arr.includes(t)};
+  const t=todayStr(), ym=t.slice(0,7), yy=t.slice(0,4), wf=periodTest("week");
+  let month=0,year=0,week=0;
+  arr.forEach(d=>{ if(d.slice(0,7)===ym) month++; if(d.slice(0,4)===yy) year++; if(wf(d)) week++; });
+  return {all:arr.length,month,year,week,today:arr.includes(t)};
 }
 /* ---- набір виконаних днів (для точок останніх днів) ---- */
 function metSet(){ const m=getMeta(); const a=Array.isArray(m.goalDates)?m.goalDates:[]; return new Set(a); }
@@ -744,6 +771,7 @@ const MONTHS_GEN_UK=["січня","лютого","березня","квітня"
 const DOW_FULL_UK=["Неділя","Понеділок","Вівторок","Середа","Четвер","П'ятниця","Субота"];
 let calCursor=null;   // {y, m} — m 0-based
 let calSelected=null; // ключ вибраного дня "YYYY-MM-DD" або null
+let statSelected=null; // обраний період статистики: "all"|"year"|"month"|"week" або null
 function calInit(){ const d=today(); calCursor={y:d.getFullYear(), m:d.getMonth()}; calSelected=null; }
 function calIsCurrent(){ const n=today(); return calCursor && calCursor.y===n.getFullYear() && calCursor.m===n.getMonth(); }
 function calShift(delta){
@@ -863,11 +891,17 @@ function entryHTML(c, src){
   const sum=senseSummary(c);
   const tr=sum?`<div class="tr">${sum}</div>`:'';
   const spk=ttsOn()?`<button class="spk-ent" data-spk="${c.id}">🔊</button>`:'';
-  return `<div class="entry" data-id="${c.id}">${dot}<div class="meta"><div class="w-line"><span class="w">${esc(c.word)}</span>${ipa}${srcTag}${drillTag}</div>${tr}</div>${spk}</div>`;
+  const forgot=c.seen?`<button class="forgot-ent" data-forgot="${c.id}" title="Забув — повторити знову">↺</button>`:'';
+  return `<div class="entry" data-id="${c.id}">${dot}<div class="meta"><div class="w-line"><span class="w">${esc(c.word)}</span>${ipa}${srcTag}${drillTag}</div>${tr}</div>${spk}${forgot}</div>`;
+}
+function markForgot(id){
+  const c=cards.find(x=>x.id===id); if(!c || !c.seen) return;
+  applyReviewTo(c,2); save(); renderLists(); updateBadge();
 }
 function wireEntries(root){
   root.querySelectorAll(".entry").forEach(e=>e.onclick=()=>openWordEditor(e.dataset.id));
   if(ttsOn()) root.querySelectorAll(".spk-ent").forEach(b=>b.onclick=ev=>{ ev.stopPropagation(); const c=cards.find(x=>x.id===b.dataset.spk); if(c) speak(c.word); });
+  root.querySelectorAll(".forgot-ent").forEach(b=>b.onclick=ev=>{ ev.stopPropagation(); markForgot(b.dataset.forgot); });
 }
 function progBar(label,val,goal){
   if(goal<=0) return `<div class="prog-bar"><div class="pb-top"><span>${label}</span><span class="pb-num">без цілі</span></div></div>`;
@@ -897,12 +931,14 @@ function renderProgress(){
     <div class="panel"><h3>Сьогодні</h3>${today}</div>
     <div class="panel">
       <h3>Виконано днів</h3>
-      <p>Скільки днів ти досягав своєї цілі. Лічильник лише зростає — пропущений день нічого не скидає.</p>
-      <div class="stat-pills">
-        <div class="stat-pill"><b>${gs.all}</b><span>весь час</span></div>
-        <div class="stat-pill"><b>${gs.year}</b><span>цей рік</span></div>
-        <div class="stat-pill"><b>${gs.month}</b><span>цей місяць</span></div>
+      <p>Скільки днів ти досягав своєї цілі. Лічильник лише зростає — пропущений день нічого не скидає. Натисни на цифру, щоб побачити нові слова й повтори за період.</p>
+      <div class="stat-pills" id="statPills">
+        <div class="stat-pill${statSelected==='all'?' sel':''}" data-period="all"><b>${gs.all}</b><span>весь час</span></div>
+        <div class="stat-pill${statSelected==='year'?' sel':''}" data-period="year"><b>${gs.year}</b><span>цей рік</span></div>
+        <div class="stat-pill${statSelected==='month'?' sel':''}" data-period="month"><b>${gs.month}</b><span>цей місяць</span></div>
+        <div class="stat-pill${statSelected==='week'?' sel':''}" data-period="week"><b>${gs.week}</b><span>цей тиждень</span></div>
       </div>
+      <div class="stat-detail" id="statDetail"></div>
       <div class="prog-lbl" style="margin:16px 0 9px">Останні 7 днів</div>
       <div class="day-dots">${dots}</div>
     </div>
@@ -924,6 +960,23 @@ function renderProgress(){
   const cp=document.getElementById("calPrev"), cn=document.getElementById("calNext");
   if(cp) cp.onclick=()=>calShift(-1);
   if(cn) cn.onclick=()=>calShift(1);
+  document.querySelectorAll("#statPills .stat-pill").forEach(p=>p.onclick=()=>{
+    const per=p.dataset.period;
+    statSelected=(statSelected===per)?null:per;
+    document.querySelectorAll("#statPills .stat-pill").forEach(x=>x.classList.toggle("sel", x.dataset.period===statSelected));
+    renderStatDetail();
+  });
+  renderStatDetail();
+}
+const STAT_LBL={all:"За весь час",year:"За цей рік",month:"За цей місяць",week:"За цей тиждень"};
+function renderStatDetail(){
+  const box=document.getElementById("statDetail"); if(!box) return;
+  if(!statSelected){ box.className="stat-detail"; box.innerHTML=""; return; }
+  const {n,r}=periodLogStats(statSelected);
+  box.className="stat-detail on";
+  box.innerHTML=`<div class="sd-lbl">${STAT_LBL[statSelected]}</div>
+    <div class="cd-row"><span>Нових слів</span><b>${n}</b></div>
+    <div class="cd-row"><span>Повторів</span><b>${r}</b></div>`;
 }
 function renderAccordion(){
   const root=document.getElementById("lists");
