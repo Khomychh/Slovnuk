@@ -159,6 +159,7 @@
   .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--accent)}
   .field .hint{font-size:12px;color:var(--soft);margin-top:5px}
   .del-link{display:block;width:100%;text-align:center;background:none;border:none;color:var(--rose);font-size:14px;padding:10px;margin-top:6px;cursor:pointer}
+  .ed-body .btn.ghost{width:100%;background:transparent;border:1px solid var(--accent);color:var(--accent);margin:4px 0 2px}
   /* --- розкривні списки --- */
   .list-card{background:var(--raised);border:1px solid var(--line);border-radius:var(--r);margin-bottom:10px;overflow:hidden;transition:border-color .15s}
   .list-card.open{border-color:var(--line2)}
@@ -182,7 +183,8 @@
   .dup-hint.warn{background:var(--warn-soft);color:var(--rose)}
   .dup-hint.info{background:var(--accent-soft);color:var(--accent)}
   /* --- форми слова на звороті картки (довідка) --- */
-  .back .forms{margin-top:12px;font-family:var(--serif);font-size:16px;color:var(--ink2);display:flex;flex-direction:column;gap:3px}
+  .back .forms{margin-top:16px;padding-top:13px;border-top:1px dashed var(--line2);font-family:var(--serif);font-size:16px;color:var(--ink2);display:flex;flex-direction:column;gap:4px}
+  .back .forms .forms-h{font-family:var(--sans);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--teal);margin-bottom:3px}
   .back .forms .frow{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
   .back .forms .flbl{font-family:var(--sans);font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--soft);flex:none;min-width:30px}
   .back .forms .fipa{font-family:var(--serif);font-style:italic;color:var(--accent);font-size:14px}
@@ -199,7 +201,8 @@
   .vf-add{display:block;width:100%;text-align:center;border:1px dashed var(--line);background:transparent;color:var(--accent);font-size:14px;font-weight:600;font-family:var(--sans);border-radius:11px;padding:10px;cursor:pointer;margin-top:2px}
   .vf-add:active{opacity:.6}
   /* --- картка тренування форм --- */
-  .card .fd-hint{font-size:11px;color:var(--soft);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+  .card.forms-card{border-color:var(--teal)}
+  .card .fd-hint{display:inline-block;font-size:11px;font-weight:700;color:var(--teal);background:var(--ok-soft);border-radius:7px;padding:3px 10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px}
   .back .fd{display:flex;flex-direction:column;gap:12px;margin-top:4px}
   .back .fd-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
   .back .fd-lbl{font-family:var(--sans);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:2px 7px;flex:none;align-self:center}
@@ -377,7 +380,7 @@
     </div>
     <div class="panel"><h3>Експорт</h3><p>Зберегти всі списки й слова у файл. Перед зміною телефона або як резервну копію.</p><button class="btn" id="export">Зберегти у файл (.json)</button></div>
     <div class="panel"><h3>Імпорт</h3><p>Завантажити дані з файлу. Замінить усі поточні дані.</p><button class="btn ghost" id="importBtn">Вибрати файл</button><input type="file" id="importFile" accept=".json,application/json" style="display:none"></div>
-    <div class="panel"><h3>Підвантажити список слів</h3><p>Додати готовий список (напр. завдання від викладача) окремим незалежним списком. Поточні дані НЕ змінюються — новий список просто додається. Формат — .json, схема нижче.</p><button class="btn" id="importListBtn">Вибрати файл списку</button><input type="file" id="importListFile" accept=".json,application/json" style="display:none"><button class="btn ghost" id="importListHelp" type="button">Показати формат файлу</button><div id="importListSchema" class="md" style="display:none;margin-top:12px"></div></div>
+    <div class="panel"><h3>Підвантажити список слів</h3><p>Додати готовий список (напр. завдання від викладача) окремим незалежним списком. Поточні дані НЕ змінюються — новий список просто додається. Формат — .json, схема нижче.</p><button class="btn" id="importListBtn">Вибрати файл списку</button><input type="file" id="importListFile" accept=".json,application/json" style="display:none"><button class="btn ghost" id="importListHelp" type="button">Показати формат файлу</button><button class="btn ghost" id="importListCopy" type="button">Скопіювати формат файлу</button><div id="importListSchema" class="md" style="display:none;margin-top:12px"></div></div>
     <div class="panel"><h3>Очистити все</h3><p>Видалити всі слова й залишити один порожній список. Перед очищенням робиться авто-копія — це можна відкотити.</p><button class="btn danger" id="clearBtn">Очистити всі дані</button></div>
   </section>
   <section class="view" id="view-grammar">
@@ -433,6 +436,8 @@
         <button data-indep="true">Незалежний<span class="d">Окрема бульбашка: слова тут повністю незалежні від інших слів.</span></button>
       </div>
     </div>
+    <button class="btn ghost" id="leExport" type="button" style="display:none">⤓ Завантажити список у файл (.json)</button>
+    <div class="hint" id="leExportHint" style="display:none;margin-top:6px">Зберігає цей список окремим файлом у форматі для «Підвантажити список слів» — можна поділитися з кимось. Прогрес повторення у файл не входить: у того, хто підвантажить, усі слова стартують як нові.</div>
     <button class="del-link" id="leDelete" style="display:none">Видалити список і всі його слова</button>
   </div>
 </div>
@@ -1134,6 +1139,9 @@ function openListEditor(id){
   document.getElementById("leTitle").textContent=l?"Налаштування списку":"Новий список";
   document.getElementById("l-name").value=l?l.name:"";
   setEditIndep(l?!!l.independent:false);
+  const hasWords=!!(l && cardsOf(id).length);
+  document.getElementById("leExport").style.display=hasWords?"block":"none";
+  document.getElementById("leExportHint").style.display=hasWords?"block":"none";
   document.getElementById("leDelete").style.display=l?"block":"none";
   document.getElementById("listEditor").classList.add("on");
   if(!l) setTimeout(()=>document.getElementById("l-name").focus(),100);
@@ -1208,7 +1216,7 @@ function showCard(){
   const ipas=distinctIpa(c);
   const multi=senses.length>1;
   const fmt=c.forms;
-  const formsHtml=(fmt&&fmt.items&&fmt.items.length)?`<div class="forms">`
+  const formsHtml=(fmt&&fmt.items&&fmt.items.length)?`<div class="forms"><div class="forms-h">Форми</div>`
     +fmt.items.map(o=>`<div class="frow"><span class="flbl">${esc(o.lbl||"форма")}</span>${esc(o.f)}${o.ipa?` <span class="fipa">${esc(o.ipa)}</span>`:""}</div>`).join("")
     +`</div>`:"";
   const cmtHtml=c.cmt?`<div class="cmt">${esc(c.cmt)}</div>`:"";
@@ -1242,7 +1250,7 @@ function showCard(){
     const blocks=senses.map(s=>{ const ab=posAb(s.pos); const head=`${ab?`<span class="pos-tag">${ab}</span>`:""}<span class="s-tr-big">${esc(s.tr||"—")}</span>${(s.ipa&&ipas.length>1)?` <span class="s-ipa-tag">${esc(s.ipa)}</span>`:""}`; const gl=(s.gloss||"").trim()?`<div class="gloss">(${esc(s.gloss.trim())})</div>`:""; return `<div class="sense-ans">${head}${gl}${exHtmlFor(s)}</div>`; }).join("");
     back=`${sharedIpa}${blocks}${formsHtml}${cmtHtml}${weakHint}`;
   }
-  card.innerHTML=`<div class="card"><div class="progress">${done} / ${sessTotal}</div>
+  card.innerHTML=`<div class="card${mode==="forms"?" forms-card":""}"><div class="progress">${done} / ${sessTotal}</div>
     <div class="front">${front}<div class="tap-hint" id="th">торкнись, щоб побачити відповідь</div></div>
     <div class="back" id="back">${back}<button class="edit-card" id="editCard" type="button">✏️ Редагувати картку</button></div>
     <button class="reveal-btn" id="reveal">Показати відповідь</button>
@@ -1383,30 +1391,33 @@ function importWordList(file){
   }catch(e){ alert("Не вдалося прочитати файл списку. Це має бути .json з полем «words» (масив слів). Натисни «Показати формат файлу» для прикладу."); } };
   r.readAsText(file);
 }
+const IMPORT_JSON_SAMPLE=[
+  '{',
+  '  "listName": "Завдання від викладача №3",',
+  '  "words": [',
+  '    {',
+  '      "word": "go",',
+  '      "forms": { "items": [ {"lbl":"Past","f":"went","ipa":"/wɛnt/"}, {"lbl":"P.P.","f":"gone","ipa":"/ɡɒn/"} ] },',
+  '      "cmt": "",',
+  '      "senses": [',
+  '        {',
+  '          "pos": "n",',
+  '          "tr": "зусилля",',
+  '          "ipa": "/ɪnˈdevə/",',
+  '          "gloss": "effort",',
+  '          "ex": "A worthy endeavour. | Гідне зусилля."',
+  '        }',
+  '      ]',
+  '    }',
+  '  ]',
+  '}'
+].join("\n");
 function toggleImportSchema(){
   const box=document.getElementById("importListSchema");
   if(box.style.display!=="none"){ box.style.display="none"; return; }
-  const sample=[
+  const md=[
     '```',
-    '{',
-    '  "listName": "Завдання від викладача №3",',
-    '  "words": [',
-    '    {',
-    '      "word": "go",',
-    '      "forms": { "items": [ {"lbl":"Past","f":"went","ipa":"/wɛnt/"}, {"lbl":"P.P.","f":"gone","ipa":"/ɡɒn/"} ] },',
-    '      "cmt": "",',
-    '      "senses": [',
-    '        {',
-    '          "pos": "n",',
-    '          "tr": "зусилля",',
-    '          "ipa": "/ɪnˈdevə/",',
-    '          "gloss": "effort",',
-    '          "ex": "A worthy endeavour. | Гідне зусилля."',
-    '        }',
-    '      ]',
-    '    }',
-    '  ]',
-    '}',
+    IMPORT_JSON_SAMPLE,
     '```',
     '',
     '**Обов’язкове:** `words` — масив, у кожному об’єкті поле `word`.',
@@ -1417,8 +1428,46 @@ function toggleImportSchema(){
     '',
     'Слово може мати кілька значень — додай кілька об’єктів у `senses`. Список створюється як **незалежний**; усі слова стартують як нові.'
   ].join("\n");
-  box.innerHTML=mdRender(sample);
+  box.innerHTML=mdRender(md);
   box.style.display="block";
+}
+/* скопіювати JSON-шаблон формату у буфер обміну */
+function legacyCopy(text){
+  try{ const ta=document.createElement("textarea"); ta.value=text; ta.style.position="fixed"; ta.style.opacity="0"; ta.style.pointerEvents="none"; document.body.appendChild(ta); ta.focus(); ta.select(); const ok=document.execCommand("copy"); ta.remove(); return ok; }catch(e){ return false; }
+}
+function copyImportSchema(){
+  const btn=document.getElementById("importListCopy"); if(!btn) return;
+  const orig=btn.dataset.orig||btn.textContent; btn.dataset.orig=orig;
+  const done=()=>{ btn.textContent="Скопійовано ✓"; setTimeout(()=>{ btn.textContent=btn.dataset.orig||orig; },1600); };
+  const fail=()=>alert("Не вдалося скопіювати автоматично. Натисни «Показати формат файлу» і скопіюй вручну.");
+  const text=IMPORT_JSON_SAMPLE;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(()=>{ legacyCopy(text)?done():fail(); });
+  } else { legacyCopy(text)?done():fail(); }
+}
+/* ---- завантажити окремий список як файл для поширення (формат «Підвантажити список») ---- */
+function safeFileName(s){ return (String(s||"").replace(/[\\/:*?"<>|]+/g,"").replace(/\s+/g,"-").replace(/^-+|-+$/g,"").slice(0,40))||"list"; }
+function listToShareFile(listId){
+  const l=listById(listId); if(!l) return null;
+  const words=cardsOf(listId).map(c=>{
+    const o={ word:c.word };
+    if(c.forms && Array.isArray(c.forms.items) && c.forms.items.length){
+      o.forms={ items:c.forms.items.map(it=>{ const f={lbl:it.lbl||"", f:it.f||""}; if((it.ipa||"").trim()) f.ipa=it.ipa; return f; }), drill:c.forms.drill!==false };
+    }
+    if((c.cmt||"").trim()) o.cmt=c.cmt;
+    o.senses=(c.senses||[]).map(s=>{ const ss={}; if((s.pos||"").trim()) ss.pos=s.pos; if((s.tr||"").trim()) ss.tr=s.tr; if((s.ipa||"").trim()) ss.ipa=s.ipa; if((s.gloss||"").trim()) ss.gloss=s.gloss; if((s.ex||"").trim()) ss.ex=s.ex; return ss; });
+    return o;
+  });
+  return { listName:l.name, words };
+}
+function exportWordList(listId){
+  const l=listById(listId); if(!l) return;
+  const data=listToShareFile(listId);
+  if(!data || !data.words.length){ alert("Список порожній — нема чого зберігати."); return; }
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob); const a=document.createElement("a");
+  a.href=url; a.download="slovnyk-"+safeFileName(l.name)+"-"+todayStr()+".json"; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 function restoreBackup(){
   const arr=getBackups(); if(!arr.length){ alert("Авто-копій ще немає."); return; }
@@ -1481,6 +1530,7 @@ document.getElementById("f-list").onchange=checkDup;
 document.querySelectorAll("#modeSeg button").forEach(b=>b.onclick=()=>setEditIndep(b.dataset.indep==="true"));
 document.getElementById("leClose").onclick=closeListEditor;
 document.getElementById("leSave").onclick=saveList;
+document.getElementById("leExport").onclick=()=>{ if(editingListId) exportWordList(editingListId); };
 document.getElementById("leDelete").onclick=deleteList;
 document.getElementById("noteClose").onclick=closeNoteEditor;
 document.getElementById("noteSave").onclick=saveNote;
@@ -1504,6 +1554,7 @@ document.getElementById("importFile").onchange=e=>{ if(e.target.files[0]) import
 document.getElementById("importListBtn").onclick=()=>document.getElementById("importListFile").click();
 document.getElementById("importListFile").onchange=e=>{ if(e.target.files[0]) importWordList(e.target.files[0]); e.target.value=""; };
 document.getElementById("importListHelp").onclick=toggleImportSchema;
+document.getElementById("importListCopy").onclick=copyImportSchema;
 document.getElementById("restoreBtn").onclick=restoreBackup;
 document.getElementById("clearBtn").onclick=clearAll;
 document.getElementById("remExport").onclick=exportData;
