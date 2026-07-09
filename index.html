@@ -272,6 +272,18 @@
   .cal-cell.met{background:var(--accent);color:#fff;font-weight:600}
   .cal-cell.today{box-shadow:inset 0 0 0 1.5px var(--soft)}
   .cal-cell.met.today{box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.85)}
+  .cal-cell.tap{cursor:pointer}
+  .cal-cell.tap:active{transform:scale(.88)}
+  .cal-cell.sel{box-shadow:inset 0 0 0 2px var(--accent)}
+  .cal-cell.met.sel{box-shadow:inset 0 0 0 2px rgba(255,255,255,.95)}
+  .cal-detail{margin-top:14px;border-top:1px solid var(--line);padding-top:13px;display:none}
+  .cal-detail.on{display:block}
+  .cal-detail .cd-date{font-family:var(--serif);font-size:16px;color:var(--ink)}
+  .cal-detail .cd-dow{font-size:12px;color:var(--soft);text-transform:capitalize;margin-top:1px;margin-bottom:11px}
+  .cal-detail .cd-row{display:flex;justify-content:space-between;font-size:14px;padding:5px 0;color:var(--ink2)}
+  .cal-detail .cd-row b{color:var(--accent);font-variant-numeric:tabular-nums}
+  .cal-detail .cd-goal{margin-top:9px;font-size:13px;color:var(--accent);font-weight:600}
+  .cal-detail .cd-empty{font-size:13.5px;color:var(--soft)}
   .cal-foot{margin-top:12px;font-size:12.5px;color:var(--soft);display:flex;align-items:center;gap:7px}
   .cal-foot .swatch{width:13px;height:13px;border-radius:4px;background:var(--accent);flex:none}
   /* --- багатозначність: редактор --- */
@@ -728,8 +740,11 @@ function last7Days(){
 }
 /* ---- місячний календар виконаних днів ---- */
 const MONTHS_UK=["Січень","Лютий","Березень","Квітень","Травень","Червень","Липень","Серпень","Вересень","Жовтень","Листопад","Грудень"];
+const MONTHS_GEN_UK=["січня","лютого","березня","квітня","травня","червня","липня","серпня","вересня","жовтня","листопада","грудня"];
+const DOW_FULL_UK=["Неділя","Понеділок","Вівторок","Середа","Четвер","П'ятниця","Субота"];
 let calCursor=null;   // {y, m} — m 0-based
-function calInit(){ const d=today(); calCursor={y:d.getFullYear(), m:d.getMonth()}; }
+let calSelected=null; // ключ вибраного дня "YYYY-MM-DD" або null
+function calInit(){ const d=today(); calCursor={y:d.getFullYear(), m:d.getMonth()}; calSelected=null; }
 function calIsCurrent(){ const n=today(); return calCursor && calCursor.y===n.getFullYear() && calCursor.m===n.getMonth(); }
 function calShift(delta){
   if(!calCursor) calInit();
@@ -737,7 +752,7 @@ function calShift(delta){
   if(m<0){ m=11; y--; } if(m>11){ m=0; y++; }
   const n=today();
   if(y>n.getFullYear() || (y===n.getFullYear() && m>n.getMonth())) return;   // не заходимо в майбутнє
-  calCursor={y,m}; renderCal();
+  calCursor={y,m}; calSelected=null; renderCal();
 }
 function renderCal(){
   const grid=document.getElementById("calGrid"), title=document.getElementById("calTitle"), foot=document.getElementById("calFoot");
@@ -753,11 +768,35 @@ function renderCal(){
     const key=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
     const met=s.has(key), isToday=key===tk, future=key>tk;
     if(met) metCount++;
-    cells+=`<div class="cal-cell${met?' met':''}${isToday?' today':''}${future?' future':''}">${d}</div>`;
+    cells+=`<div class="cal-cell${met?' met':''}${isToday?' today':''}${future?' future':''}${future?'':' tap'}${key===calSelected?' sel':''}"${future?'':` data-key="${key}"`}>${d}</div>`;
   }
   grid.innerHTML=dow+cells;
+  grid.onclick=(e)=>{
+    const cell=e.target.closest(".cal-cell[data-key]"); if(!cell) return;
+    const k=cell.getAttribute("data-key");
+    calSelected=(calSelected===k)?null:k;   // повторний тап — сховати
+    renderCal();
+  };
   if(foot) foot.innerHTML=`<span class="swatch"></span>виконано днів цього місяця: <b style="color:var(--accent);margin-left:2px">${metCount}</b>`;
   const nb=document.getElementById("calNext"); if(nb) nb.disabled=calIsCurrent();
+  renderDayDetail();
+}
+function renderDayDetail(){
+  const box=document.getElementById("calDetail"); if(!box) return;
+  if(!calSelected){ box.className="cal-detail"; box.innerHTML=""; return; }
+  const key=calSelected, p=key.split("-").map(Number);
+  const dt=new Date(p[0], p[1]-1, p[2]);
+  const dateStr=`${p[2]} ${MONTHS_GEN_UK[p[1]-1]} ${p[0]}`;
+  const dow=DOW_FULL_UK[dt.getDay()];
+  const e=logDay(key), met=metSet().has(key);
+  const has=(e.n>0||e.r>0||met);
+  const body = has
+    ? `<div class="cd-row"><span>Нові слова</span><b>${e.n}</b></div>
+       <div class="cd-row"><span>Повтори</span><b>${e.r}</b></div>
+       ${met?`<div class="cd-goal">🎯 Ціль виконана</div>`:``}`
+    : `<div class="cd-empty">Немає активності цього дня.</div>`;
+  box.className="cal-detail on";
+  box.innerHTML=`<div class="cd-date">${dateStr}</div><div class="cd-dow">${dow}</div>${body}`;
 }
 
 /* ---- черга повторення ----
@@ -872,6 +911,7 @@ function renderProgress(){
       <div class="cal-nav"><button id="calPrev" type="button" aria-label="Попередній місяць">‹</button><div class="cal-title" id="calTitle"></div><button id="calNext" type="button" aria-label="Наступний місяць">›</button></div>
       <div class="cal-grid" id="calGrid"></div>
       <div class="cal-foot" id="calFoot"></div>
+      <div class="cal-detail" id="calDetail"></div>
     </div>
     <div class="panel">
       <h3>Словник</h3>
