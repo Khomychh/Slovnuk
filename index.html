@@ -575,8 +575,9 @@ function dailySnapshot(){
 /* ---- helpers ---- */
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 function today(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
-function todayStr(){ return today().toISOString().slice(0,10); }
-function addDays(n){ const d=today(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+function ymd(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function todayStr(){ return ymd(today()); }
+function addDays(n){ const d=today(); d.setDate(d.getDate()+n); return ymd(d); }
 function isDue(c){ return (c.due||todayStr())<=todayStr(); }
 function listById(id){ return lists.find(l=>l.id===id); }
 function cardsOf(id){ return cards.filter(c=>c.listId===id); }
@@ -719,7 +720,7 @@ function goalStats(){
 }
 /* ---- набір виконаних днів (для точок останніх днів) ---- */
 function metSet(){ const m=getMeta(); const a=Array.isArray(m.goalDates)?m.goalDates:[]; return new Set(a); }
-function dayKey(d){ return d.toISOString().slice(0,10); }   // узгоджено з todayStr()
+function dayKey(d){ return ymd(d); }   // узгоджено з todayStr()
 function last7Days(){
   const s=metSet(), out=[], base=today(), tk=todayStr();
   for(let i=6;i>=0;i--){ const dd=new Date(base); dd.setDate(dd.getDate()-i); const k=dayKey(dd); out.push({met:s.has(k),today:k===tk}); }
@@ -1216,9 +1217,15 @@ function showCard(){
   const ipas=distinctIpa(c);
   const multi=senses.length>1;
   const fmt=c.forms;
-  const formsHtml=(fmt&&fmt.items&&fmt.items.length)?`<div class="forms"><div class="forms-h">Форми</div>`
-    +fmt.items.map(o=>`<div class="frow"><span class="flbl">${esc(o.lbl||"форма")}</span>${esc(o.f)}${o.ipa?` <span class="fipa">${esc(o.ipa)}</span>`:""}</div>`).join("")
-    +`</div>`:"";
+  const formsHtmlFn=()=>{
+    if(!(fmt&&fmt.items&&fmt.items.length)) return "";
+    const rows=fmt.items.map(o=>{
+      let spk="";
+      if(ttsOn()&&o.f){ const idx=exList.length; exList.push(o.f); spk=` <button class="spk-line" data-i="${idx}" type="button">🔊</button>`; }
+      return `<div class="frow"><span class="flbl">${esc(o.lbl||"форма")}</span>${esc(o.f)}${o.ipa?` <span class="fipa">${esc(o.ipa)}</span>`:""}${spk}</div>`;
+    }).join("");
+    return `<div class="forms"><div class="forms-h">Форми</div>${rows}</div>`;
+  };
   const cmtHtml=c.cmt?`<div class="cmt">${esc(c.cmt)}</div>`:"";
   const wordSpk=ttsOn()?`<button class="spk spk-word" type="button">🔊</button>`:'';
   const weakHint=multi?`<div class="weak-hint">💡 Картка оцінюється цілком. Забув хоч одне значення — «Не згадав».</div>`:"";
@@ -1242,13 +1249,13 @@ function showCard(){
     let body="";
     if(multi){ body=senses.map(s=>{ const ab=posAb(s.pos); const head=`<span class="pos-tag">${ab||"•"}</span><span class="s-tr-big">${esc(s.tr||"")}</span>${(s.ipa&&ipas.length>1)?` <span class="s-ipa-tag">${esc(s.ipa)}</span>`:""}`; return `<div class="sense-ans">${head}${exHtmlFor(s)}</div>`; }).join(""); }
     else { body=exHtmlFor(senses[0]); }
-    back=`<div class="ans">${esc(c.word)}</div>${wordSpk}${ipaLine}${body}${formsHtml}${cmtHtml}${weakHint}`;
+    back=`<div class="ans">${esc(c.word)}</div>${wordSpk}${ipaLine}${body}${formsHtmlFn()}${cmtHtml}${weakHint}`;
   }else{
     const smallW=(c.word||"").length>16?" small":"";
     front=`<div class="dirhint">англ → укр</div><div class="headword${smallW}">${esc(c.word)}</div>${wordSpk}`;
     const sharedIpa=ipas.length===1?`<div class="ipa">${esc(ipas[0])}</div>`:"";
     const blocks=senses.map(s=>{ const ab=posAb(s.pos); const head=`${ab?`<span class="pos-tag">${ab}</span>`:""}<span class="s-tr-big">${esc(s.tr||"—")}</span>${(s.ipa&&ipas.length>1)?` <span class="s-ipa-tag">${esc(s.ipa)}</span>`:""}`; const gl=(s.gloss||"").trim()?`<div class="gloss">(${esc(s.gloss.trim())})</div>`:""; return `<div class="sense-ans">${head}${gl}${exHtmlFor(s)}</div>`; }).join("");
-    back=`${sharedIpa}${blocks}${formsHtml}${cmtHtml}${weakHint}`;
+    back=`${sharedIpa}${blocks}${formsHtmlFn()}${cmtHtml}${weakHint}`;
   }
   card.innerHTML=`<div class="card${mode==="forms"?" forms-card":""}"><div class="progress">${done} / ${sessTotal}</div>
     <div class="front">${front}<div class="tap-hint" id="th">торкнись, щоб побачити відповідь</div></div>
