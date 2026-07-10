@@ -96,17 +96,27 @@
   .fab:active{transform:scale(.94)}
   .select{width:100%;border:1px solid var(--line);background:var(--raised);border-radius:var(--r);padding:11px 14px;font-size:15px;font-family:var(--sans);color:var(--ink);margin-bottom:12px}
   .scope-pick{margin-bottom:14px}
-  .scope-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;gap:10px}
-  .scope-head .lbl{font-size:11.5px;color:var(--soft);text-transform:uppercase;letter-spacing:.5px}
-  .scope-head .acts{display:flex;gap:4px;flex:none}
-  .scope-head .acts button{border:none;background:none;color:var(--accent);font-size:13px;font-weight:600;font-family:var(--sans);cursor:pointer;padding:3px 6px;border-radius:7px}
-  .scope-head .acts button:active{background:var(--accent-soft)}
-  .scope-chips{display:flex;flex-wrap:wrap;gap:8px}
-  .scope-chip{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--raised);border-radius:999px;padding:8px 8px 8px 14px;font-size:14px;font-family:var(--sans);color:var(--soft);font-weight:600;cursor:pointer}
-  .scope-chip .cnt{font-size:11px;font-weight:700;background:var(--track);color:var(--soft);border-radius:999px;padding:2px 8px;min-width:22px;text-align:center}
-  .scope-chip.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
-  .scope-chip.on .cnt{background:var(--accent);color:#fff}
-  .scope-chip:active{transform:scale(.96)}
+  .scope-bar{display:flex;align-items:center;gap:11px;background:var(--raised);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;cursor:pointer}
+  .scope-bar:active{border-color:var(--accent)}
+  .scope-bar.open{border-radius:var(--r) var(--r) 0 0}
+  .scope-bar .chev{color:var(--soft);font-size:16px;line-height:1;flex:none;transition:transform .2s ease}
+  .scope-bar.open .chev{transform:rotate(90deg);color:var(--accent)}
+  .scope-bar .ttl{flex:1;min-width:0;font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .scope-bar .ttl .k{display:block;font-size:11px;font-weight:600;color:var(--soft);text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px}
+  .scope-bar .cnt{flex:none;background:var(--accent);color:#fff;border-radius:999px;font-size:12px;font-weight:700;padding:2px 9px;min-width:24px;text-align:center}
+  .scope-bar.none .cnt{background:var(--track);color:var(--soft)}
+  .scope-panel{border:1px solid var(--line);border-top:none;border-radius:0 0 var(--r) var(--r);background:var(--raised);overflow:hidden;animation:fade .18s ease}
+  .scope-panel .acts{display:flex;gap:4px;justify-content:flex-end;padding:9px 12px 3px}
+  .scope-panel .acts button{border:none;background:none;color:var(--accent);font-size:13px;font-weight:600;font-family:var(--sans);cursor:pointer;padding:4px 9px;border-radius:7px}
+  .scope-panel .acts button:active{background:var(--accent-soft)}
+  .scope-opts{max-height:44vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 6px 8px}
+  .scope-opt{display:flex;align-items:center;gap:11px;padding:11px 8px;border-radius:10px;cursor:pointer}
+  .scope-opt:active{background:var(--tint)}
+  .scope-opt .check{width:22px;height:22px;border-radius:7px;border:1.5px solid var(--line2);flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;line-height:1}
+  .scope-opt.on .check{background:var(--accent);border-color:var(--accent)}
+  .scope-opt .nm{flex:1;min-width:0;font-size:15px;color:var(--soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .scope-opt.on .nm{color:var(--ink);font-weight:600}
+  .scope-opt .due{flex:none;font-size:12px;font-weight:700;color:var(--soft);background:var(--track);border-radius:999px;padding:2px 9px;min-width:24px;text-align:center}
   .study-hub{text-align:center;padding-top:8px}
   .big-num{font-family:var(--serif);font-size:60px;font-weight:600;color:var(--accent);line-height:1}
   .big-lbl{color:var(--soft);font-size:14px;margin-top:4px;text-transform:uppercase;letter-spacing:.6px}
@@ -372,7 +382,7 @@
 <main>
   <section class="view on" id="view-lists">
     <div class="search-wrap">
-      <input class="search" id="gsearch" placeholder="Пошук серед слів і граматики…" autocapitalize="none" autocomplete="off">
+      <input class="search" id="gsearch" placeholder="Пошук: слово, переклад, граматика…" autocapitalize="none" autocomplete="off">
       <button class="search-clear" id="gsearchClear" type="button" aria-label="Очистити пошук">×</button>
     </div>
     <div id="searchResults" style="display:none"></div>
@@ -488,7 +498,7 @@ let storeOk=true, lists=[], cards=[];
 let activeView="lists", expanded=new Set();
 let editingId=null, editSenses=[], editForms=[], editDrill=true;
 let editingListId=null, editIndep=false;
-let studyScope=new Set(), session=[], sessTotal=0;
+let studyScope=new Set(), session=[], sessTotal=0, scopeOpen=false;
 let studyEditing=false, revealAfterRender=false;
 let notes=[], editingNoteId=null, grCatOpen=new Set(), grNoteOpen=new Set();
 
@@ -653,7 +663,7 @@ function ensureSenses(c){
 }
 function distinctIpa(c){ const out=[]; (c.senses||[]).forEach(s=>{ const v=(s.ipa||"").trim(); if(v&&!out.includes(v)) out.push(v); }); return out; }
 function senseSummary(c){ return (c.senses||[]).map(s=>{ const t=(s.tr||"").trim(); if(!t) return ""; const ab=posAb(s.pos); return esc(t)+(ab?" ("+ab+")":""); }).filter(Boolean).join("; "); }
-function cardSearchText(c){ const p=[c.word||""]; if(c.forms&&Array.isArray(c.forms.items)){ c.forms.items.forEach(o=>{ p.push(o.f||""); }); } return p.join(" ").toLowerCase(); }
+function cardSearchText(c){ const p=[c.word||""]; (c.senses||[]).forEach(s=>{ if(s.tr) p.push(s.tr); if(s.gloss) p.push(s.gloss); }); if(c.forms&&Array.isArray(c.forms.items)){ c.forms.items.forEach(o=>{ p.push(o.f||""); }); } return p.join(" ").toLowerCase(); }
 
 /* ---- неправильні форми (окрема доріжка SM-2) ---- */
 function numOr(v,d){ return (typeof v==="number"&&isFinite(v))?v:d; }
@@ -1281,16 +1291,41 @@ function studyDir(){ const m=getMeta(); return m.dir||"fwd"; }
 function setDir(d){ const m=getMeta(); m.dir=d; setMeta(m); document.querySelectorAll("#dirSeg button").forEach(b=>b.classList.toggle("on",b.dataset.dir===d)); renderHub(); }
 function scopeReset(){ studyScope=new Set(lists.map(l=>l.id)); }
 function scopeValid(){ const ids=new Set(lists.map(l=>l.id)); [...studyScope].forEach(id=>{ if(!ids.has(id)) studyScope.delete(id); }); }
+function scopeSummary(){
+  const total=lists.length, sel=studyScope.size;
+  if(sel===0) return "Нічого не обрано";
+  if(sel===total) return "Усі списки";
+  if(sel===1){ const l=listById([...studyScope][0]); return l?l.name:"1 список"; }
+  return `${sel} ${plz(sel,'список','списки','списків')}`;
+}
 function renderScopePicker(){
   const box=document.getElementById("scopeSel");
-  const chips=lists.map(l=>{
-    const on=studyScope.has(l.id), d=buildQueue(l.id).all.length;
-    return `<button type="button" class="scope-chip${on?' on':''}" data-scope="${l.id}"><span class="nm">${esc(l.name)}</span><span class="cnt">${d}</span></button>`;
-  }).join("");
-  box.innerHTML=`<div class="scope-head"><span class="lbl">Списки для вивчення</span><div class="acts"><button type="button" data-scopeall="1">Усі</button><button type="button" data-scopeall="0">Зняти</button></div></div><div class="scope-chips">${chips}</div>`;
-  box.querySelectorAll(".scope-chip").forEach(ch=>ch.onclick=()=>{ const id=ch.dataset.scope; if(studyScope.has(id)) studyScope.delete(id); else studyScope.add(id); renderStudy(); });
-  box.querySelector('[data-scopeall="1"]').onclick=()=>{ scopeReset(); renderStudy(); };
-  box.querySelector('[data-scopeall="0"]').onclick=()=>{ studyScope=new Set(); renderStudy(); };
+  if(lists.length<=1){ box.style.display="none"; box.innerHTML=""; return; } // один список — вибирати нічого
+  box.style.display="";
+  const totalDue=buildQueue(studyScope).all.length, none=studyScope.size===0;
+  const bar=`<div class="scope-bar${scopeOpen?' open':''}${none?' none':''}" id="scopeBar">
+      <span class="chev">›</span>
+      <span class="ttl"><span class="k">Списки для вивчення</span>${esc(scopeSummary())}</span>
+      <span class="cnt">${totalDue}</span>
+    </div>`;
+  let panel="";
+  if(scopeOpen){
+    const opts=lists.map(l=>{
+      const on=studyScope.has(l.id), d=buildQueue(l.id).all.length;
+      return `<div class="scope-opt${on?' on':''}" data-scope="${l.id}"><span class="check">${on?'✓':''}</span><span class="nm">${esc(l.name)}</span><span class="due">${d}</span></div>`;
+    }).join("");
+    panel=`<div class="scope-panel">
+        <div class="acts"><button type="button" data-scopeall="1">Усі</button><button type="button" data-scopeall="0">Зняти</button></div>
+        <div class="scope-opts">${opts}</div>
+      </div>`;
+  }
+  box.innerHTML=bar+panel;
+  document.getElementById("scopeBar").onclick=()=>{ scopeOpen=!scopeOpen; renderScopePicker(); };
+  if(scopeOpen){
+    box.querySelectorAll(".scope-opt").forEach(op=>op.onclick=()=>{ const id=op.dataset.scope; if(studyScope.has(id)) studyScope.delete(id); else studyScope.add(id); renderStudy(); });
+    box.querySelector('[data-scopeall="1"]').onclick=()=>{ scopeReset(); renderStudy(); };
+    box.querySelector('[data-scopeall="0"]').onclick=()=>{ studyScope=new Set(); renderStudy(); };
+  }
 }
 function renderStudy(){
   scopeValid();
