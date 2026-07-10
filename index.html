@@ -95,6 +95,18 @@
   .fab{position:fixed;right:18px;bottom:calc(88px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:30px;line-height:1;box-shadow:0 6px 18px rgba(40,75,140,.35);z-index:20}
   .fab:active{transform:scale(.94)}
   .select{width:100%;border:1px solid var(--line);background:var(--raised);border-radius:var(--r);padding:11px 14px;font-size:15px;font-family:var(--sans);color:var(--ink);margin-bottom:12px}
+  .scope-pick{margin-bottom:14px}
+  .scope-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;gap:10px}
+  .scope-head .lbl{font-size:11.5px;color:var(--soft);text-transform:uppercase;letter-spacing:.5px}
+  .scope-head .acts{display:flex;gap:4px;flex:none}
+  .scope-head .acts button{border:none;background:none;color:var(--accent);font-size:13px;font-weight:600;font-family:var(--sans);cursor:pointer;padding:3px 6px;border-radius:7px}
+  .scope-head .acts button:active{background:var(--accent-soft)}
+  .scope-chips{display:flex;flex-wrap:wrap;gap:8px}
+  .scope-chip{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--raised);border-radius:999px;padding:8px 8px 8px 14px;font-size:14px;font-family:var(--sans);color:var(--soft);font-weight:600;cursor:pointer}
+  .scope-chip .cnt{font-size:11px;font-weight:700;background:var(--track);color:var(--soft);border-radius:999px;padding:2px 8px;min-width:22px;text-align:center}
+  .scope-chip.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+  .scope-chip.on .cnt{background:var(--accent);color:#fff}
+  .scope-chip:active{transform:scale(.96)}
   .study-hub{text-align:center;padding-top:8px}
   .big-num{font-family:var(--serif);font-size:60px;font-weight:600;color:var(--accent);line-height:1}
   .big-lbl{color:var(--soft);font-size:14px;margin-top:4px;text-transform:uppercase;letter-spacing:.6px}
@@ -371,7 +383,7 @@
     </div>
   </section>
   <section class="view" id="view-study">
-    <select class="select" id="scopeSel"></select>
+    <div class="scope-pick" id="scopeSel"></div>
     <div class="seg" id="dirSeg"><button data-dir="fwd" class="on">Англ→Укр</button><button data-dir="rev">Укр→Англ</button><button data-dir="mix">Змішано</button></div>
     <div id="study-hub" class="study-hub"></div><div id="study-card"></div>
   </section>
@@ -476,7 +488,7 @@ let storeOk=true, lists=[], cards=[];
 let activeView="lists", expanded=new Set();
 let editingId=null, editSenses=[], editForms=[], editDrill=true;
 let editingListId=null, editIndep=false;
-let studyScope="all", session=[], sessTotal=0;
+let studyScope=new Set(), session=[], sessTotal=0;
 let studyEditing=false, revealAfterRender=false;
 let notes=[], editingNoteId=null, grCatOpen=new Set(), grNoteOpen=new Set();
 
@@ -607,7 +619,7 @@ function plz(n,one,few,many){ const m10=n%10,m100=n%100; if(m10===1&&m100!==11) 
 /* ---- граматичні нотатки ---- */
 function normNote(n){ n=n||{}; return { id:n.id||uid(), cat:(n.cat||"").trim(), title:(n.title||"").trim(), body:(typeof n.body==="string")?n.body:"", created:n.created||todayStr(), updated:n.updated||n.created||todayStr() }; }
 function noteCats(){ const out=[]; notes.forEach(n=>{ const c=(n.cat||"").trim(); if(c&&!out.includes(c)) out.push(c); }); out.sort((a,b)=>a.toLowerCase()<b.toLowerCase()?-1:1); return out; }
-function noteSearchText(n){ return ((n.title||"")+" "+(n.body||"")).toLowerCase(); }
+function noteSearchText(n){ return (n.title||"").toLowerCase(); }
 /* легкий markdown → безпечний HTML (спершу екрануємо, теги лише свої) */
 function mdRender(src){
   const lines=esc(String(src||"")).split(/\r?\n/);
@@ -641,7 +653,7 @@ function ensureSenses(c){
 }
 function distinctIpa(c){ const out=[]; (c.senses||[]).forEach(s=>{ const v=(s.ipa||"").trim(); if(v&&!out.includes(v)) out.push(v); }); return out; }
 function senseSummary(c){ return (c.senses||[]).map(s=>{ const t=(s.tr||"").trim(); if(!t) return ""; const ab=posAb(s.pos); return esc(t)+(ab?" ("+ab+")":""); }).filter(Boolean).join("; "); }
-function cardSearchText(c){ const p=[c.word||"",c.cmt||""]; if(c.forms&&Array.isArray(c.forms.items)){ c.forms.items.forEach(o=>{ p.push(o.f||"", o.lbl||""); }); } (c.senses||[]).forEach(s=>p.push(s.tr||"",s.gloss||"",s.ex||"")); return p.join(" ").toLowerCase(); }
+function cardSearchText(c){ const p=[c.word||""]; if(c.forms&&Array.isArray(c.forms.items)){ c.forms.items.forEach(o=>{ p.push(o.f||""); }); } return p.join(" ").toLowerCase(); }
 
 /* ---- неправильні форми (окрема доріжка SM-2) ---- */
 function numOr(v,d){ return (typeof v==="number"&&isFinite(v))?v:d; }
@@ -831,7 +843,12 @@ function renderDayDetail(){
    Кожна картка дає до двох незалежних питань (items):
    mode:"tr"    — переклад (SM-2 на рівні картки)
    mode:"forms" — неправильні форми (SM-2 у c.forms), лише коли hasDrill        */
-function poolOf(scope){ return scope==="all"?cards:cardsOf(scope); }
+function poolOf(scope){
+  if(scope==="all") return cards;
+  if(scope instanceof Set) return cards.filter(c=>scope.has(c.listId));
+  if(Array.isArray(scope)) return cards.filter(c=>scope.includes(c.listId));
+  return cardsOf(scope);
+}
 function buildQueue(scope){
   const pool=poolOf(scope), rev=[], nw=[];
   pool.forEach(c=>{
@@ -1262,20 +1279,44 @@ function deleteList(){
 /* ---- study ---- */
 function studyDir(){ const m=getMeta(); return m.dir||"fwd"; }
 function setDir(d){ const m=getMeta(); m.dir=d; setMeta(m); document.querySelectorAll("#dirSeg button").forEach(b=>b.classList.toggle("on",b.dataset.dir===d)); renderHub(); }
+function scopeReset(){ studyScope=new Set(lists.map(l=>l.id)); }
+function scopeValid(){ const ids=new Set(lists.map(l=>l.id)); [...studyScope].forEach(id=>{ if(!ids.has(id)) studyScope.delete(id); }); }
+function renderScopePicker(){
+  const box=document.getElementById("scopeSel");
+  const chips=lists.map(l=>{
+    const on=studyScope.has(l.id), d=buildQueue(l.id).all.length;
+    return `<button type="button" class="scope-chip${on?' on':''}" data-scope="${l.id}"><span class="nm">${esc(l.name)}</span><span class="cnt">${d}</span></button>`;
+  }).join("");
+  box.innerHTML=`<div class="scope-head"><span class="lbl">Списки для вивчення</span><div class="acts"><button type="button" data-scopeall="1">Усі</button><button type="button" data-scopeall="0">Зняти</button></div></div><div class="scope-chips">${chips}</div>`;
+  box.querySelectorAll(".scope-chip").forEach(ch=>ch.onclick=()=>{ const id=ch.dataset.scope; if(studyScope.has(id)) studyScope.delete(id); else studyScope.add(id); renderStudy(); });
+  box.querySelector('[data-scopeall="1"]').onclick=()=>{ scopeReset(); renderStudy(); };
+  box.querySelector('[data-scopeall="0"]').onclick=()=>{ studyScope=new Set(); renderStudy(); };
+}
 function renderStudy(){
-  const sel=document.getElementById("scopeSel");
-  if(studyScope!=="all" && !listById(studyScope)) studyScope="all";
-  sel.innerHTML=`<option value="all">Усі списки (${totalDue()})</option>`+lists.map(l=>`<option value="${l.id}">${esc(l.name)} (${buildQueue(l.id).all.length})</option>`).join("");
-  sel.value=studyScope;
+  scopeValid();
+  renderScopePicker();
   document.querySelectorAll("#dirSeg button").forEach(b=>b.classList.toggle("on",b.dataset.dir===studyDir()));
   document.getElementById("study-card").innerHTML="";
   renderHub();
 }
+function scopeName(){
+  const total=lists.length, sel=studyScope.size;
+  if(sel===0) return "(нічого не обрано)";
+  if(sel===total) return "всіх списках";
+  if(sel===1){ const l=listById([...studyScope][0]); return l?`«${l.name}»`:"обраному списку"; }
+  return `${sel} обраних списках`;
+}
 function renderHub(){
   const hub=document.getElementById("study-hub"); hub.style.display="block";
   document.getElementById("study-card").innerHTML="";
+  if(studyScope.size===0){
+    hub.innerHTML=`<div class="big-num">0</div><div class="big-lbl">списків обрано</div>
+      <div class="substat">Познач хоча б один список вище, щоб почати.</div>
+      <button class="btn btn-primary" disabled>Почати</button>`;
+    return;
+  }
   const q=buildQueue(studyScope); const n=q.all.length;
-  const scopeName=studyScope==="all"?"всіх списках":`«${listById(studyScope).name}»`;
+  const scName=scopeName();
   const rgoal=reviewGoal(), rdid=reviewsToday();
   let goalHtml="";
   if(rgoal>0){
@@ -1283,7 +1324,7 @@ function renderHub(){
     goalHtml=`<div class="goal${done?' done':''}">${done?'🔁 Ціль повторів досягнута':'🔁 Повтори сьогодні: '+rdid+' / '+rgoal}<span class="bar"><i style="width:${pct}%"></i></span></div>`;
   }
   hub.innerHTML=`<div class="big-num">${n}</div><div class="big-lbl">${plz(n,'картка','картки','карток')} на повторення</div>
-    <div class="substat">у ${scopeName}<br>повторення: ${q.rev.length} · нові: ${q.nw.length}</div>
+    <div class="substat">у ${scName}<br>повторення: ${q.rev.length} · нові: ${q.nw.length}</div>
     ${goalHtml}
     <button class="btn btn-primary" id="startBtn" ${n?'':'disabled'}>${n?'Почати':'Все повторено 🎉'}</button>`;
   const sb=document.getElementById("startBtn"); if(sb&&n) sb.onclick=startSession;
@@ -1432,7 +1473,7 @@ function importData(file){
   r.onload=()=>{ try{
     const {L,C,N}=normalizeImport(JSON.parse(r.result));
     if(!confirm(`Завантажити ${C.length} записів у ${L.length} списках${N.length?` та ${N.length} ${plz(N.length,'нотатку','нотатки','нотаток')} граматики`:""}? Поточні дані буде замінено.`)) return;
-    snapshotNow(); lists=L; cards=C; notes=N; expanded=new Set(lists.map(l=>l.id)); studyScope="all"; grCatOpen=new Set(); grNoteOpen=new Set();
+    snapshotNow(); lists=L; cards=C; notes=N; expanded=new Set(lists.map(l=>l.id)); scopeReset(); grCatOpen=new Set(); grNoteOpen=new Set();
     save(); renderData(); updateBadge(); alert("Готово. Завантажено "+C.length+" записів.");
   }catch(e){ alert("Не вдалося прочитати файл. Перевір, що це правильний .json з цього додатку."); } };
   r.readAsText(file);
@@ -1574,7 +1615,7 @@ function restoreBackup(){
   const i=parseInt(document.getElementById("bkpSel").value,10)||0; const b=arr[i]; if(!b||!b.cards.length){ alert("Ця копія порожня."); return; }
   if(!confirm(`Відновити ${b.cards.length} записів зі знімка від ${b.date}? Поточні дані буде замінено.`)) return;
   const {L,C,N}=normalizeImport({lists:b.lists,cards:b.cards,notes:b.notes});
-  lists=L; cards=C; notes=N; expanded=new Set(lists.map(l=>l.id)); studyScope="all"; grCatOpen=new Set(); grNoteOpen=new Set();
+  lists=L; cards=C; notes=N; expanded=new Set(lists.map(l=>l.id)); scopeReset(); grCatOpen=new Set(); grNoteOpen=new Set();
   save(); renderData(); updateBadge(); alert("Відновлено.");
 }
 function clearAll(){
@@ -1582,7 +1623,7 @@ function clearAll(){
   if(!confirm("Видалити ВСІ слова? Перед цим буде зроблено авто-копію.")) return;
   if(!confirm("Точно очистити все? Це останнє попередження.")) return;
   snapshotNow();
-  lists=[{id:uid(),name:"Загальний",independent:false,created:todayStr()}]; cards=[]; expanded=new Set(lists.map(l=>l.id)); studyScope="all";
+  lists=[{id:uid(),name:"Загальний",independent:false,created:todayStr()}]; cards=[]; expanded=new Set(lists.map(l=>l.id)); scopeReset();
   save(); renderData(); updateBadge(); alert("Готово. Залишився один порожній список.");
 }
 
@@ -1611,7 +1652,7 @@ const ICON512="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAYAAAD0eNT
 })();
 
 /* ---- wire up ---- */
-load(); dailySnapshot(); applyTheme();
+load(); scopeReset(); dailySnapshot(); applyTheme();
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>show(b.dataset.view));
 document.getElementById("fab").onclick=()=>{ if(activeView==="lists") openWordEditor(null); else if(activeView==="grammar") openNoteEditor(null); };
 document.getElementById("newListBtn").onclick=()=>openListEditor(null);
@@ -1635,7 +1676,6 @@ document.getElementById("leDelete").onclick=deleteList;
 document.getElementById("noteClose").onclick=closeNoteEditor;
 document.getElementById("noteSave").onclick=saveNote;
 document.getElementById("noteDelete").onclick=deleteNote;
-document.getElementById("scopeSel").onchange=e=>{ studyScope=e.target.value; renderHub(); };
 document.querySelectorAll("#dirSeg button").forEach(b=>b.onclick=()=>setDir(b.dataset.dir));
 document.getElementById("newLimit").onchange=e=>{ let v=parseInt(e.target.value,10); if(isNaN(v)||v<0) v=0; const m=getMeta(); m.newLimit=v; setMeta(m); e.target.value=v; markGoalDone(); renderProgress(); updateBadge(); };
 document.getElementById("reviewLimit").onchange=e=>{ let v=parseInt(e.target.value,10); if(isNaN(v)||v<0) v=0; const m=getMeta(); m.reviewLimit=v; setMeta(m); e.target.value=v; markGoalDone(); renderProgress(); };
