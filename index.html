@@ -454,12 +454,10 @@
       <datalist id="formLabelList"><option value="Past"></option><option value="P.P."></option><option value="Plural"></option><option value="Gerund"></option><option value="3rd person"></option><option value="Comparative"></option><option value="Superlative"></option></datalist>
       <button class="vf-add" id="addForm" type="button">+ додати форму</button>
       <div class="seg" id="drillSeg" style="margin-top:8px"><button data-drill="1" class="on">Тренувати окремо</button><button data-drill="0">Лише довідка</button></div>
-      <div class="hint">Форми, де важлива вимова: неправильні дієслова (Past / P.P.), множина (children), герундій тощо. Назву форми можна писати будь-яку. «Тренувати окремо» — форми повторюються власною карткою (слово → форми) зі своїм графіком, незалежним від перекладу. «Лише довідка» — форми лише показуються на звороті. Правильні (-s, -ed) додавати не треба.</div>
     </div>
     <div class="field"><label>Значення</label>
       <div id="sensesWrap"></div>
       <button class="add-sense" id="addSense" type="button">+ додати значення</button>
-      <div class="hint">Одне написання — кілька значень (hire: наймати / найм). Транскрипцію в окремому значенні став лише там, де вимова відрізняється (record /ˈrekɔːrd/ проти /rɪˈkɔːrd/). Англ. підказка допомагає розрізнити при вивченні укр→англ. Приклади — кожен з нового рядка; щоб додати переклад, пиши «речення | переклад» (переклад необовʼязковий).</div>
     </div>
     <div class="field"><label>Мій коментар</label><textarea id="f-cmt" placeholder="Загальна нотатка до слова: як запамʼятати, нюанси…"></textarea></div>
     <div class="field"><label>Список</label><select id="f-list"></select><div class="hint">Зміни список, щоб перенести слово (прогрес збережеться).</div></div>
@@ -958,7 +956,6 @@ function renderProgress(){
     <div class="panel"><h3>Сьогодні</h3>${today}</div>
     <div class="panel">
       <h3>Виконано днів</h3>
-      <p>Скільки днів ти досягав своєї цілі. Лічильник лише зростає — пропущений день нічого не скидає. Натисни на цифру, щоб побачити нові слова й повтори за період.</p>
       <div class="stat-pills" id="statPills">
         <div class="stat-pill${statSelected==='all'?' sel':''}" data-period="all"><b>${gs.all}</b><span>весь час</span></div>
         <div class="stat-pill${statSelected==='year'?' sel':''}" data-period="year"><b>${gs.year}</b><span>цей рік</span></div>
