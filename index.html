@@ -449,15 +449,15 @@
   <div class="ed-head"><button class="x" id="edClose">×</button><h2 id="edTitle">Новий запис</h2><button class="save" id="edSave">Зберегти</button></div>
   <div class="ed-body">
     <div class="field"><label>Слово або фраза</label><input id="f-word" class="serif" autocapitalize="none" autocomplete="off" placeholder="endeavour"><button class="spk-prev" id="spkPreview" type="button" style="display:none">🔊 Прослухати</button><div class="dup-hint" id="dupHint"></div></div>
+    <div class="field"><label>Значення</label>
+      <div id="sensesWrap"></div>
+      <button class="add-sense" id="addSense" type="button">+ додати значення</button>
+    </div>
     <div class="field"><label>Форми вимови</label>
       <div id="formsWrap"></div>
       <datalist id="formLabelList"><option value="Past"></option><option value="P.P."></option><option value="Plural"></option><option value="Gerund"></option><option value="3rd person"></option><option value="Comparative"></option><option value="Superlative"></option></datalist>
       <button class="vf-add" id="addForm" type="button">+ додати форму</button>
       <div class="seg" id="drillSeg" style="margin-top:8px"><button data-drill="1" class="on">Тренувати окремо</button><button data-drill="0">Лише довідка</button></div>
-    </div>
-    <div class="field"><label>Значення</label>
-      <div id="sensesWrap"></div>
-      <button class="add-sense" id="addSense" type="button">+ додати значення</button>
     </div>
     <div class="field"><label>Мій коментар</label><textarea id="f-cmt" placeholder="Загальна нотатка до слова: як запамʼятати, нюанси…"></textarea></div>
     <div class="field"><label>Список</label><select id="f-list"></select><div class="hint">Зміни список, щоб перенести слово (прогрес збережеться).</div></div>
