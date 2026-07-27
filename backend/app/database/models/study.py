@@ -53,8 +53,9 @@ class ReviewTrackModel(Base, TimestampMixin):
     state: Mapped[ReviewStateEnum] = mapped_column(
         Enum(ReviewStateEnum), default=ReviewStateEnum.NEW, nullable=False
     )
-    # Номер кроку навчання; NULL у стані REVIEW. При learning_steps=()
-    # лишається NULL завжди — але тип дозволяє ввімкнути кроки без міграції.
+    # Номер кроку навчання; NULL у стані REVIEW. Кроки ввімкнено (дефолтні
+    # 1 хв і 10 хв), тож колонка реально заповнюється — див. поправку до
+    # ADR-0001.
     step: Mapped[Optional[int]] = mapped_column(SmallInteger, nullable=True)
 
     # Саме момент часу, а не дата: fsrs.Scheduler.review_card вимагає

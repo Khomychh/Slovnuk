@@ -32,7 +32,8 @@ class UserSettingsModel(Base, TimestampMixin):
 
     Тут же живуть персональні параметри планувальника — саме тому важкий
     оптимізатор (torch) не потрібен усередині API: він пише сюди, а
-    застосунок лише читає.
+    застосунок лише читає. Оптимізатор запускається руками з машини
+    розробника і на сервер не потрапляє — див. ADR-0002.
 
     Ціль 0 означає «ціль вимкнено».
     """
@@ -76,8 +77,11 @@ class UserSettingsModel(Base, TimestampMixin):
     # колонка: у FSRS-4 ваг було 17, у FSRS-5 — 19, у FSRS-6 — 21, і кожен
     # реліз інакше вимагав би міграції.
     fsrs_parameters: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)
-    # Без версії Scheduler впаде на «Expected 21 parameters, got 19» після
-    # чергового оновлення py-fsrs — треба знати, коли параметри застаріли.
+    # Мажорна версія алгоритму (6 для py-fsrs 6.x). Це НЕ запобіжник: від
+    # падіння захищає try/except навколо створення Scheduler, бо валідація
+    # там ловить і кількість ваг, і вихід за межі. Версія лише підказує,
+    # коли варто перезапустити підбір. Кількість ваг сюди не пишемо — її
+    # видно з довжини fsrs_parameters.
     fsrs_parameters_version: Mapped[Optional[int]] = mapped_column(
         SmallInteger, nullable=True
     )
