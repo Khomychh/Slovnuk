@@ -1,0 +1,234 @@
+"""
+Запити до бази для розділу навчання.
+
+Роути лишаються тонкими: тут вибірка черги, лічильники дня і запис
+StudyDayModel. Математики планувальника тут немає — вона в
+app/services/scheduler.py.
+"""
+
+from datetime import date, datetime
+from typing import Sequence
+
+from sqlalchemy import and_, distinct, exists, func, or_, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from app.database.models import (
+    CardListLinkModel,
+    CardModel,
+    ReviewKindEnum,
+    ReviewLogModel,
+    ReviewStateEnum,
+    ReviewTrackModel,
+    StudyDayModel,
+    UserSettingsModel,
+    WordFormModel,
+    WordSenseModel,
+)
+
+
+async def get_user_settings(db: AsyncSession, user_id: int) -> UserSettingsModel:
+    """
+    Налаштування створюються разом із користувачем (routes/accounts.py), тож
+    рядок мусить бути. Читаємо окремим SELECT, а не через current_user.settings:
+    звернення до лінивої relationship у persistent-об'єкта поза eager-load
+    падає з MissingGreenlet.
+    """
+    stmt = select(UserSettingsModel).where(UserSettingsModel.user_id == user_id)
+    return (await db.execute(stmt)).scalars().one()
+
+
+async def get_own_track_for_update(
+    db: AsyncSession, track_id: int, user_id: int
+) -> ReviewTrackModel | None:
+    """
+    Доріжка користувача, заблокована до кінця транзакції.
+
+    FOR UPDATE потрібен, щоб дві одночасні відповіді на ту саму доріжку не
+    перезаписали стан одна одної.
+    """
+    stmt = (
+        select(ReviewTrackModel)
+        .join(CardModel, ReviewTrackModel.card_id == CardModel.id)
+        .where(ReviewTrackModel.id == track_id, CardModel.user_id == user_id)
+        .with_for_update(of=ReviewTrackModel)
+    )
+    return (await db.execute(stmt)).scalars().first()
+
+
+def _queue_conditions(user_id: int, list_ids: Sequence[int] | None, now: datetime):
+    """
+    Спільний фільтр черги для вибірки і для лічильників — щоб число «705
+    карток на повторення» не розходилося з тим, що реально прийде.
+
+    Доріжка FORMS показується лише коли в картки справді є форми і тренування
+    форм не вимкнене. Саму доріжку при цьому ніхто не видаляє: вимкнув на
+    місяць — прогрес чекає (див. HANDOFF, розділ 2).
+    """
+    conditions = [
+        CardModel.user_id == user_id,
+        ReviewTrackModel.due_at <= now,
+        or_(
+            ReviewTrackModel.kind == ReviewKindEnum.TRANSLATION,
+            and_(
+                CardModel.forms_drill_enabled.is_(True),
+                exists().where(WordFormModel.card_id == CardModel.id),
+            ),
+        ),
+    ]
+    if list_ids:
+        conditions.append(
+            exists().where(
+                and_(
+                    CardListLinkModel.card_id == CardModel.id,
+                    CardListLinkModel.list_id.in_(list_ids),
+                )
+            )
+        )
+    return conditions
+
+
+async def count_queue(
+    db: AsyncSession,
+    user_id: int,
+    list_ids: Sequence[int] | None,
+    now: datetime,
+) -> tuple[int, int]:
+    """Скільки всього чекає: (прострочені повторення, нові). Одним запитом."""
+    stmt = (
+        select(
+            func.count().filter(ReviewTrackModel.state != ReviewStateEnum.NEW),
+            func.count().filter(ReviewTrackModel.state == ReviewStateEnum.NEW),
+        )
+        .select_from(ReviewTrackModel)
+        .join(CardModel, ReviewTrackModel.card_id == CardModel.id)
+        .where(*_queue_conditions(user_id, list_ids, now))
+    )
+    due_count, new_count = (await db.execute(stmt)).one()
+    return due_count, new_count
+
+
+async def fetch_queue(
+    db: AsyncSession,
+    user_id: int,
+    list_ids: Sequence[int] | None,
+    now: datetime,
+    limit: int,
+) -> Sequence[ReviewTrackModel]:
+    """
+    Порція черги.
+
+    Порядок: спершу прострочені повторення, потім нові — всередині кожної
+    групи випадково. Затримка нового слова не коштує нічого, бо його ще ніхто
+    не пам'ятає; затримка простроченого повторення коштує стабільності.
+
+    OFFSET свідомо немає. Кожна відповідь виштовхує доріжку з черги (due_at
+    їде в майбутнє), тож черга коротшає під час сесії і зсунуті сторінки
+    пропускали б картки. Фронтенд щоразу питає перші N.
+    """
+    stmt = (
+        select(ReviewTrackModel)
+        .join(CardModel, ReviewTrackModel.card_id == CardModel.id)
+        .where(*_queue_conditions(user_id, list_ids, now))
+        .options(
+            selectinload(ReviewTrackModel.card)
+            .selectinload(CardModel.senses)
+            .selectinload(WordSenseModel.examples),
+            selectinload(ReviewTrackModel.card).selectinload(CardModel.forms),
+        )
+        .order_by(ReviewTrackModel.state == ReviewStateEnum.NEW, func.random())
+        .limit(limit)
+    )
+    return (await db.execute(stmt)).scalars().all()
+
+
+async def ensure_study_day(
+    db: AsyncSession,
+    user_id: int,
+    day: date,
+    new_goal: int,
+    review_goal: int,
+) -> None:
+    """
+    Зафіксувати, які цілі діяли цього дня.
+
+    Робиться жадібно, при першій же дії доби, і навмисно нічого не рахує.
+    Якби рядок створювався заднім числом, у нього потрапили б ПОТОЧНІ цілі:
+    підняв ціль з 30 до 50 — і вчорашній день, який був виконаний, назавжди
+    став би невиконаним. ON CONFLICT DO NOTHING саме тому, що перший запис дня
+    і є правильним.
+    """
+    stmt = (
+        pg_insert(StudyDayModel)
+        .values(
+            user_id=user_id,
+            day=day,
+            new_goal=new_goal,
+            review_goal=review_goal,
+            is_goal_met=False,
+        )
+        .on_conflict_do_nothing(constraint="uq_study_days_user_day")
+    )
+    await db.execute(stmt)
+
+
+async def get_study_day(
+    db: AsyncSession, user_id: int, day: date
+) -> StudyDayModel | None:
+    stmt = select(StudyDayModel).where(
+        StudyDayModel.user_id == user_id, StudyDayModel.day == day
+    )
+    return (await db.execute(stmt)).scalars().first()
+
+
+async def get_open_study_days(
+    db: AsyncSession, user_id: int, until: date
+) -> Sequence[StudyDayModel]:
+    """
+    Дні, які ще не закриті. Закритий день назад не переглядається — is_goal_met
+    це зафіксований факт, а не поточний стан.
+    """
+    stmt = (
+        select(StudyDayModel)
+        .where(
+            StudyDayModel.user_id == user_id,
+            StudyDayModel.is_goal_met.is_(False),
+            StudyDayModel.day <= until,
+        )
+        .order_by(StudyDayModel.day)
+    )
+    return (await db.execute(stmt)).scalars().all()
+
+
+async def count_reviewed_tracks(
+    db: AsyncSession, user_id: int, start: datetime, end: datetime
+) -> int:
+    """
+    Скільки РІЗНИХ доріжок повторено за добу.
+
+    Саме DISTINCT, а не кількість відповідей: із кроками навчання одна доріжка
+    дає 2-3 записи в review_logs за день, і COUNT(*) зробив би зміст цифри «30»
+    залежним від налаштувань планувальника.
+    """
+    stmt = select(func.count(distinct(ReviewLogModel.track_id))).where(
+        ReviewLogModel.user_id == user_id,
+        ReviewLogModel.reviewed_at >= start,
+        ReviewLogModel.reviewed_at < end,
+    )
+    return (await db.execute(stmt)).scalar_one()
+
+
+async def count_created_cards(
+    db: AsyncSession, user_id: int, start: datetime, end: datetime
+) -> int:
+    """
+    Скільки слів ДОДАНО за добу. Ціль нових — про поповнення словника, а не про
+    показ карток, тож рахується з cards.created_at.
+    """
+    stmt = select(func.count(CardModel.id)).where(
+        CardModel.user_id == user_id,
+        CardModel.created_at >= start,
+        CardModel.created_at < end,
+    )
+    return (await db.execute(stmt)).scalar_one()

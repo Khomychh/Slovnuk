@@ -24,6 +24,8 @@ from app.database.models.user_settings import (
     UserSettingsModel,
     DEFAULT_DAILY_NEW_GOAL,
     DEFAULT_DAILY_REVIEW_GOAL,
+    DEFAULT_DESIRED_RETENTION,
+    DEFAULT_TIMEZONE,
 )
 from app.database.models.vocabulary import (
     normalize_word,
@@ -72,6 +74,8 @@ __all__ = [
     "UserSettingsModel",
     "DEFAULT_DAILY_NEW_GOAL",
     "DEFAULT_DAILY_REVIEW_GOAL",
+    "DEFAULT_DESIRED_RETENTION",
+    "DEFAULT_TIMEZONE",
     # vocabulary
     "normalize_word",
     "WordListModel",
