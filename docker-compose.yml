@@ -1,0 +1,90 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: slovnuk-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-slovnuk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-slovnuk}
+      POSTGRES_DB: ${POSTGRES_DB:-slovnuk}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-slovnuk} -d ${POSTGRES_DB:-slovnuk}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - slovnuk_network
+
+  minio:
+    image: minio/minio:latest
+    container_name: slovnuk-minio
+    command: server --console-address ":9001" /data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - slovnuk_network
+
+  createbuckets:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      S3_PUBLIC_BUCKET_NAME: ${S3_PUBLIC_BUCKET_NAME}
+      S3_PRIVATE_BUCKET_NAME: ${S3_PRIVATE_BUCKET_NAME}
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
+      mc mb --ignore-existing local/$$S3_PUBLIC_BUCKET_NAME &&
+      mc mb --ignore-existing local/$$S3_PRIVATE_BUCKET_NAME &&
+      mc anonymous set download local/$$S3_PUBLIC_BUCKET_NAME &&
+      mc anonymous set none local/$$S3_PRIVATE_BUCKET_NAME
+      "
+    networks:
+      - slovnuk_network
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: slovnuk-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      createbuckets:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    networks:
+      - slovnuk_network
+
+volumes:
+  minio_data:
+  postgres_data:
+
+networks:
+  slovnuk_network:
+    driver: bridge

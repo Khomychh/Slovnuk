@@ -1,0 +1,13 @@
+.git
+.idea
+.venv
+**/__pycache__
+**/*.pyc
+**/*.db
+**/*.db-journal
+frontend
+DEV.md
+README.md
+
+credentials.json
+token.json
