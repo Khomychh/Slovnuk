@@ -19,6 +19,11 @@
 Скрипт ідемпотентний: списки зіставляються за назвою, картки — за
 нормалізованим словом. Повторний запуск оновлює наявні записи, а не
 створює дублікати.
+
+ВАЖЛИВО: прогрес повторень зі старого PWA не переноситься — усі доріжки
+створюються в стані NEW. Причина — у докстрингу `Importer._ensure_track`.
+Наявні доріжки скрипт не чіпає взагалі, тож перезапуск після початку
+навчання нічого не скине.
 """
 
 import argparse
@@ -199,6 +204,9 @@ class Importer:
         self.source = source
         self.stats: dict[str, int] = defaultdict(int)
         self.merged: list[str] = []
+        # Спільний момент для всіх нових доріжок, щоб черга не «сходинкувалась»
+        # за часом обробки карток.
+        self.imported_at = datetime.now(timezone.utc)
 
     # ---- списки ----
 
@@ -382,7 +390,7 @@ class Importer:
 
         self._rebuild_senses(card, senses)
         self._rebuild_forms(card, forms_raw)
-        self._sync_tracks(card, raw, forms_raw)
+        self._sync_tracks(card, forms_raw)
 
         if is_new:
             self.session.add(card)
@@ -439,40 +447,52 @@ class Importer:
             self.stats["forms"] += 1
             position += 1
 
-    def _sync_tracks(self, card: CardModel, raw: dict, forms_raw: dict | None) -> None:
+    def _sync_tracks(self, card: CardModel, forms_raw: dict | None) -> None:
         by_kind = {track.kind: track for track in card.review_tracks}
 
-        self._apply_track(card, by_kind, ReviewKindEnum.TRANSLATION, raw)
+        self._ensure_track(card, by_kind, ReviewKindEnum.TRANSLATION)
 
         if card.forms:
-            self._apply_track(card, by_kind, ReviewKindEnum.FORMS, forms_raw or {})
+            self._ensure_track(card, by_kind, ReviewKindEnum.FORMS)
         elif ReviewKindEnum.FORMS in by_kind:
             card.review_tracks.remove(by_kind[ReviewKindEnum.FORMS])
 
-    def _apply_track(self, card: CardModel, by_kind: dict, kind: ReviewKindEnum, raw: dict) -> None:
-        reps = int(card_reps(raw))
-        seen = bool(raw.get("seen")) or reps > 0
-        due_on = parse_day(raw.get("due"), date.today())
-        last_on = parse_day(raw.get("last"))
-        ease = raw.get("ef")
-        interval = raw.get("interval")
+    def _ensure_track(self, card: CardModel, by_kind: dict, kind: ReviewKindEnum) -> None:
+        """
+        Створює доріжку в стані NEW. Прогрес зі старого PWA НЕ переноситься.
 
-        track = by_kind.get(kind)
-        if track is None:
-            track = ReviewTrackModel(kind=kind)
-            card.review_tracks.append(track)
-            self.stats["tracks_created"] += 1
-        else:
-            self.stats["tracks_updated"] += 1
+        Величини SM-2 (ef / interval / reps) у FSRS не конвертуються: точної
+        формули не існує, а історії повторень, з якої її можна було б
+        відтворити, старий додаток не зберігав — там були лише лічильники
+        meta.log[date] = {n, r}. Насіяні «на око» stability/difficulty гірші
+        за їх відсутність: оптимізатор програє історію кожної картки з
+        чистого fsrs.Card (optimizer.py, `if i == 0: card = Card(...)`), тому
+        логи насіяних карток виглядали б як нові картки з неможливо довгими
+        інтервалами і зміщували б w[2] для всіх справді нових слів.
 
-        # SM-2 не розрізняє learning/relearning — усе, що вже бачили, це REVIEW.
-        track.state = ReviewStateEnum.REVIEW if seen else ReviewStateEnum.NEW
-        track.due_on = due_on
-        track.last_reviewed_at = day_to_utc(last_on) if last_on else None
-        track.repetitions = reps
-        track.lapses = 0  # у старому додатку не рахувались
-        track.ease_factor = float(ease) if isinstance(ease, (int, float)) else 2.5
-        track.interval_days = int(interval) if isinstance(interval, (int, float)) else 0
+        Ціна рішення — 594 картки треба один раз переглянути наново. Слово,
+        яке ти справді знаєш, після одного «Легко» йде на 8 днів, після
+        другого — на 66.
+        """
+        if kind in by_kind:
+            # Доріжка вже існує. Не чіпаємо: скрипт можна перезапускати вже
+            # після того, як користувач почав повторювати, і скидати йому
+            # прогрес через повторний імпорт словника неприпустимо.
+            self.stats["tracks_kept"] += 1
+            return
+
+        card.review_tracks.append(
+            ReviewTrackModel(
+                kind=kind,
+                state=ReviewStateEnum.NEW,
+                step=None,
+                due_at=self.imported_at,
+                last_reviewed_at=None,
+                stability=None,
+                difficulty=None,
+            )
+        )
+        self.stats["tracks_created"] += 1
 
     async def _link_lists(self, card: CardModel, legacy_ids: set, lists_by_legacy_id: dict) -> None:
         existing = set(

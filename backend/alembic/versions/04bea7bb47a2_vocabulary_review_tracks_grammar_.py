@@ -1,18 +1,18 @@
 """vocabulary review tracks grammar settings sharing
 
-Revision ID: 9c03c51d158b
+Revision ID: 04bea7bb47a2
 Revises: 79d2d50326fd
-Create Date: 2026-07-27 18:00:33.807040
+Create Date: 2026-07-27 20:55:53.534233
 
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '9c03c51d158b'
+revision: str = '04bea7bb47a2'
 down_revision: Union[str, Sequence[str], None] = '79d2d50326fd'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -71,6 +71,10 @@ def upgrade() -> None:
     sa.Column('tts_slow', sa.Boolean(), nullable=False),
     sa.Column('daily_new_goal', sa.Integer(), nullable=False),
     sa.Column('daily_review_goal', sa.Integer(), nullable=False),
+    sa.Column('fsrs_parameters', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.Column('fsrs_parameters_version', sa.SmallInteger(), nullable=True),
+    sa.Column('desired_retention', sa.Float(), nullable=False),
+    sa.Column('timezone', sa.String(length=64), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
@@ -138,12 +142,9 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('kind', sa.Enum('TRANSLATION', 'FORMS', name='reviewkindenum'), nullable=False),
     sa.Column('state', sa.Enum('NEW', 'LEARNING', 'REVIEW', 'RELEARNING', name='reviewstateenum'), nullable=False),
-    sa.Column('due_on', sa.Date(), nullable=False),
+    sa.Column('step', sa.SmallInteger(), nullable=True),
+    sa.Column('due_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('last_reviewed_at', sa.DateTime(timezone=True), nullable=True),
-    sa.Column('repetitions', sa.Integer(), nullable=False),
-    sa.Column('lapses', sa.Integer(), nullable=False),
-    sa.Column('ease_factor', sa.Float(), nullable=False),
-    sa.Column('interval_days', sa.Integer(), nullable=False),
     sa.Column('stability', sa.Float(), nullable=True),
     sa.Column('difficulty', sa.Float(), nullable=True),
     sa.Column('card_id', sa.Integer(), nullable=False),
@@ -153,7 +154,7 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('card_id', 'kind', name='uq_review_tracks_card_kind')
     )
-    op.create_index('ix_review_tracks_due_on', 'review_tracks', ['due_on'], unique=False)
+    op.create_index('ix_review_tracks_due_at', 'review_tracks', ['due_at'], unique=False)
     op.create_table('word_forms',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('position', sa.Integer(), nullable=False),
@@ -186,10 +187,9 @@ def upgrade() -> None:
     sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('rating', sa.SmallInteger(), nullable=False),
     sa.Column('reviewed_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('review_duration', sa.Integer(), nullable=True),
     sa.Column('state_before', sa.Enum('NEW', 'LEARNING', 'REVIEW', 'RELEARNING', name='reviewstateenum'), nullable=False),
-    sa.Column('elapsed_days', sa.Integer(), nullable=False),
-    sa.Column('scheduled_days', sa.Integer(), nullable=False),
-    sa.Column('due_on_after', sa.Date(), nullable=False),
+    sa.Column('due_at_after', sa.DateTime(timezone=True), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('track_id', sa.Integer(), nullable=False),
     sa.CheckConstraint('rating BETWEEN 1 AND 4', name='ck_review_logs_rating_range'),
@@ -227,7 +227,7 @@ def downgrade() -> None:
     op.drop_table('word_senses')
     op.drop_index(op.f('ix_word_forms_card_id'), table_name='word_forms')
     op.drop_table('word_forms')
-    op.drop_index('ix_review_tracks_due_on', table_name='review_tracks')
+    op.drop_index('ix_review_tracks_due_at', table_name='review_tracks')
     op.drop_table('review_tracks')
     op.drop_index(op.f('ix_list_shares_owner_id'), table_name='list_shares')
     op.drop_index(op.f('ix_list_shares_list_id'), table_name='list_shares')

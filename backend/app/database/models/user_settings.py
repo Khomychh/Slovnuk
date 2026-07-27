@@ -1,6 +1,16 @@
-from typing import TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
-from sqlalchemy import Boolean, Enum, ForeignKey, Integer, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    Enum,
+    Float,
+    ForeignKey,
+    Integer,
+    SmallInteger,
+    String,
+    UniqueConstraint,
+)
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.models import Base, TimestampMixin
@@ -12,10 +22,17 @@ if TYPE_CHECKING:
 
 DEFAULT_DAILY_NEW_GOAL = 10
 DEFAULT_DAILY_REVIEW_GOAL = 30
+DEFAULT_DESIRED_RETENTION = 0.9
+DEFAULT_TIMEZONE = "Europe/Kyiv"
+
 
 class UserSettingsModel(Base, TimestampMixin):
     """
     Преференції застосунку: як він виглядає, як озвучує, які цілі.
+
+    Тут же живуть персональні параметри планувальника — саме тому важкий
+    оптимізатор (torch) не потрібен усередині API: він пише сюди, а
+    застосунок лише читає.
 
     Ціль 0 означає «ціль вимкнено».
     """
@@ -42,12 +59,38 @@ class UserSettingsModel(Base, TimestampMixin):
     )
     tts_slow: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
-    # Цілі вивчення
+    # Цілі вивчення.
+    # daily_new_goal — скільки слів ДОДАТИ за добу (рахується з cards.created_at),
+    # daily_review_goal — скільки карток ПОВТОРИТИ (рахується з review_logs).
     daily_new_goal: Mapped[int] = mapped_column(
         Integer, default=DEFAULT_DAILY_NEW_GOAL, nullable=False
     )
     daily_review_goal: Mapped[int] = mapped_column(
         Integer, default=DEFAULT_DAILY_REVIEW_GOAL, nullable=False
+    )
+
+    # --- планувальник FSRS ---
+
+    # 21 вага, підібрана оптимізатором під конкретну людину. NULL = ще не
+    # оптимізували, використовуються дефолти бібліотеки. JSONB, а не 21
+    # колонка: у FSRS-4 ваг було 17, у FSRS-5 — 19, у FSRS-6 — 21, і кожен
+    # реліз інакше вимагав би міграції.
+    fsrs_parameters: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)
+    # Без версії Scheduler впаде на «Expected 21 parameters, got 19» після
+    # чергового оновлення py-fsrs — треба знати, коли параметри застаріли.
+    fsrs_parameters_version: Mapped[Optional[int]] = mapped_column(
+        SmallInteger, nullable=True
+    )
+    # Цільова ймовірність згадати. Нижче — рідші повторення й більше забувань.
+    desired_retention: Mapped[float] = mapped_column(
+        Float, default=DEFAULT_DESIRED_RETENTION, nullable=False
+    )
+
+    # Часовий пояс IANA. Потрібен не планувальнику (той живе в UTC), а
+    # study_days: саме він вирішує, до якої доби належить нічна сесія.
+    # StudyDayModel заморожує записи, тож помилка тут не самовиправляється.
+    timezone: Mapped[str] = mapped_column(
+        String(64), default=DEFAULT_TIMEZONE, nullable=False
     )
 
     user_id: Mapped[int] = mapped_column(

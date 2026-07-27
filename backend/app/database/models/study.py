@@ -35,9 +35,12 @@ class ReviewTrackModel(Base, TimestampMixin):
     форми або інші форми слова). Напрямок навчання окремої доріжки не має — Англ→Укр і Укр→Англ
     рухають ту саму TRANSLATION.
 
-    Колонки поділені на три групи: спільні для будь-якого планувальника,
-    специфічні для SM-2 і специфічні для FSRS. Зараз заповнюються перші дві;
-    stability/difficulty лишаються NULL, доки не буде перемкнено алгоритм.
+    Колонки один-в-один відповідають полям `fsrs.Card` (py-fsrs 6.x):
+    state, step, stability, difficulty, due, last_review. Планувальник
+    відновлюється з рядка і зберігається назад без жодних проміжних величин.
+
+    Величин SM-2 (ease_factor / interval_days / repetitions) тут навмисно
+    немає: FSRS їх не використовує, а статистика рахується з review_logs.
     """
 
     __tablename__ = "review_tracks"
@@ -45,22 +48,23 @@ class ReviewTrackModel(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     kind: Mapped[ReviewKindEnum] = mapped_column(Enum(ReviewKindEnum), nullable=False)
 
-    # --- спільне для будь-якого алгоритму ---
+    # NEW — наше власне значення, у fsrs.State його немає. При побудові
+    # fsrs.Card мапиться в State.Learning зі step=0.
     state: Mapped[ReviewStateEnum] = mapped_column(
         Enum(ReviewStateEnum), default=ReviewStateEnum.NEW, nullable=False
     )
-    due_on: Mapped[date] = mapped_column(Date, nullable=False)
+    # Номер кроку навчання; NULL у стані REVIEW. При learning_steps=()
+    # лишається NULL завжди — але тип дозволяє ввімкнути кроки без міграції.
+    step: Mapped[Optional[int]] = mapped_column(SmallInteger, nullable=True)
+
+    # Саме момент часу, а не дата: fsrs.Scheduler.review_card вимагає
+    # tz-aware UTC і вміє планувати всередині доби (relearning_steps).
+    due_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     last_reviewed_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    repetitions: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    lapses: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
-    # --- SM-2 ---
-    ease_factor: Mapped[float] = mapped_column(Float, default=2.5, nullable=False)
-    interval_days: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-
-    # --- FSRS (поки не використовується) ---
+    # NULL, доки картку жодного разу не оцінили.
     stability: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     difficulty: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
@@ -75,13 +79,13 @@ class ReviewTrackModel(Base, TimestampMixin):
 
     __table_args__ = (
         UniqueConstraint("card_id", "kind", name="uq_review_tracks_card_kind"),
-        Index("ix_review_tracks_due_on", "due_on"),
+        Index("ix_review_tracks_due_at", "due_at"),
     )
 
     def __repr__(self):
         return (
             f"<ReviewTrackModel(id={self.id}, card_id={self.card_id}, "
-            f"kind={self.kind}, due_on={self.due_on})>"
+            f"kind={self.kind}, due_at={self.due_at})>"
         )
 
 
@@ -89,10 +93,16 @@ class ReviewLogModel(Base):
     """
     Одна відповідь користувача. Записи не редагуються і не видаляються.
 
-    Тримає стан ДО відповіді, бо саме він потрібен оптимізатору FSRS, щоб
-    підібрати параметри під конкретну людину.
+    Оптимізатору FSRS потрібні лише track_id + rating + reviewed_at: він
+    групує логи за карткою і програє історію з чистого fsrs.Card, ігноруючи
+    будь-який збережений стан. Тому похідні величини (скільки днів минуло,
+    скільки призначено) тут не зберігаються — вони рахуються з сусідніх
+    рядків, а дублювати їх у append-only таблиці нема сенсу.
 
-    user_id тут навмисно продубльований (його можна було б дістати через
+    Незамінне тут лише те, чого інакше не відновити: state_before,
+    due_at_after і review_duration.
+
+    user_id навмисно продубльований (його можна було б дістати через
     track → card): денна статистика — найчастіший запит, а рядок логу після
     запису вже не змінюється, тож розсинхрону не буде.
     """
@@ -106,15 +116,22 @@ class ReviewLogModel(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    # стан доріжки безпосередньо перед цією відповіддю
+    # Мілісекунди від показу картки до натискання оцінки; міряє фронтенд.
+    # NULL = не виміряли. Без цих даних працює compute_optimal_parameters,
+    # але НЕ працює compute_optimal_retention — і заднім числом їх не буде.
+    review_duration: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    # Стан доріжки безпосередньо перед цією відповіддю. Не виводиться з
+    # інших колонок (довелося б переграти всю історію), а на ньому тримається
+    # лічильник lapses: rating = 1 AND state_before = REVIEW.
     state_before: Mapped[ReviewStateEnum] = mapped_column(
         Enum(ReviewStateEnum), nullable=False
     )
-    elapsed_days: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-
-    # що ця відповідь призначила
-    scheduled_days: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    due_on_after: Mapped[date] = mapped_column(Date, nullable=False)
+    # Що ця відповідь призначила — слід для відповіді на питання
+    # «чому мені показали це слово саме сьогодні».
+    due_at_after: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
 
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
