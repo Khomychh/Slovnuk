@@ -95,7 +95,8 @@ class UserModel(Base):
         cascade="all, delete-orphan"
     )
 
-    settings: Mapped[Optional["UserSettingsModel"]] = relationship(
+    # Гарантовано існує — створюється разом із користувачем у /register/.
+    settings: Mapped["UserSettingsModel"] = relationship(
         "UserSettingsModel",
         back_populates="user",
         cascade="all, delete-orphan"

@@ -22,6 +22,7 @@ from app.database.models import (
     ActivationTokenModel,
     PasswordResetTokenModel,
     RefreshTokenModel,
+    UserSettingsModel,
 )
 from app.exceptions import BaseSecurityError
 from app.notifications import EmailSenderInterface
@@ -132,6 +133,11 @@ async def register_user(
         # у моделі TokeBaseModel є поле із default=generate_secure_token()
         activation_token = ActivationTokenModel(user_id=new_user.id)
         db.add(activation_token)
+
+        # налаштування завжди створюються разом із користувачем — дефолти
+        # з UserSettingsModel, планувальник і рештка коду більше не мають
+        # думати про відсутній рядок
+        db.add(UserSettingsModel(user_id=new_user.id))
 
         await db.commit()
         await db.refresh(new_user)
