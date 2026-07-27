@@ -1,6 +1,6 @@
 import enum
 from datetime import datetime, date, timedelta, timezone
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 from sqlalchemy import (
     ForeignKey,
@@ -26,6 +26,14 @@ from app.database.models.enums import GenderEnum
 from app.database.validators import accounts as validators
 from app.security.passwords import hash_password, verify_password
 from app.security.utils import generate_secure_token
+
+
+if TYPE_CHECKING:
+    from app.database.models.user_settings import UserSettingsModel
+    from app.database.models.vocabulary import WordListModel, CardModel
+    from app.database.models.study import ReviewLogModel, StudyDayModel
+    from app.database.models.grammar import GrammarNoteModel, NoteCategoryModel
+    from app.database.models.sharing import ListShareModel
 
 
 class UserGroupEnum(str, enum.Enum):
@@ -84,6 +92,56 @@ class UserModel(Base):
     profile: Mapped[Optional["UserProfileModel"]] = relationship(
         "UserProfileModel",
         back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    settings: Mapped[Optional["UserSettingsModel"]] = relationship(
+        "UserSettingsModel",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    word_lists: Mapped[List["WordListModel"]] = relationship(
+        "WordListModel",
+        foreign_keys="WordListModel.user_id",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    cards: Mapped[List["CardModel"]] = relationship(
+        "CardModel",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    review_logs: Mapped[List["ReviewLogModel"]] = relationship(
+        "ReviewLogModel",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    study_days: Mapped[List["StudyDayModel"]] = relationship(
+        "StudyDayModel",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    note_categories: Mapped[List["NoteCategoryModel"]] = relationship(
+        "NoteCategoryModel",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    grammar_notes: Mapped[List["GrammarNoteModel"]] = relationship(
+        "GrammarNoteModel",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    list_shares: Mapped[List["ListShareModel"]] = relationship(
+        "ListShareModel",
+        foreign_keys="ListShareModel.owner_id",
+        back_populates="owner",
         cascade="all, delete-orphan"
     )
 

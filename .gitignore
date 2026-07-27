@@ -293,7 +293,7 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/pycharm,python
 
-backend/app/database/source/*.db
-
-credentials.json
-token.json
+slovnyk-2026-07-27 (1).json
+.mcp.json
+CONTEXT.md
+docs/
