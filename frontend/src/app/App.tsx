@@ -6,12 +6,9 @@ import {
   ForgotPasswordScreen,
   ResetPasswordScreen,
 } from "../screens/PasswordScreens";
-import {
-  GrammarScreen,
-  ProfileScreen,
-  TodayScreen,
-  VocabularyScreen,
-} from "../screens/Stubs";
+import { GrammarScreen, ProfileScreen, VocabularyScreen } from "../screens/Stubs";
+import StudyScreen from "../screens/StudyScreen";
+import TodayScreen from "../screens/TodayScreen";
 import TabsLayout from "./TabsLayout";
 
 /**
@@ -44,6 +41,18 @@ export default function App() {
           path="/accounts/login"
           element={
             status === "authenticated" ? <Navigate to="/" replace /> : <LoginScreen />
+          }
+        />
+
+        {/* Навчання — ПОЗА TabsLayout навмисно: панель вкладок під час нього
+            ховається, щоб палець не вилітав повз кнопку оцінки. Вийти можна
+            лише хрестиком. */}
+        <Route
+          path="/study"
+          element={
+            <RequireAuth>
+              <StudyScreen />
+            </RequireAuth>
           }
         />
 
