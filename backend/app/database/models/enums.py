@@ -43,13 +43,6 @@ class PartOfSpeechEnum(str, enum.Enum):
     OTHER = "other"
 
 
-class ContentSourceEnum(str, enum.Enum):
-    """Хто створив текст: людина, модель, чи він приїхав із зовнішнього файлу."""
-    USER = "user"
-    AI = "ai"
-    IMPORT = "import"
-
-
 class ReviewKindEnum(str, enum.Enum):
     """
     Що саме тренується.

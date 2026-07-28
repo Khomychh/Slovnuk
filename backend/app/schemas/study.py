@@ -5,12 +5,19 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic_core import PydanticCustomError
 
 from app.database.models import (
-    PartOfSpeechEnum,
     ReviewKindEnum,
     ReviewStateEnum,
     StudyDirectionEnum,
     ThemeEnum,
     TtsAccentEnum,
+)
+
+# Значення, приклади й форми належать словнику — і в черзі показуються ті самі.
+# Друге визначення тих самих полів рано чи пізно розійшлося б із першим.
+from app.schemas.vocabulary import (  # noqa: F401  (реекспорт для сумісності)
+    SenseExampleSchema,
+    WordFormSchema,
+    WordSenseSchema,
 )
 
 
@@ -36,34 +43,6 @@ class TrackReviewResponseSchema(BaseModel):
 
 
 # --- черга ---
-
-
-class SenseExampleSchema(BaseModel):
-    id: int
-    text_en: str
-    text_uk: str | None
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class WordSenseSchema(BaseModel):
-    id: int
-    part_of_speech: PartOfSpeechEnum | None
-    translation: str | None
-    gloss: str | None
-    transcription: str | None
-    examples: list[SenseExampleSchema]
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class WordFormSchema(BaseModel):
-    id: int
-    label: str | None
-    value: str
-    transcription: str | None
-
-    model_config = ConfigDict(from_attributes=True)
 
 
 class QueueCardSchema(BaseModel):

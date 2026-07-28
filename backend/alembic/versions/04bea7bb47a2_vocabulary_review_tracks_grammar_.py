@@ -175,7 +175,6 @@ def upgrade() -> None:
     sa.Column('translation', sa.String(length=255), nullable=True),
     sa.Column('gloss', sa.String(length=255), nullable=True),
     sa.Column('transcription', sa.String(length=100), nullable=True),
-    sa.Column('source', sa.Enum('USER', 'AI', 'IMPORT', name='contentsourceenum'), nullable=False),
     sa.Column('card_id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
@@ -204,7 +203,6 @@ def upgrade() -> None:
     sa.Column('position', sa.Integer(), nullable=False),
     sa.Column('text_en', sa.Text(), nullable=False),
     sa.Column('text_uk', sa.Text(), nullable=True),
-    sa.Column('source', sa.Enum('USER', 'AI', 'IMPORT', name='contentsourceenum'), nullable=False),
     sa.Column('sense_id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
@@ -250,7 +248,6 @@ def downgrade() -> None:
     # Alembic не прибирає типи ENUM за drop_table — без цього повторний
     # upgrade падає на "type ... already exists".
     for enum_name in (
-        'contentsourceenum',
         'partofspeechenum',
         'reviewkindenum',
         'reviewstateenum',

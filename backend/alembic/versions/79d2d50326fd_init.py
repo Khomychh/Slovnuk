@@ -107,3 +107,8 @@ def downgrade() -> None:
     op.drop_table('users')
     op.drop_table('user_groups')
     # ### end Alembic commands ###
+
+    # Alembic не прибирає типи ENUM за drop_table — без цього повторний
+    # upgrade падає на "type ... already exists".
+    for enum_name in ('genderenum', 'usergroupenum'):
+        op.execute(f'DROP TYPE IF EXISTS {enum_name}')

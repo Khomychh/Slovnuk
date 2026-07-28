@@ -15,7 +15,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from app.database.models import Base, TimestampMixin
-from app.database.models.enums import ContentSourceEnum, PartOfSpeechEnum
+from app.database.models.enums import PartOfSpeechEnum
 
 
 if TYPE_CHECKING:
@@ -187,10 +187,6 @@ class WordSenseModel(Base, TimestampMixin):
     gloss: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     transcription: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
-    source: Mapped[ContentSourceEnum] = mapped_column(
-        Enum(ContentSourceEnum), default=ContentSourceEnum.USER, nullable=False
-    )
-
     card_id: Mapped[int] = mapped_column(
         ForeignKey("cards.id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -217,10 +213,6 @@ class SenseExampleModel(Base, TimestampMixin):
 
     text_en: Mapped[str] = mapped_column(Text, nullable=False)
     text_uk: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-
-    source: Mapped[ContentSourceEnum] = mapped_column(
-        Enum(ContentSourceEnum), default=ContentSourceEnum.USER, nullable=False
-    )
 
     sense_id: Mapped[int] = mapped_column(
         ForeignKey("word_senses.id", ondelete="CASCADE"), nullable=False, index=True

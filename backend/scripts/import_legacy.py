@@ -45,7 +45,6 @@ from app.database.database import get_db_contextmanager  # noqa: E402
 from app.database.models import (  # noqa: E402
     CardListLinkModel,
     CardModel,
-    ContentSourceEnum,
     GrammarNoteModel,
     NoteCategoryModel,
     PartOfSpeechEnum,
@@ -198,10 +197,9 @@ def validate(lists: list, cards: list, notes: list) -> list[str]:
 # --------------------------------------------------------------------------
 
 class Importer:
-    def __init__(self, session: AsyncSession, user: UserModel, source: ContentSourceEnum):
+    def __init__(self, session: AsyncSession, user: UserModel):
         self.session = session
         self.user = user
-        self.source = source
         self.stats: dict[str, int] = defaultdict(int)
         self.merged: list[str] = []
         # Спільний момент для всіх нових доріжок, щоб черга не «сходинкувалась»
@@ -406,7 +404,6 @@ class Importer:
                 translation=str(item.get("tr") or "").strip() or None,
                 gloss=str(item.get("gloss") or "").strip() or None,
                 transcription=str(item.get("ipa") or "").strip() or None,
-                source=self.source,
             )
             for example_position, (text_en, text_uk) in enumerate(
                 parse_examples(str(item.get("ex") or ""))
@@ -416,7 +413,6 @@ class Importer:
                         position=example_position,
                         text_en=text_en,
                         text_uk=text_uk,
-                        source=self.source,
                     )
                 )
                 self.stats["examples"] += 1
@@ -690,8 +686,6 @@ async def run(args) -> int:
             print(f"  • {problem}", file=sys.stderr)
         return 1
 
-    source = ContentSourceEnum(args.source)
-
     async with get_db_contextmanager() as session:
         user = await session.scalar(select(UserModel).where(UserModel.email == args.email.lower()))
         if user is None:
@@ -701,7 +695,7 @@ async def run(args) -> int:
                 f"Користувача {args.email} не знайдено. Наявні:\n{hint}"
             )
 
-        importer = Importer(session, user, source)
+        importer = Importer(session, user)
 
         lists_by_legacy_id = await importer.import_lists(raw_lists)
         await importer.import_cards(raw_cards, lists_by_legacy_id)
@@ -739,12 +733,6 @@ def main() -> int:
     parser.add_argument("--file", required=True, help="JSON-експорт зі старого додатку")
     parser.add_argument("--email", required=True, help="Email користувача-власника")
     parser.add_argument("--meta", help="JSON із вмістом ключа words_app_meta_v1")
-    parser.add_argument(
-        "--source",
-        default=ContentSourceEnum.USER.value,
-        choices=[item.value for item in ContentSourceEnum],
-        help="Що писати в колонку source значень і прикладів (типово: user)",
-    )
     parser.add_argument(
         "--dry-run",
         action="store_true",
