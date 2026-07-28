@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.cruds import study as study_crud
 from app.cruds import vocabulary as vocabulary_crud
 from app.database.database import get_db
 from app.database.models import CardModel, UserModel, WordListModel
@@ -12,12 +13,14 @@ from app.schemas.vocabulary import (
     CardSchema,
     CardUpdateSchema,
     UnlistedSchema,
+    VocabularyStatsSchema,
     WordListCreateSchema,
     WordListPageSchema,
     WordListSchema,
     WordListUpdateSchema,
 )
 from app.security.dependencies import get_current_authenticated_user
+from app.services.study_day import local_day, resolve_timezone
 from app.services.vocabulary import (
     UnknownChildIdError,
     apply_forms,
@@ -263,6 +266,27 @@ async def delete_list(
 
 
 @router.get(
+    "/stats/",
+    response_model=VocabularyStatsSchema,
+    summary="Vocabulary totals",
+    description="Counts for the progress screen: lists, cards, due tracks and learned words.",
+    status_code=status.HTTP_200_OK,
+)
+async def get_stats(
+    current_user: UserModel = Depends(get_current_authenticated_user),
+    db: AsyncSession = Depends(get_db),
+) -> VocabularyStatsSchema:
+    """
+    Окремий ендпоінт, бо скласти ці числа з /lists/ не можна: картка може лежати
+    в кількох списках, і сума по списках полічила б її двічі.
+    """
+    stats = await vocabulary_crud.get_stats(
+        db, current_user.id, datetime.now(timezone.utc)
+    )
+    return VocabularyStatsSchema(**stats)
+
+
+@router.get(
     "/cards/",
     response_model=CardPageSchema,
     summary="Browse the vocabulary",
@@ -366,10 +390,25 @@ async def create_card(
         apply_forms(card, payload.forms)
     except UnknownChildIdError as error:
         raise _unknown_child_ids(error)
+    now = datetime.now(timezone.utc)
     apply_list_links(card, list_ids)
-    ensure_tracks(card, datetime.now(timezone.utc))
+    ensure_tracks(card, now)
 
     db.add(card)
+
+    # Знімок цілей пишеться і тут, не лише при оцінці. Інакше день, у який
+    # користувач тільки додавав слова, лишався б без рядка study_days — і в
+    # календарі його б не існувало, хоч робота була. А при daily_review_goal=0
+    # такий день ще й може бути виконаним без жодного повторення.
+    settings = await study_crud.get_user_settings(db, current_user.id)
+    await study_crud.ensure_study_day(
+        db,
+        user_id=current_user.id,
+        day=local_day(now, resolve_timezone(settings.timezone)),
+        new_goal=settings.daily_new_goal,
+        review_goal=settings.daily_review_goal,
+    )
+
     await db.commit()
 
     return CardSchema.model_validate(await vocabulary_crud.load_card(db, card.id))

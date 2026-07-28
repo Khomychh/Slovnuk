@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fsrs import Rating
@@ -11,6 +12,8 @@ from app.schemas.study import (
     QueueItemSchema,
     QueueResponseSchema,
     StudyDayResponseSchema,
+    StudyDaySchema,
+    StudyDaysResponseSchema,
     StudySettingsResponseSchema,
     StudySettingsUpdateSchema,
     TrackReviewRequestSchema,
@@ -26,6 +29,37 @@ from app.services.study_day import (
 )
 
 router = APIRouter()
+
+
+async def _day_counts(
+    db: AsyncSession,
+    user_id: int,
+    tz: ZoneInfo,
+    first_day: date,
+    last_day: date,
+) -> dict[date, tuple[int, int]]:
+    """
+    Скільки додано і скільки повторено кожної доби діапазону, двома запитами.
+
+    Межі беруться з тих самих local_day_bounds, що й у /today/: від опівночі
+    першого дня до опівночі наступного після останнього. Групування за добою
+    робить уже Postgres — інакше на «весь час» вийшло б два запити на кожен
+    день історії.
+    """
+    start, _ = local_day_bounds(first_day, tz)
+    _, end = local_day_bounds(last_day, tz)
+
+    new_by_day = await study_crud.count_new_cards_by_day(
+        db, user_id, tz.key, start, end
+    )
+    reviews_by_day = await study_crud.count_reviewed_tracks_by_day(
+        db, user_id, tz.key, start, end
+    )
+
+    return {
+        day: (new_by_day.get(day, 0), reviews_by_day.get(day, 0))
+        for day in set(new_by_day) | set(reviews_by_day)
+    }
 
 
 @router.get(
@@ -206,6 +240,71 @@ async def get_today(
     )
     await db.commit()
     return response
+
+
+@router.get(
+    "/days/",
+    response_model=StudyDaysResponseSchema,
+    summary="Calendar of study days",
+    description="Days with activity in the range, oldest first. Without from/to — the whole history.",
+    status_code=status.HTTP_200_OK,
+)
+async def get_days(
+    date_from: date | None = Query(None, alias="from", description="Включно"),
+    date_to: date | None = Query(None, alias="to", description="Включно"),
+    current_user: UserModel = Depends(get_current_authenticated_user),
+    db: AsyncSession = Depends(get_db),
+) -> StudyDaysResponseSchema:
+    """
+    Календар для екрана прогресу.
+
+    Перед вибіркою дораховує незакриті дні — тим самим правилом, що й /today/.
+    Без цього тиждень без заходів у застосунок назавжди лишився б сірим:
+    is_goal_met пишеться лише тоді, коли його хтось порахував. Це GET із
+    записом, і так само поводиться /today/ — інакше фронтенд мусив би смикати
+    /today/ перед кожним відкриттям календаря, інакше той брехав би.
+
+    Кількості в study_days не зберігаються, тож рахуються тут заново з
+    cards.created_at і review_logs. Дні без активності у відповідь не
+    потрапляють: сітку місяця малює фронтенд.
+    """
+    settings = await study_crud.get_user_settings(db, current_user.id)
+    tz = resolve_timezone(settings.timezone)
+    today = local_day(datetime.now(timezone.utc), tz)
+
+    open_days = await study_crud.get_open_study_days(db, current_user.id, today)
+    if open_days:
+        counts = await _day_counts(db, current_user.id, tz, open_days[0].day, today)
+        for row in open_days:
+            day_new, day_reviews = counts.get(row.day, (0, 0))
+            if is_goal_met(
+                new_added=day_new,
+                reviews_done=day_reviews,
+                new_goal=row.new_goal,
+                review_goal=row.review_goal,
+            ):
+                row.is_goal_met = True
+        await db.commit()
+
+    rows = await study_crud.get_study_days(db, current_user.id, date_from, date_to)
+    if not rows:
+        return StudyDaysResponseSchema(items=[])
+
+    counts = await _day_counts(db, current_user.id, tz, rows[0].day, rows[-1].day)
+
+    return StudyDaysResponseSchema(
+        items=[
+            StudyDaySchema(
+                day=row.day,
+                new_goal=row.new_goal,
+                review_goal=row.review_goal,
+                new_count=counts.get(row.day, (0, 0))[0],
+                review_count=counts.get(row.day, (0, 0))[1],
+                is_goal_met=row.is_goal_met,
+            )
+            for row in rows
+        ]
+    )
 
 
 @router.get(

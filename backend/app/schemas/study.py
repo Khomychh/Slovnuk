@@ -95,6 +95,35 @@ class StudyDayResponseSchema(BaseModel):
     is_goal_met: bool
 
 
+class StudyDaySchema(BaseModel):
+    """
+    Один день у календарі прогресу.
+
+    Цілі — знімок, що діяв саме того дня, а не поточні: підвищення планки не
+    має переписувати минуле. Кількості, навпаки, рахуються щоразу заново з
+    незмінних даних (cards.created_at, review_logs) — у study_days їх немає і
+    дублювати їх туди не треба.
+    """
+
+    day: date
+    new_goal: int
+    review_goal: int
+    new_count: int
+    review_count: int
+    is_goal_met: bool
+
+
+class StudyDaysResponseSchema(BaseModel):
+    """
+    Дні лише з активністю, старіші зверху.
+
+    Порожніх днів у відповіді немає: сітку місяця малює фронтенд, а тягнути
+    тридцять нулів, щоб намалювати тридцять сірих клітинок, немає сенсу.
+    """
+
+    items: list[StudyDaySchema]
+
+
 # --- налаштування ---
 
 

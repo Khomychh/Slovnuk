@@ -232,3 +232,87 @@ async def count_created_cards(
         CardModel.created_at < end,
     )
     return (await db.execute(stmt)).scalar_one()
+
+
+def _local_date(column, tz_name: str):
+    """
+    Момент у UTC → дата в поясі користувача, силами Postgres.
+
+    `timestamptz AT TIME ZONE 'Europe/Kyiv'` дає локальний timestamp, з якого
+    ::date і є «доба користувача». Перехід на літній час Postgres враховує сам,
+    так само як local_day_bounds у Python — test_day_counts.py пришпилює їх
+    одне до одного, щоб ці дві реалізації не розійшлися.
+
+    tz_name сюди мусить приходити ВЖЕ розвʼязаним через resolve_timezone:
+    user_settings.timezone — вільний String(64), і сміття з нього Postgres
+    зустріне помилкою invalid_parameter_value, а не тихим дефолтом.
+    """
+    return func.date(func.timezone(tz_name, column))
+
+
+async def count_new_cards_by_day(
+    db: AsyncSession,
+    user_id: int,
+    tz_name: str,
+    start: datetime,
+    end: datetime,
+) -> dict[date, int]:
+    """Скільки слів додано кожної доби діапазону. Дні без жодного — відсутні."""
+    day = _local_date(CardModel.created_at, tz_name).label("day")
+    stmt = (
+        select(day, func.count(CardModel.id))
+        .where(
+            CardModel.user_id == user_id,
+            CardModel.created_at >= start,
+            CardModel.created_at < end,
+        )
+        .group_by(day)
+    )
+    return {row_day: count for row_day, count in (await db.execute(stmt)).all()}
+
+
+async def count_reviewed_tracks_by_day(
+    db: AsyncSession,
+    user_id: int,
+    tz_name: str,
+    start: datetime,
+    end: datetime,
+) -> dict[date, int]:
+    """
+    Скільки РІЗНИХ доріжок повторено кожної доби діапазону.
+
+    DISTINCT з тієї самої причини, що й у count_reviewed_tracks: із кроками
+    навчання одна доріжка дає 2-3 записи за день, і COUNT(*) зробив би зміст
+    цифри «30» залежним від налаштувань планувальника.
+    """
+    day = _local_date(ReviewLogModel.reviewed_at, tz_name).label("day")
+    stmt = (
+        select(day, func.count(distinct(ReviewLogModel.track_id)))
+        .where(
+            ReviewLogModel.user_id == user_id,
+            ReviewLogModel.reviewed_at >= start,
+            ReviewLogModel.reviewed_at < end,
+        )
+        .group_by(day)
+    )
+    return {row_day: count for row_day, count in (await db.execute(stmt)).all()}
+
+
+async def get_study_days(
+    db: AsyncSession,
+    user_id: int,
+    date_from: date | None,
+    date_to: date | None,
+) -> Sequence[StudyDayModel]:
+    """
+    Дні навчання за діапазон, старіші зверху. Межі включні, обидві необовʼязкові:
+    без них віддається вся історія — саме так екран прогресу рахує «за весь час».
+    """
+    conditions = [StudyDayModel.user_id == user_id]
+    if date_from is not None:
+        conditions.append(StudyDayModel.day >= date_from)
+    if date_to is not None:
+        conditions.append(StudyDayModel.day <= date_to)
+
+    stmt = select(StudyDayModel).where(*conditions).order_by(StudyDayModel.day)
+    return (await db.execute(stmt)).scalars().all()

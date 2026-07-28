@@ -5,25 +5,30 @@
 
     {"lists": [...], "cards": [...], "notes": [...]}
 
-Додатково можна підсунути вміст ключа localStorage `words_app_meta_v1`
-(--meta), щоб перенести налаштування, цілі та календар виконаних днів.
-Дістати його можна в консолі браузера:
-
-    copy(localStorage.getItem("words_app_meta_v1"))
-
 Запуск із теки backend:
 
     python -m scripts.import_legacy --file slovnyk-2026-07-27.json \\
-        --email ivan@example.com [--meta meta.json] [--dry-run]
+        --email ivan@example.com [--dry-run]
 
 Скрипт ідемпотентний: списки зіставляються за назвою, картки — за
 нормалізованим словом. Повторний запуск оновлює наявні записи, а не
 створює дублікати.
 
-ВАЖЛИВО: прогрес повторень зі старого PWA не переноситься — усі доріжки
-створюються в стані NEW. Причина — у докстрингу `Importer._ensure_track`.
-Наявні доріжки скрипт не чіпає взагалі, тож перезапуск після початку
-навчання нічого не скине.
+ВАЖЛИВО: переноситься ЗМІСТ, але не історія — див.
+docs/adr/0004-import-perenosyt-zmist-ne-istoriiu.md.
+
+Не переноситься нічого з переліченого, і це навмисно:
+
+* прогрес повторень — усі доріжки створюються в стані NEW (ADR-0001,
+  докстринг `Importer._ensure_track`);
+* дати створення — поле `created` у файлі є, але ігнорується: усе
+  створюється днем імпорту;
+* календар виконаних днів, лічильники повторів і налаштування зі
+  `words_app_meta_v1` — ключ localStorage не читається взагалі,
+  `study_days` починається порожньою.
+
+Наявні доріжки скрипт не чіпає, тож перезапуск після початку навчання
+нічого не скине.
 """
 
 import argparse
@@ -31,7 +36,7 @@ import asyncio
 import json
 import sys
 from collections import defaultdict
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 from sqlalchemy import select
@@ -52,20 +57,11 @@ from app.database.models import (  # noqa: E402
     ReviewStateEnum,
     ReviewTrackModel,
     SenseExampleModel,
-    StudyDayModel,
-    StudyDirectionEnum,
-    ThemeEnum,
-    TtsAccentEnum,
     UserModel,
-    UserSettingsModel,
     WordFormModel,
     WordListModel,
     WordSenseModel,
     normalize_word,
-)
-from app.database.models.user_settings import (  # noqa: E402
-    DEFAULT_DAILY_NEW_GOAL,
-    DEFAULT_DAILY_REVIEW_GOAL,
 )
 
 MAX_WORD_LENGTH = 100
@@ -80,20 +76,6 @@ class ImportError_(Exception):
 # --------------------------------------------------------------------------
 # Розбір старого формату
 # --------------------------------------------------------------------------
-
-def parse_day(value, fallback: date | None = None) -> date | None:
-    """Старий додаток пише дати як "YYYY-MM-DD"."""
-    if isinstance(value, str):
-        try:
-            return date.fromisoformat(value.strip())
-        except ValueError:
-            pass
-    return fallback
-
-
-def day_to_utc(day: date) -> datetime:
-    return datetime(day.year, day.month, day.day, tzinfo=timezone.utc)
-
 
 def parse_examples(raw: str) -> list[tuple[str, str | None]]:
     """
@@ -240,7 +222,6 @@ class Importer:
                     user_id=self.user.id,
                     name=name,
                     position=position,
-                    created_at=day_to_utc(parse_day(item.get("created"), date.today())),
                 )
                 self.session.add(word_list)
                 used_names.add(name)
@@ -358,23 +339,19 @@ class Importer:
 
         forms_raw = forms_source.get("forms") if forms_source else None
         drill_enabled = bool(forms_raw.get("drill", True)) if forms_raw else True
-        # Найраніша дата створення з групи — «нові слова за день» рахуються з неї
-        created_on = min(
-            (parse_day(item.get("created"), date.today()) for item in group),
-            default=date.today(),
-        )
 
         is_new = card is None
         if is_new:
             # Колекції наповнюємо ДО flush: у persistent-обʼєкта звернення до
             # незавантаженого relationship викликало б ліниве читання, а воно
             # в async-сесії падає з MissingGreenlet.
+            # created_at лишається дефолтним, тобто моментом імпорту: дата
+            # `created` зі старого файлу свідомо ігнорується (ADR-0004).
             card = CardModel(
                 user_id=self.user.id,
                 word=str(raw.get("word") or "").strip(),
                 comment=comment,
                 forms_drill_enabled=drill_enabled,
-                created_at=day_to_utc(created_on),
             )
             self.stats["cards_created"] += 1
         else:
@@ -559,7 +536,6 @@ class Importer:
                     user_id=self.user.id,
                     title=title,
                     position=position,
-                    created_at=day_to_utc(parse_day(item.get("created"), date.today())),
                 )
                 self.session.add(note)
                 existing_notes[title] = note
@@ -574,96 +550,6 @@ class Importer:
 
         await self.session.flush()
 
-    # ---- налаштування та календар ----
-
-    async def import_meta(self, meta: dict) -> None:
-        settings = await self.session.scalar(
-            select(UserSettingsModel).where(UserSettingsModel.user_id == self.user.id)
-        )
-        if settings is None:
-            settings = UserSettingsModel(user_id=self.user.id)
-            self.session.add(settings)
-            self.stats["settings_created"] += 1
-        else:
-            self.stats["settings_updated"] += 1
-
-        theme = str(meta.get("theme") or "system")
-        try:
-            settings.theme = ThemeEnum(theme)
-        except ValueError:
-            settings.theme = ThemeEnum.SYSTEM
-
-        accent = str(meta.get("accent") or "auto")
-        try:
-            settings.tts_accent = TtsAccentEnum(accent)
-        except ValueError:
-            settings.tts_accent = TtsAccentEnum.AUTO
-
-        # У старому додатку напрямок не зберігався між сесіями
-        settings.study_direction = StudyDirectionEnum.EN_UK
-        settings.tts_enabled = meta.get("tts") is not False
-        settings.tts_autoplay = meta.get("auto") is not False
-        settings.tts_slow = bool(meta.get("slow"))
-
-        new_goal = meta.get("newLimit")
-        review_goal = meta.get("reviewLimit")
-        settings.daily_new_goal = (
-            int(new_goal) if isinstance(new_goal, (int, float)) else DEFAULT_DAILY_NEW_GOAL
-        )
-        settings.daily_review_goal = (
-            int(review_goal) if isinstance(review_goal, (int, float)) else DEFAULT_DAILY_REVIEW_GOAL
-        )
-
-        await self.session.flush()
-        await self._import_study_days(meta, settings)
-
-    async def _import_study_days(self, meta: dict, settings: UserSettingsModel) -> None:
-        """
-        Переносимо календар виконаних днів.
-
-        is_goal_met беремо з meta.goalDates — це ЗАФІКСОВАНИЙ старим додатком
-        факт. Перераховувати його за сьогоднішніми цілями не можна: підвищення
-        планки заднім числом «скасувало б» усі раніше закриті дні.
-
-        Цілі, що діяли в конкретний день, старий додаток не зберігав, тому в
-        знімок пишемо поточні.
-        """
-        log = meta.get("log") if isinstance(meta.get("log"), dict) else {}
-        goal_dates = meta.get("goalDates") if isinstance(meta.get("goalDates"), list) else []
-
-        days: set[date] = set()
-        for key in list(log.keys()) + list(goal_dates):
-            day = parse_day(key)
-            if day:
-                days.add(day)
-
-        met = {parse_day(value) for value in goal_dates}
-        met.discard(None)
-
-        existing = {
-            row.day: row
-            for row in (
-                await self.session.scalars(
-                    select(StudyDayModel).where(StudyDayModel.user_id == self.user.id)
-                )
-            ).all()
-        }
-
-        for day in sorted(days):
-            study_day = existing.get(day)
-            if study_day is None:
-                study_day = StudyDayModel(user_id=self.user.id, day=day)
-                self.session.add(study_day)
-                self.stats["study_days_created"] += 1
-            else:
-                self.stats["study_days_updated"] += 1
-
-            study_day.new_goal = settings.daily_new_goal
-            study_day.review_goal = settings.daily_review_goal
-            study_day.is_goal_met = day in met
-
-        await self.session.flush()
-
 
 # --------------------------------------------------------------------------
 # CLI
@@ -672,12 +558,6 @@ class Importer:
 async def run(args) -> int:
     payload = read_json(Path(args.file))
     raw_lists, raw_cards, raw_notes = extract_payload(payload)
-
-    meta = {}
-    if args.meta:
-        meta = read_json(Path(args.meta))
-        if not isinstance(meta, dict):
-            raise ImportError_("--meta має бути обʼєктом (вміст words_app_meta_v1)")
 
     problems = validate(raw_lists, raw_cards, raw_notes)
     if problems:
@@ -700,8 +580,6 @@ async def run(args) -> int:
         lists_by_legacy_id = await importer.import_lists(raw_lists)
         await importer.import_cards(raw_cards, lists_by_legacy_id)
         await importer.import_notes(raw_notes)
-        if meta:
-            await importer.import_meta(meta)
 
         if args.dry_run:
             await session.rollback()
@@ -732,7 +610,6 @@ def main() -> int:
     )
     parser.add_argument("--file", required=True, help="JSON-експорт зі старого додатку")
     parser.add_argument("--email", required=True, help="Email користувача-власника")
-    parser.add_argument("--meta", help="JSON із вмістом ключа words_app_meta_v1")
     parser.add_argument(
         "--dry-run",
         action="store_true",

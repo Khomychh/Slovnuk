@@ -16,6 +16,8 @@ from app.cruds.study import _queue_conditions
 from app.database.models import (
     CardListLinkModel,
     CardModel,
+    ReviewKindEnum,
+    ReviewStateEnum,
     ReviewTrackModel,
     WordFormModel,
     WordListModel,
@@ -235,3 +237,51 @@ async def count_unlisted(
 async def has_forms(db: AsyncSession, card_id: int) -> bool:
     stmt = select(exists().where(WordFormModel.card_id == card_id))
     return (await db.execute(stmt)).scalar_one()
+
+
+# Слово вважається вивченим, коли його памʼятають щонайменше тиждень.
+LEARNED_STABILITY_DAYS = 6.0
+
+
+async def get_stats(db: AsyncSession, user_id: int, now: datetime) -> dict[str, int]:
+    """
+    Підсумок словника для екрана прогресу.
+
+    Окремий запит, а не сума по списках: картка може лежати в кількох списках
+    одночасно, тож sum(card_count) і sum(due_count) полічили б її двічі.
+
+    due_tracks — саме доріжки, як і бейдж списку та черга. Картка з формами дає
+    дві одиниці роботи, і показати «608 на повторення», коли черга віддасть 705,
+    означало б занизити обсяг.
+
+    learned рахує лише доріжку перекладу (див. CONTEXT, «Вивчено»): інакше
+    вимкнення тренування форм тихо піднімало б лічильник.
+    """
+    lists_stmt = select(func.count(WordListModel.id)).where(
+        WordListModel.user_id == user_id
+    )
+    cards_stmt = select(func.count(CardModel.id)).where(CardModel.user_id == user_id)
+    due_stmt = (
+        select(func.count())
+        .select_from(ReviewTrackModel)
+        .join(CardModel, ReviewTrackModel.card_id == CardModel.id)
+        .where(*_queue_conditions(user_id, None, now))
+    )
+    learned_stmt = (
+        select(func.count())
+        .select_from(ReviewTrackModel)
+        .join(CardModel, ReviewTrackModel.card_id == CardModel.id)
+        .where(
+            CardModel.user_id == user_id,
+            ReviewTrackModel.kind == ReviewKindEnum.TRANSLATION,
+            ReviewTrackModel.state != ReviewStateEnum.RELEARNING,
+            ReviewTrackModel.stability >= LEARNED_STABILITY_DAYS,
+        )
+    )
+
+    return {
+        "lists": (await db.execute(lists_stmt)).scalar_one(),
+        "cards": (await db.execute(cards_stmt)).scalar_one(),
+        "due_tracks": (await db.execute(due_stmt)).scalar_one(),
+        "learned": (await db.execute(learned_stmt)).scalar_one(),
+    }
