@@ -184,7 +184,6 @@ class WordSenseModel(Base, TimestampMixin):
         Enum(PartOfSpeechEnum), nullable=True
     )
     translation: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    gloss: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     transcription: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
     card_id: Mapped[int] = mapped_column(

@@ -64,7 +64,6 @@ class SharedExampleSchema(BaseModel):
 class SharedSenseSchema(BaseModel):
     part_of_speech: PartOfSpeechEnum | None
     translation: str | None
-    gloss: str | None
     transcription: str | None
     examples: list[SharedExampleSchema]
 

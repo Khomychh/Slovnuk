@@ -23,11 +23,15 @@ export type ExampleDraft = {
   textUk: string;
 };
 
+/**
+ * «Уточнення» (`gloss`) тут немає і не було потрібне: у 608 картках експорту
+ * воно заповнене в 7 значеннях із 721, і пʼять із семи — випадкові натискання
+ * («m», «t»). Поле знесено цілком разом із колонкою.
+ */
 export type SenseDraft = {
   id: number | null;
   partOfSpeech: PartOfSpeech | null;
   translation: string;
-  gloss: string;
   transcription: string;
   examples: ExampleDraft[];
 };
@@ -86,7 +90,6 @@ export function blankSense(): SenseDraft {
     id: null,
     partOfSpeech: null,
     translation: "",
-    gloss: "",
     transcription: "",
     examples: [],
   };
@@ -113,7 +116,6 @@ export function toDraft(card: Card): CardDraft {
       id: sense.id,
       partOfSpeech: sense.part_of_speech ?? null,
       translation: sense.translation ?? "",
-      gloss: sense.gloss ?? "",
       transcription: sense.transcription ?? "",
       examples: sense.examples.map((example) => ({
         id: example.id,
@@ -161,7 +163,6 @@ export function senseIsBlank(sense: SenseDraft): boolean {
   return (
     sense.partOfSpeech === null &&
     !sense.translation.trim() &&
-    !sense.gloss.trim() &&
     !sense.transcription.trim() &&
     sense.examples.every((example) => !example.textEn.trim())
   );
@@ -198,7 +199,6 @@ export function toCardPayload(draft: CardDraft): CardCreate & CardUpdate {
       ...(sense.id === null ? {} : { id: sense.id }),
       part_of_speech: sense.partOfSpeech,
       translation: orNull(sense.translation),
-      gloss: orNull(sense.gloss),
       transcription: orNull(sense.transcription),
       examples: sense.examples
         .filter((example) => example.textEn.trim())

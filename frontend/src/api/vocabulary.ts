@@ -12,6 +12,7 @@ import type { Card, CardCreate, CardUpdate, WordList } from "../vocabulary/card"
 export type CardPage = components["schemas"]["CardPageSchema"];
 export type WordListPage = components["schemas"]["WordListPageSchema"];
 export type Unlisted = components["schemas"]["UnlistedSchema"];
+export type VocabularyStats = components["schemas"]["VocabularyStatsSchema"];
 
 /** Порядок сторінки. `created` — новіші зверху, `word` — за абеткою. */
 export type CardSort = "created" | "word";
@@ -44,6 +45,18 @@ export function fetchCards(
   signal?: AbortSignal,
 ): Promise<CardPage> {
   return apiFetch<CardPage>(`/vocabulary/cards/?${cardParams(query)}`, { signal });
+}
+
+/**
+ * Зведення для «Прогресу».
+ *
+ * `stability_bands` рахує лише доріжку перекладу, тож сума смуги дорівнює
+ * кількості карток. `due_tracks` рахує доріжки — воно більше за `cards`, бо
+ * картка з формами дає дві. Ці два числа поруч виглядають як помилка, доки їх
+ * не підписати одиницею.
+ */
+export function fetchStats(): Promise<VocabularyStats> {
+  return apiFetch<VocabularyStats>("/vocabulary/stats/");
 }
 
 export function fetchCard(id: number): Promise<Card> {

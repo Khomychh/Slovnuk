@@ -111,9 +111,10 @@ def parse_pos(raw) -> PartOfSpeechEnum | None:
 
 
 def sense_is_empty(sense: dict) -> bool:
+    # `gloss` тут навмисно немає: поле знесено з моделі, і значення, у якого є
+    # ЛИШЕ уточнення, вважається порожнім — переносити з нього нічого.
     return not any(
-        str(sense.get(key) or "").strip()
-        for key in ("pos", "tr", "ipa", "gloss", "ex")
+        str(sense.get(key) or "").strip() for key in ("pos", "tr", "ipa", "ex")
     )
 
 
@@ -289,7 +290,6 @@ class Importer:
             ):
                 raw_senses = [{
                     "pos": "",
-                    "gloss": "",
                     "ipa": item.get("ipa"),
                     "tr": item.get("tr"),
                     "ex": item.get("ex"),
@@ -379,7 +379,6 @@ class Importer:
                 position=position,
                 part_of_speech=parse_pos(item.get("pos")),
                 translation=str(item.get("tr") or "").strip() or None,
-                gloss=str(item.get("gloss") or "").strip() or None,
                 transcription=str(item.get("ipa") or "").strip() or None,
             )
             for example_position, (text_en, text_uk) in enumerate(

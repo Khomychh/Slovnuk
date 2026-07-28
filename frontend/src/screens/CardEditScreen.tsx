@@ -253,27 +253,16 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
               patch({ senses: next });
             }}
           />
-          <div className="ed-pair">
-            <input
-              placeholder="уточнення"
-              value={sense.gloss}
-              onChange={(event) => {
-                const next = [...draft.senses];
-                next[index] = { ...sense, gloss: event.target.value };
-                patch({ senses: next });
-              }}
-            />
-            <input
-              placeholder="транскрипція"
-              autoCapitalize="none"
-              value={sense.transcription}
-              onChange={(event) => {
-                const next = [...draft.senses];
-                next[index] = { ...sense, transcription: event.target.value };
-                patch({ senses: next });
-              }}
-            />
-          </div>
+          <input
+            placeholder="транскрипція"
+            autoCapitalize="none"
+            value={sense.transcription}
+            onChange={(event) => {
+              const next = [...draft.senses];
+              next[index] = { ...sense, transcription: event.target.value };
+              patch({ senses: next });
+            }}
+          />
 
           {sense.examples.map((example, exampleIndex) => (
             <div className="ed-example" key={exampleIndex}>

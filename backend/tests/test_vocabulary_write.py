@@ -111,7 +111,7 @@ class TestBlankChildrenAreDropped:
             word="talk",
             senses=[
                 WordSenseWriteSchema(translation="розмовляти"),
-                WordSenseWriteSchema(translation="   ", gloss="", transcription=None),
+                WordSenseWriteSchema(translation="   ", transcription=None),
             ],
         )
 

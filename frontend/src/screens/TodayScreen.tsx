@@ -10,9 +10,11 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthProvider";
 import { useOnline } from "../app/useOnline";
 import { Screen } from "../ui/parts";
+import { plural } from "../ui/plural";
 import { localDay, resolveTimeZone } from "../study/day";
 import { progressValue } from "../study/session";
 import { useLists, useSettings, useStudy, useToday, useUpdateSettings, useWeek } from "../study/queries";
@@ -60,7 +62,13 @@ function GoalBar({
       <div className="goal-head">
         <span className="goal-label">{label}</span>
         <span className="goal-num">
-          {goal > 0 ? `${done} / ${goal}` : `${done}`}
+          {goal > 0 ? (
+            <>
+              <b>{done}</b> / {goal}
+            </>
+          ) : (
+            <b>{done}</b>
+          )}
           {goal === 0 ? <span className="goal-off"> ціль вимкнено</span> : null}
         </span>
       </div>
@@ -77,6 +85,7 @@ export default function TodayScreen() {
   const navigate = useNavigate();
   const online = useOnline();
   const study = useStudy();
+  const { user } = useAuth();
 
   const settings = useSettings();
   const today = useToday();
@@ -140,15 +149,46 @@ export default function TodayScreen() {
     void setListFilter(next);
   };
 
+  const initial = (user?.email ?? "?").trim().charAt(0).toUpperCase();
+
   return (
-    <Screen eyebrow={todayCaption(timeZone)} title="Сьогодні">
+    <Screen
+      eyebrow={todayCaption(timeZone)}
+      title="Сьогодні"
+      aside={
+        <Link className="avatar" to="/profile" aria-label="Профіль">
+          {initial}
+        </Link>
+      }
+    >
+      {/* Герой екрана. Число — не підпис на кнопці, а сама кнопка: у навчання
+          заходять по десять разів на день, і цілитись у нього не має бути в що.
+          Стрічка сяйва рухається тільки тут. */}
       <button
-        className="btn btn-study"
+        className="hero aurora aurora-live"
         type="button"
         disabled={waiting === 0}
         onClick={() => navigate("/study")}
       >
-        {waiting > 0 ? `Вчити ${waiting}` : "Все повторено"}
+        {waiting > 0 ? (
+          <>
+            <span className="hero-lbl">вчити</span>
+            <span className="hero-num">{waiting}</span>
+            <span className="hero-sub">
+              {online
+                ? `${study.dueCount} ${plural(study.dueCount, "повторення", "повторення", "повторень")} · ${study.newCount} ${plural(study.newCount, "нове", "нових", "нових")}`
+                : `${study.buffer.length} ${plural(study.buffer.length, "картка збережена", "картки збережені", "карток збережено")}`}
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="hero-lbl">черга порожня</span>
+            <span className="hero-word">Все повторено</span>
+            <span className="hero-sub">
+              Забуті слова повернуться сьогодні ж — черга поповнюється сама.
+            </span>
+          </>
+        )}
       </button>
 
       {waiting === 0 && !online ? (

@@ -115,7 +115,6 @@ def copy_content(source: CardModel, target: CardModel) -> None:
             position=position,
             part_of_speech=sense.part_of_speech,
             translation=sense.translation,
-            gloss=sense.gloss,
             transcription=sense.transcription,
         )
         for example_position, example in enumerate(sense.examples):

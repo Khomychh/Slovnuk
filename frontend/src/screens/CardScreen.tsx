@@ -61,18 +61,24 @@ export default function CardScreen() {
         <button className="sheet-back" type="button" onClick={() => navigate(-1)}>
           ‹
         </button>
+        {/* Олівець замість слова «Редагувати»: рядок під шапкою вартий слова
+            лише тоді, коли дію без нього не впізнати. */}
         <button
-          className="btn-link"
+          className="icon-btn"
           type="button"
+          aria-label="Редагувати"
           disabled={!online}
-          title={online ? undefined : "Потрібен звʼязок"}
+          title={online ? "Редагувати" : "Потрібен звʼязок"}
           onClick={() => navigate(`/vocabulary/cards/${item.id}/edit`)}
         >
-          Редагувати
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+            <path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z" />
+            <path d="M14.5 6.5l3 3" />
+          </svg>
         </button>
       </div>
 
-      <h1 className="headword">{item.word}</h1>
+      <h1 className="card-word">{item.word}</h1>
 
       {names.length > 0 ? (
         <div className="v-lists-line">{names.join(" · ")}</div>
@@ -98,7 +104,6 @@ export default function CardScreen() {
             {sense.transcription ? (
               <div className="card-ipa">{sense.transcription}</div>
             ) : null}
-            {sense.gloss ? <div className="card-gloss">{sense.gloss}</div> : null}
             {sense.examples.map((example) => (
               <div className="card-ex" key={example.id}>
                 <div>{example.text_en}</div>

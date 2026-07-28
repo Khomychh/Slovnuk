@@ -79,12 +79,6 @@ def card_filters(
                         func.lower(WordSenseModel.translation).like(pattern),
                     )
                 ),
-                exists().where(
-                    and_(
-                        WordSenseModel.card_id == CardModel.id,
-                        func.lower(WordSenseModel.gloss).like(pattern),
-                    )
-                ),
                 # Форми шукаються разом зі словом навмисно: 143 зі 157 форм
                 # словника не є підрядком свого слова (woke, given, brought),
                 # тож без цього картку не знайти за формою, яку щойно зустрів у

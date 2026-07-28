@@ -4,13 +4,16 @@
  * Панель вкладок сюди не приходить навмисно: палець не має вилітати з навчання
  * повз кнопку оцінки. Вийти можна лише хрестиком.
  *
- * Дві речі, які відрізняють цей екран від старого PWA:
+ * Три речі, які тут вирішено свідомо:
  *
  * 1. Підпис інтервалу зʼявляється ПІСЛЯ відповіді, а не на кнопках оцінок
  *    (ADR-0009). Підпис поруч із «Легко · 3 місяці» перетворює чесну оцінку на
  *    вибір винагороди, і FSRS псується від цього тихо.
- * 2. Лічильник угорі — це рух до денної цілі, а не «скільки лишилось». Черга
- *    поповнюється сама через кроки навчання, тож спадного числа не існує.
+ * 2. Тап будь-де розкриває відповідь; після розкриття екран глухий. Оцінка
+ *    ставиться лише кнопкою: `review_log` незворотний, і випадковий дотик, що
+ *    записав би «Добре», не відкотити нічим.
+ * 3. Колір оцінок — зупинки рампи сяйва, а не семафор (ADR-0012). «Не згадав»
+ *    крижаний, а не червоний: забути слово не є провиною.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -39,8 +42,30 @@ const POS_LABEL: Record<string, string> = {
   other: "інше",
 };
 
+/**
+ * Колір сяйва над карткою.
+ *
+ * Це стан доріжки, а не стабільність: стабільності в черзі немає — `preview`
+ * і `state` це все, що приїжджає. Тому холодний кінець тут означає «щойно
+ * почали», а не «шість днів», і претендувати на точність смуги «Прогресу» він
+ * не може.
+ */
+const STATE_COLOR: Record<string, string> = {
+  new: "var(--a0)",
+  learning: "var(--a1)",
+  relearning: "var(--a1)",
+  review: "var(--a3)",
+};
+
 /** Скільки підпис інтервалу тримається на екрані. */
 const LABEL_MS = 2600;
+
+/** Кегль слова: 61-символьні «слова» в словнику є, і вони цілі речення. */
+function headwordClass(word: string): string {
+  if (word.length > 34) return "headword tiny";
+  if (word.length > 16) return "headword small";
+  return "headword";
+}
 
 /** Різні транскрипції картки: коли вона одна, її показують спільним рядком. */
 function distinctTranscriptions(card: QueueItem["card"]): string[] {
@@ -97,7 +122,6 @@ function SenseBlocks({ card }: { card: QueueItem["card"] }) {
           {sense.transcription && transcriptions.length > 1 ? (
             <span className="s-ipa-tag">{sense.transcription}</span>
           ) : null}
-          {sense.gloss ? <div className="gloss">({sense.gloss})</div> : null}
           <Examples examples={sense.examples} />
         </div>
       ))}
@@ -108,7 +132,6 @@ function SenseBlocks({ card }: { card: QueueItem["card"] }) {
 function buildFaces({ item, side }: { item: QueueItem; side: "en_uk" | "uk_en" }) {
   const card = item.card;
   const transcriptions = distinctTranscriptions(card);
-  const long = card.word.length > 16;
 
   if (item.kind === "forms") {
     const labels = card.forms.map((form) => form.label).filter(Boolean) as string[];
@@ -125,7 +148,7 @@ function buildFaces({ item, side }: { item: QueueItem; side: "en_uk" | "uk_en" }
       front: (
         <>
           <div className="fd-hint">{hint}</div>
-          <div className={long ? "headword small" : "headword"}>{card.word}</div>
+          <div className={headwordClass(card.word)}>{card.word}</div>
         </>
       ),
       back: (
@@ -159,20 +182,14 @@ function buildFaces({ item, side }: { item: QueueItem; side: "en_uk" | "uk_en" }
         <>
           <div className="dirhint">укр → англ</div>
           <div className="rev-list">
-            {card.senses.map((sense) => {
-              const meta = [
-                sense.part_of_speech ? POS_LABEL[sense.part_of_speech] : null,
-                sense.gloss?.trim() || null,
-              ]
-                .filter(Boolean)
-                .join(", ");
-              return (
-                <div className="rev-item" key={sense.id}>
-                  {sense.translation ?? "—"}
-                  {meta ? <span className="rev-meta"> ({meta})</span> : null}
-                </div>
-              );
-            })}
+            {card.senses.map((sense) => (
+              <div className="rev-item" key={sense.id}>
+                {sense.translation ?? "—"}
+                {sense.part_of_speech ? (
+                  <span className="rev-meta"> {POS_LABEL[sense.part_of_speech]}</span>
+                ) : null}
+              </div>
+            ))}
           </div>
         </>
       ),
@@ -194,12 +211,12 @@ function buildFaces({ item, side }: { item: QueueItem; side: "en_uk" | "uk_en" }
     front: (
       <>
         <div className="dirhint">англ → укр</div>
-        <div className={long ? "headword small" : "headword"}>{card.word}</div>
+        <div className={headwordClass(card.word)}>{card.word}</div>
+        {transcriptions.length === 1 ? <div className="ipa">{transcriptions[0]}</div> : null}
       </>
     ),
     back: (
       <>
-        {transcriptions.length === 1 ? <div className="ipa">{transcriptions[0]}</div> : null}
         <SenseBlocks card={card} />
         <Forms forms={card.forms} />
         {card.comment ? <div className="cmt">{card.comment}</div> : null}
@@ -278,6 +295,41 @@ export default function StudyScreen() {
 
   const reviewGoal = (today.data ?? study.snapshotToday)?.review_goal ?? 0;
   const done = progressValue(study.progress);
+  const goalMet = reviewGoal > 0 && done >= reviewGoal;
+  const percent = reviewGoal > 0 ? Math.min(100, Math.round((done / reviewGoal) * 100)) : 0;
+
+  /**
+   * Тап по будь-якому місцю розкриває відповідь.
+   *
+   * Кнопки виключені навмисно: хрестик мусить закривати, а не перевертати. Після
+   * розкриття обробник не робить нічого — оцінку ставить лише кнопка оцінки.
+   */
+  const revealOnTap = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (revealed) return;
+    if ((event.target as HTMLElement).closest("button")) return;
+    setRevealed(true);
+  };
+
+  const topBar = (
+    <div className="study-top">
+      <button
+        className="study-close"
+        type="button"
+        aria-label="Вийти з навчання"
+        onClick={() => navigate("/")}
+      >
+        ×
+      </button>
+      {/* Смужка — рух до денної цілі, а не «скільки лишилось»: черга
+          поповнюється сама, і спадного числа не існує. */}
+      <div className="study-bar">
+        <i className={goalMet ? "met" : ""} style={{ width: `${percent}%` }} />
+      </div>
+      <span className="study-count">
+        {reviewGoal > 0 ? `${done} / ${reviewGoal}` : done}
+      </span>
+    </div>
+  );
 
   if (!study.ready) {
     return <div className="study" aria-busy="true" />;
@@ -286,21 +338,7 @@ export default function StudyScreen() {
   if (!item) {
     return (
       <div className="study">
-        <div className="study-top">
-          {/* Лічильник лишається і тут: «скільки я сьогодні зробив» доречне саме
-              в кінці, а порожній кут виглядав би як недомальований екран. */}
-          <span className="study-count">
-            {reviewGoal > 0 ? `${done} / ${reviewGoal}` : done}
-          </span>
-          <button
-            className="study-close"
-            type="button"
-            aria-label="Вийти з навчання"
-            onClick={() => navigate("/")}
-          >
-            ×
-          </button>
-        </div>
+        {topBar}
         <Screen>
           <div className="done">
             <div className="done-big">
@@ -321,57 +359,50 @@ export default function StudyScreen() {
   }
 
   return (
-    <div className="study">
-      <div className="study-top">
-        <span className="study-count">
-          {reviewGoal > 0 ? `${done} / ${reviewGoal}` : done}
-        </span>
-        <button
-          className="study-close"
-          type="button"
-          aria-label="Вийти з навчання"
-          onClick={() => navigate("/")}
-        >
-          ×
-        </button>
-      </div>
+    <div className="study" onClick={revealOnTap}>
+      {topBar}
 
       <div className="study-note" role="status">
-        {label ? nextShowLabel(label.seconds) : " "}
+        {label ? nextShowLabel(label.seconds) : " "}
       </div>
 
-      <div className="study-card">
+      <div className="study-scroll">
         <div
-          className="front"
-          onClick={() => setRevealed(true)}
-          role={revealed ? undefined : "button"}
-          tabIndex={revealed ? undefined : 0}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") setRevealed(true);
-          }}
+          className="card-panel"
+          style={{ "--temp": STATE_COLOR[item.state] ?? "var(--a1)" } as React.CSSProperties}
         >
-          {faces?.front}
-          {revealed ? null : (
-            <div className="tap-hint">торкнись, щоб побачити відповідь</div>
-          )}
+          <div
+            className="front"
+            role={revealed ? undefined : "button"}
+            tabIndex={revealed ? undefined : 0}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") setRevealed(true);
+            }}
+          >
+            {faces?.front}
+            {revealed ? null : (
+              <div className="tap-hint">торкнись будь-де, щоб побачити відповідь</div>
+            )}
+          </div>
+          {revealed ? <div className="back">{faces?.back}</div> : null}
         </div>
-        {revealed ? <div className="back">{faces?.back}</div> : null}
       </div>
 
       <div className="study-actions">
         {revealed ? (
           <div className="rate">
             {RATINGS.map((rating) => (
-              <button key={rating.value} type="button" onClick={() => rate(rating.value)}>
+              <button
+                key={rating.value}
+                type="button"
+                data-r={rating.value}
+                onClick={() => rate(rating.value)}
+              >
                 {rating.label}
               </button>
             ))}
           </div>
-        ) : (
-          <button className="btn" type="button" onClick={() => setRevealed(true)}>
-            Показати відповідь
-          </button>
-        )}
+        ) : null}
       </div>
     </div>
   );

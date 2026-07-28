@@ -80,7 +80,6 @@ class WordSenseSchema(BaseModel):
     id: int
     part_of_speech: PartOfSpeechEnum | None
     translation: str | None
-    gloss: str | None
     transcription: str | None
     examples: list[SenseExampleSchema]
 
@@ -247,7 +246,6 @@ class WordSenseWriteSchema(BaseModel):
     id: int | None = None
     part_of_speech: PartOfSpeechEnum | None = None
     translation: OptionalText = Field(default=None, max_length=255)
-    gloss: OptionalText = Field(default=None, max_length=255)
     transcription: OptionalText = Field(default=None, max_length=100)
     examples: Annotated[
         list[SenseExampleWriteSchema], AfterValidator(_drop_blank)
@@ -267,7 +265,7 @@ class WordSenseWriteSchema(BaseModel):
         return (
             self.part_of_speech is None
             and not self.examples
-            and is_blank(self.translation, self.gloss, self.transcription)
+            and is_blank(self.translation, self.transcription)
         )
 
 

@@ -172,7 +172,6 @@ def apply_senses(card: CardModel, incoming: Sequence[Any]) -> None:
         sense.position = op.position
         sense.part_of_speech = op.payload.part_of_speech
         sense.translation = op.payload.translation
-        sense.gloss = op.payload.gloss
         sense.transcription = op.payload.transcription
         apply_examples(sense, op.payload.examples)
 

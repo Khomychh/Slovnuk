@@ -16,6 +16,7 @@ import {
   ForgotPasswordScreen,
   ResetPasswordScreen,
 } from "../screens/PasswordScreens";
+import ProgressScreen from "../screens/ProgressScreen";
 import { GrammarScreen, ProfileScreen } from "../screens/Stubs";
 import StudyScreen from "../screens/StudyScreen";
 import TodayScreen from "../screens/TodayScreen";
@@ -96,6 +97,9 @@ export default function App() {
             element={<CardEditScreen mode="edit" />}
           />
           <Route path="/grammar" element={<GrammarScreen />} />
+          <Route path="/progress" element={<ProgressScreen />} />
+          {/* Профіль лишається справжнім маршрутом, але вкладки в нього немає:
+              заходять сюди через аватар на «Сьогодні». */}
           <Route path="/profile" element={<ProfileScreen />} />
         </Route>
 

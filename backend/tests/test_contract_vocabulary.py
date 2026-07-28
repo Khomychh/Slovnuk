@@ -30,7 +30,6 @@ async def _create_card(client: AsyncClient, headers: dict, **overrides) -> dict:
                 # фронтенд бачить тільки перше.
                 "part_of_speech": "v",
                 "translation": "бігти",
-                "gloss": "рухатись швидко",
                 "transcription": "rʌn",
                 "examples": [{"text_en": "I run every morning.", "text_uk": "Я бігаю щоранку."}],
             }
@@ -261,18 +260,21 @@ async def test_search_finds_card_by_form(client: AsyncClient, auth_headers):
     assert body["items"][0]["word"] == "go"
 
 
-async def test_search_finds_card_by_gloss(client: AsyncClient, auth_headers):
-    await _create_card(
-        client,
-        auth_headers,
-        word="run",
-        senses=[{"translation": "бігти", "gloss": "рухатись швидко"}],
-        forms=[],
+async def test_gloss_is_rejected_now_that_the_field_is_gone(
+    client: AsyncClient, auth_headers
+):
+    """
+    «Уточнення» знесено разом із колонкою, а `extra="forbid"` перетворює його на
+    422, а не на тихо проковтнуте поле. Тест тримає саме це: старий клієнт, що
+    досі шле `gloss`, мусить дізнатися про це одразу.
+    """
+    response = await client.post(
+        f"{API}/cards/",
+        headers=auth_headers,
+        json={"word": "run", "senses": [{"translation": "бігти", "gloss": "швидко"}]},
     )
 
-    response = await client.get(f"{API}/cards/?q=швидко", headers=auth_headers)
-    assert response.status_code == 200, response.text
-    assert response.json()["total"] == 1
+    assert response.status_code == 422, response.text
 
 
 async def test_search_still_matches_word_and_translation(
