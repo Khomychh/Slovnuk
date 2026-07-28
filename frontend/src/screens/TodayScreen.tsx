@@ -10,12 +10,12 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../auth/AuthProvider";
+import { useNavigate } from "react-router-dom";
 import { useOnline } from "../app/useOnline";
 import { Screen } from "../ui/parts";
 import { plural } from "../ui/plural";
 import { localDay, resolveTimeZone } from "../study/day";
+import { ProfileAvatar } from "../profile/ProfileAvatar";
 import { progressValue } from "../study/session";
 import { useLists, useSettings, useStudy, useToday, useUpdateSettings, useWeek } from "../study/queries";
 import { init, refill, setListFilter } from "../study/store";
@@ -85,7 +85,6 @@ export default function TodayScreen() {
   const navigate = useNavigate();
   const online = useOnline();
   const study = useStudy();
-  const { user } = useAuth();
 
   const settings = useSettings();
   const today = useToday();
@@ -149,17 +148,11 @@ export default function TodayScreen() {
     void setListFilter(next);
   };
 
-  const initial = (user?.email ?? "?").trim().charAt(0).toUpperCase();
-
   return (
     <Screen
       eyebrow={todayCaption(timeZone)}
       title="Сьогодні"
-      aside={
-        <Link className="avatar" to="/profile" aria-label="Профіль">
-          {initial}
-        </Link>
-      }
+      aside={<ProfileAvatar />}
     >
       {/* Герой екрана. Число — не підпис на кнопці, а сама кнопка: у навчання
           заходять по десять разів на день, і цілитись у нього не має бути в що.

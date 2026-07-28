@@ -16,6 +16,7 @@
 
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { ProfileAvatar } from "../profile/ProfileAvatar";
 import { Screen } from "../ui/parts";
 import { fetchStats } from "../api/vocabulary";
 import { fetchDays, type StudyDay } from "../api/study";
@@ -152,7 +153,7 @@ export default function ProgressScreen() {
   const learned = stats.data?.learned ?? 0;
 
   return (
-    <Screen eyebrow="прогрес" title="Наскільки міцно">
+    <Screen eyebrow="прогрес" title="Наскільки міцно" aside={<ProfileAvatar />}>
       <div className="band" aria-label="Слова за міцністю">
         {BANDS.map((band) => (
           <i

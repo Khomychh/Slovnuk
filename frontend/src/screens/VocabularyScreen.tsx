@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useOnline } from "../app/useOnline";
+import { ProfileAvatar } from "../profile/ProfileAvatar";
 import { Screen } from "../ui/parts";
 import { senseSummary, distinctTranscriptions, type Card } from "../vocabulary/card";
 import {
@@ -101,7 +102,7 @@ export default function VocabularyScreen() {
   };
 
   return (
-    <Screen eyebrow="словник" title="Мої слова">
+    <Screen eyebrow="словник" title="Мої слова" aside={<ProfileAvatar />}>
       <div className="v-summary">
         {words(total)} · {listsLabel(listCount)}
       </div>

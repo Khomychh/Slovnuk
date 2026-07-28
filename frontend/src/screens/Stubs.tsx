@@ -5,15 +5,16 @@
  * буде — порожній екран без пояснення виглядає як поломка.
  *
  * «Сьогодні» тут більше немає: він переїхав у `TodayScreen.tsx` разом із
- * блоком 2, а «Словник» — у `VocabularyScreen.tsx` разом із блоком 3.
+ * блоком 2, «Словник» — у `VocabularyScreen.tsx` разом із блоком 3, а
+ * «Профіль» — у `ProfileScreen.tsx`. Лишилась сама граматика.
  */
 
-import { useAuth } from "../auth/AuthProvider";
+import { ProfileAvatar } from "../profile/ProfileAvatar";
 import { Screen } from "../ui/parts";
 
 export function GrammarScreen() {
   return (
-    <Screen eyebrow="граматика" title="Довідник">
+    <Screen eyebrow="граматика" title="Довідник" aside={<ProfileAvatar />}>
       <div className="stub">
         Тут будуть розділи й нотатки. Блок 6.
       </div>
@@ -21,22 +22,3 @@ export function GrammarScreen() {
   );
 }
 
-export function ProfileScreen() {
-  const { user, logout } = useAuth();
-
-  return (
-    <Screen eyebrow="профіль" title={user?.email ?? "Профіль"}>
-      <div className="stub">
-        Тут будуть тема, озвучення, денні цілі, часовий пояс. Блок 4.
-      </div>
-      <button
-        className="btn-quiet"
-        type="button"
-        onClick={logout}
-        style={{ marginTop: 22 }}
-      >
-        Вийти
-      </button>
-    </Screen>
-  );
-}

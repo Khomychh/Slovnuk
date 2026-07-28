@@ -13,6 +13,7 @@ import {
   localDay,
   resolveTimeZone,
   startOfWeek,
+  timeZoneNeedsSync,
   weekDays,
   weekdayIndex,
 } from "./day";
@@ -124,5 +125,31 @@ describe("тиждень", () => {
       "2026-03-28",
       "2026-03-29",
     ]);
+  });
+});
+
+describe("timeZoneNeedsSync", () => {
+  it("мовчить, коли телефон і збережене значення збігаються", () => {
+    expect(timeZoneNeedsSync(KYIV, KYIV)).toBe(false);
+  });
+
+  it("просить переписати після переїзду", () => {
+    expect(timeZoneNeedsSync(KYIV, "Europe/Warsaw")).toBe(true);
+  });
+
+  it("просить переписати, коли збереженого поясу ще немає", () => {
+    expect(timeZoneNeedsSync(null, KYIV)).toBe(true);
+    expect(timeZoneNeedsSync("", KYIV)).toBe(true);
+  });
+
+  it("не замінює збережений пояс на сміття від браузера", () => {
+    // Краще лишити старий, ніж записати те, що сервер однаково відкине.
+    expect(timeZoneNeedsSync(KYIV, "Europe/Атлантида")).toBe(false);
+    expect(timeZoneNeedsSync(KYIV, "")).toBe(false);
+  });
+
+  it("виправляє зіпсоване збережене значення", () => {
+    // У колонці вільний рядок на 64 символи, тож одруківка там можлива.
+    expect(timeZoneNeedsSync("Europe/Kyv", KYIV)).toBe(true);
   });
 });

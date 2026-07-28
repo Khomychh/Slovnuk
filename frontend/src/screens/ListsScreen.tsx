@@ -91,7 +91,7 @@ export default function ListsScreen() {
       </button>
 
       <div className="ed-label">Новий список</div>
-      <div className="ed-form">
+      <div className="ed-inline">
         <input
           placeholder="назва"
           value={name}

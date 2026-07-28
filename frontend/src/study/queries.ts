@@ -22,7 +22,13 @@ import {
   patchSettings,
   type StudySettingsUpdate,
 } from "../api/study";
-import { localDay, resolveTimeZone, weekDays } from "./day";
+import {
+  detectTimeZone,
+  localDay,
+  resolveTimeZone,
+  timeZoneNeedsSync,
+  weekDays,
+} from "./day";
 import {
   acceptDays,
   acceptToday,
@@ -61,6 +67,29 @@ export function useUpdateSettings() {
       client.setQueryData(["study", "settings"], settings);
     },
   });
+}
+
+/**
+ * Пояс їде за телефоном.
+ *
+ * Органу керування поясом у профілі немає — там лише рядок із поточним
+ * значенням. Причини й наслідки описані в `timeZoneNeedsSync`; тут лише місце,
+ * де це трапляється: каркас вкладок, тобто будь-який екран застосунку.
+ *
+ * Невдача (немає мережі) нічого не ламає: наступне відкриття спробує знову.
+ */
+export function useTimeZoneSync() {
+  const settings = useSettings();
+  const update = useUpdateSettings();
+  const stored = settings.data?.timezone;
+  const { mutate } = update;
+
+  useEffect(() => {
+    if (stored === undefined) return;
+    const detected = detectTimeZone();
+    if (!timeZoneNeedsSync(stored, detected)) return;
+    mutate({ timezone: detected });
+  }, [stored, mutate]);
 }
 
 export function useToday() {

@@ -5,6 +5,12 @@
  * прикладів словника має український переклад, і в текстовому варіанті кожен
  * такий приклад означав би лізти по «|» у третій рівень мобільної клавіатури.
  *
+ * Мітка форми має чотири підказки (`FORM_LABEL_SUGGESTIONS`), і показуються
+ * вони, лише поки поле порожнє. Це навмисно не випадаючий список: форми стоять
+ * у нижній третині довгого екрана, тобто список під полем відкривався б рівно
+ * туди, де стоїть клавіатура. Чипи ж живуть у потоці й нічого не затуляють, а
+ * стану «поле в режимі вибору / поле в режимі вводу» не існує взагалі.
+ *
  * Перетворення стану форми в тіло запиту тут НЕ живе — воно в `card.ts` під
  * тестами. Причина в тому, що помилка там не падає, а тихо зносить значення
  * картки.
@@ -24,6 +30,7 @@ import {
   newDraft,
   toCardPayload,
   toDraft,
+  FORM_LABEL_SUGGESTIONS,
   POS_LABELS,
   type CardDraft,
   type PartOfSpeech,
@@ -103,6 +110,22 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
   const patch = (next: Partial<CardDraft>) =>
     setDraft((current) => (current ? { ...current, ...next } : current));
 
+  const patchForm = (index: number, next: Partial<CardDraft["forms"][number]>) => {
+    const forms = [...draft.forms];
+    const form = forms[index];
+    if (!form) return;
+    forms[index] = { ...form, ...next };
+    patch({ forms });
+  };
+
+  const patchSense = (index: number, next: Partial<CardDraft["senses"][number]>) => {
+    const senses = [...draft.senses];
+    const sense = senses[index];
+    if (!sense) return;
+    senses[index] = { ...sense, ...next };
+    patch({ senses });
+  };
+
   const dirty = draftIsDirty(initial, draft);
 
   const close = () => {
@@ -166,11 +189,24 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
   return (
     <div className="sheet-page">
       <div className="sheet-bar">
-        <button className="sheet-back" type="button" onClick={close}>
-          ‹
+        <button
+          className="icon-btn icon-btn-bare"
+          type="button"
+          aria-label="Назад"
+          onClick={close}
+        >
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M15 5l-7 7 7 7"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </button>
         <button
-          className="btn-link"
+          className="btn-save"
           type="button"
           disabled={!online || saving}
           title={online ? undefined : "Потрібен звʼязок"}
@@ -180,13 +216,20 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
         </button>
       </div>
 
-      <div className="field">
+      {/* Слово набирається дисплейною гарнітурою на письмовій лінійці, а не в
+          такому самому полі, як коментар: це головне, заради чого існує вся
+          решта екрана. */}
+      <div className="field ed-word-field">
         <label htmlFor="word">Слово</label>
         <input
           id="word"
+          className="ed-word"
           value={draft.word}
+          placeholder="hold on"
           autoCapitalize="none"
           autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
           onChange={(event) => patch({ word: event.target.value })}
           onBlur={checkDuplicate}
         />
@@ -210,18 +253,17 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
       {/* --- значення --- */}
       <div className="ed-label">Значення</div>
       {draft.senses.map((sense, index) => (
-        <div className="ed-sense" key={index}>
-          <div className="ed-sense-top">
+        <div className="ed-panel" key={index}>
+          <div className="ed-row">
             <select
+              className="ed-pos"
+              aria-label="Частина мови"
               value={sense.partOfSpeech ?? ""}
-              onChange={(event) => {
-                const next = [...draft.senses];
-                next[index] = {
-                  ...sense,
+              onChange={(event) =>
+                patchSense(index, {
                   partOfSpeech: (event.target.value || null) as PartOfSpeech | null,
-                };
-                patch({ senses: next });
-              }}
+                })
+              }
             >
               <option value="">частина мови</option>
               {POS_ORDER.map((pos) => (
@@ -247,59 +289,59 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
           <input
             placeholder="переклад"
             value={sense.translation}
-            onChange={(event) => {
-              const next = [...draft.senses];
-              next[index] = { ...sense, translation: event.target.value };
-              patch({ senses: next });
-            }}
+            onChange={(event) => patchSense(index, { translation: event.target.value })}
           />
+          {/* Транскрипція набирається тим самим стеком, яким показується: у
+              даних вона буває і справжньою IPA, і кирилицею. */}
           <input
+            className="ed-ipa"
             placeholder="транскрипція"
             autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             value={sense.transcription}
-            onChange={(event) => {
-              const next = [...draft.senses];
-              next[index] = { ...sense, transcription: event.target.value };
-              patch({ senses: next });
-            }}
+            onChange={(event) =>
+              patchSense(index, { transcription: event.target.value })
+            }
           />
 
           {sense.examples.map((example, exampleIndex) => (
             <div className="ed-example" key={exampleIndex}>
-              <input
-                placeholder="приклад англійською"
-                value={example.textEn}
-                onChange={(event) => {
-                  const next = [...draft.senses];
-                  const examples = [...sense.examples];
-                  examples[exampleIndex] = { ...example, textEn: event.target.value };
-                  next[index] = { ...sense, examples };
-                  patch({ senses: next });
-                }}
-              />
-              <input
-                placeholder="переклад, не обовʼязково"
-                value={example.textUk}
-                onChange={(event) => {
-                  const next = [...draft.senses];
-                  const examples = [...sense.examples];
-                  examples[exampleIndex] = { ...example, textUk: event.target.value };
-                  next[index] = { ...sense, examples };
-                  patch({ senses: next });
-                }}
-              />
+              <div className="ed-example-fields">
+                <input
+                  placeholder="приклад англійською"
+                  value={example.textEn}
+                  onChange={(event) => {
+                    const examples = [...sense.examples];
+                    examples[exampleIndex] = {
+                      ...example,
+                      textEn: event.target.value,
+                    };
+                    patchSense(index, { examples });
+                  }}
+                />
+                <input
+                  placeholder="переклад, не обовʼязково"
+                  value={example.textUk}
+                  onChange={(event) => {
+                    const examples = [...sense.examples];
+                    examples[exampleIndex] = {
+                      ...example,
+                      textUk: event.target.value,
+                    };
+                    patchSense(index, { examples });
+                  }}
+                />
+              </div>
               <button
                 className="ed-drop"
                 type="button"
                 aria-label="Прибрати приклад"
-                onClick={() => {
-                  const next = [...draft.senses];
-                  next[index] = {
-                    ...sense,
+                onClick={() =>
+                  patchSense(index, {
                     examples: sense.examples.filter((_, i) => i !== exampleIndex),
-                  };
-                  patch({ senses: next });
-                }}
+                  })
+                }
               >
                 ×
               </button>
@@ -307,16 +349,11 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
           ))}
 
           <button
-            className="btn-link"
+            className="ed-add ed-add-inner"
             type="button"
-            onClick={() => {
-              const next = [...draft.senses];
-              next[index] = {
-                ...sense,
-                examples: [...sense.examples, blankExample()],
-              };
-              patch({ senses: next });
-            }}
+            onClick={() =>
+              patchSense(index, { examples: [...sense.examples, blankExample()] })
+            }
           >
             + приклад
           </button>
@@ -324,7 +361,7 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
       ))}
 
       <button
-        className="btn-link"
+        className="ed-add"
         type="button"
         onClick={() => patch({ senses: [...draft.senses, blankSense()] })}
       >
@@ -334,39 +371,68 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
       {/* --- форми --- */}
       <div className="ed-label">Форми</div>
       {draft.forms.map((form, index) => (
-        <div className="ed-form" key={index}>
+        <div className="ed-panel" key={index}>
+          <div className="ed-row">
+            <input
+              className="ed-form-lbl"
+              placeholder="мітка"
+              aria-label="Мітка форми"
+              value={form.label}
+              onChange={(event) => patchForm(index, { label: event.target.value })}
+            />
+            <input
+              className="ed-form-val"
+              placeholder="форма"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              value={form.value}
+              onChange={(event) => patchForm(index, { value: event.target.value })}
+            />
+            <button
+              className="ed-drop"
+              type="button"
+              aria-label="Прибрати форму"
+              onClick={() =>
+                patch({ forms: draft.forms.filter((_, i) => i !== index) })
+              }
+            >
+              ×
+            </button>
+          </div>
+
+          {/* Підказки зникають, щойно в полі зʼявляється текст: тоді вибирати
+              вже нема з чого, а місце потрібне формі. */}
+          {form.label.trim() === "" ? (
+            <div className="ed-chips">
+              {FORM_LABEL_SUGGESTIONS.map((label) => (
+                <button
+                  key={label}
+                  className="chip chip-sm"
+                  type="button"
+                  onClick={() => patchForm(index, { label })}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
           <input
-            className="ed-form-lbl"
-            placeholder="мітка"
-            value={form.label}
-            onChange={(event) => {
-              const next = [...draft.forms];
-              next[index] = { ...form, label: event.target.value };
-              patch({ forms: next });
-            }}
-          />
-          <input
-            placeholder="форма"
+            className="ed-ipa"
+            placeholder="транскрипція, не обовʼязково"
             autoCapitalize="none"
-            value={form.value}
-            onChange={(event) => {
-              const next = [...draft.forms];
-              next[index] = { ...form, value: event.target.value };
-              patch({ forms: next });
-            }}
+            autoCorrect="off"
+            spellCheck={false}
+            value={form.transcription}
+            onChange={(event) =>
+              patchForm(index, { transcription: event.target.value })
+            }
           />
-          <button
-            className="ed-drop"
-            type="button"
-            aria-label="Прибрати форму"
-            onClick={() => patch({ forms: draft.forms.filter((_, i) => i !== index) })}
-          >
-            ×
-          </button>
         </div>
       ))}
       <button
-        className="btn-link"
+        className="ed-add"
         type="button"
         onClick={() => patch({ forms: [...draft.forms, blankForm()] })}
       >

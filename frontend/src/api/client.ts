@@ -38,6 +38,7 @@ export class OfflineError extends Error {
 
 type RequestOptions = {
   method?: "GET" | "POST" | "PATCH" | "DELETE";
+  /** `FormData` їде як є — це аватар; усе інше серіалізується в JSON. */
   body?: unknown;
   /** Запит без токена: логін, активація, скидання пароля. */
   anonymous?: boolean;
@@ -122,16 +123,24 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const { method = "GET", body, anonymous = false, signal } = options;
 
+  const multipart = body instanceof FormData;
+  const payload: BodyInit | undefined =
+    body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body);
+
   const send = async (accessToken: string | null): Promise<Response> => {
     const headers: Record<string, string> = {};
-    if (body !== undefined) headers["Content-Type"] = "application/json";
+    // Для multipart заголовок не ставимо навмисно: його мусить проставити сам
+    // fetch, бо тільки він знає межу (boundary) між частинами тіла.
+    if (body !== undefined && !multipart) {
+      headers["Content-Type"] = "application/json";
+    }
     if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
     try {
       return await fetch(`${BASE}${path}`, {
         method,
         headers,
-        body: body === undefined ? undefined : JSON.stringify(body),
+        body: payload,
         signal,
       });
     } catch (error) {

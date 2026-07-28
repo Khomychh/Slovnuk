@@ -17,7 +17,8 @@ import {
   ResetPasswordScreen,
 } from "../screens/PasswordScreens";
 import ProgressScreen from "../screens/ProgressScreen";
-import { GrammarScreen, ProfileScreen } from "../screens/Stubs";
+import { GrammarScreen } from "../screens/Stubs";
+import ProfileScreen from "../screens/ProfileScreen";
 import StudyScreen from "../screens/StudyScreen";
 import TodayScreen from "../screens/TodayScreen";
 import VocabularyScreen from "../screens/VocabularyScreen";

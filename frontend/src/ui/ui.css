@@ -29,6 +29,8 @@
   width: 38px;
   height: 38px;
   border-radius: 50%;
+  /* Без цього фото вилазить за скруглення і коло стає квадратом. */
+  overflow: hidden;
   border: 1px solid var(--edge);
   background: var(--sheet);
   color: var(--haze);
@@ -61,9 +63,9 @@
 
 .field > input,
 .v-search,
-.ed-sense input,
-.ed-form input,
-.ed-sense select {
+.ed-panel input,
+.ed-panel select,
+.ed-inline input {
   width: 100%;
   border: 1px solid var(--edge);
   background: var(--sheet);
@@ -77,16 +79,16 @@
 
 .field > input::placeholder,
 .v-search::placeholder,
-.ed-sense input::placeholder,
-.ed-form input::placeholder {
+.ed-panel input::placeholder,
+.ed-inline input::placeholder {
   color: var(--haze-2);
 }
 
 .field > input:focus,
 .v-search:focus,
-.ed-sense input:focus,
-.ed-form input:focus,
-.ed-sense select:focus {
+.ed-panel input:focus,
+.ed-panel select:focus,
+.ed-inline input:focus {
   outline: none;
   border-color: color-mix(in srgb, var(--a1) 55%, transparent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--a1) 14%, transparent);
@@ -519,6 +521,20 @@
 .chip-on {
   border-color: color-mix(in srgb, var(--a1) 50%, transparent);
   background: color-mix(in srgb, var(--a1) 12%, transparent);
+  color: var(--frost);
+}
+
+/* Підказка мітки форми. Менша за звичайний чип — це не вибір зі списку, а
+   заготовка для поля, яке лишається вільним для набору. */
+.chip-sm {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 13.5px;
+  color: var(--haze-2);
+}
+
+.chip-sm:active {
+  border-color: color-mix(in srgb, var(--a1) 45%, transparent);
   color: var(--frost);
 }
 
@@ -1246,7 +1262,39 @@
   margin: 24px 0 10px;
 }
 
-.ed-sense {
+/* Слово набирається дисплейною гарнітурою на письмовій лінійці, а не в такому
+   самому полі, як коментар. Це єдина ознака, за якою редактор упізнається як
+   екран цього застосунку: сяйва тут немає навмисно (ADR-0012 — насичений колір
+   мусить щось означати, а стану памʼяті на редагуванні не існує). */
+.ed-word-field {
+  margin-bottom: 22px;
+}
+
+.field > input.ed-word {
+  font-family: var(--display);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--edge);
+  border-radius: 0;
+  padding: 4px 2px 10px;
+}
+
+.field > input.ed-word::placeholder {
+  color: var(--haze-2);
+  opacity: 0.45;
+}
+
+.field > input.ed-word:focus {
+  border-bottom-color: color-mix(in srgb, var(--a1) 65%, transparent);
+  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--a1) 45%, transparent);
+}
+
+/* Значення і форма — панелі однакової ваги. Раніше значення було в рамці, а
+   форма голою лінійкою, хоча за суттю це однорідні блоки картки. */
+.ed-panel {
   border: 1px solid var(--edge);
   border-radius: var(--r-sm);
   background: var(--sheet);
@@ -1254,25 +1302,53 @@
   margin-bottom: 10px;
 }
 
-.ed-sense-top {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.ed-sense input,
-.ed-form input,
-.ed-sense select {
+.ed-panel input,
+.ed-panel select {
   background: var(--night);
   border-radius: 11px;
-  padding: 10px 12px;
-  font-size: 15px;
+  padding: 11px 12px;
   margin-bottom: 8px;
 }
 
-.ed-pair {
+/* Транскрипція набирається тим самим стеком, яким показується: у даних вона
+   буває і справжньою IPA (/ˈhæŋ.kɚ.tʃiːf/), і кирилицею (ін-РOУЛ-мэнт). */
+.ed-panel input.ed-ipa {
+  font-family: var(--ipa);
+}
+
+.ed-row {
   display: flex;
-  gap: 7px;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.ed-row > input,
+.ed-row > select {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+/* На всю ширину рядка — як і решта полів панелі. Вужчий селект пробували: без
+   сусіда праворуч його правий край не збігається ні з чим, і панель виглядає
+   перекошеною, а не легшою. */
+.ed-pos {
+  flex: 1;
+}
+
+.ed-form-lbl {
+  flex: 0 1 42%;
+}
+
+.ed-form-val {
+  flex: 1 1 58%;
+}
+
+.ed-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 
 .ed-example {
@@ -1284,28 +1360,106 @@
   margin-bottom: 6px;
 }
 
+.ed-example-fields {
+  flex: 1;
+  min-width: 0;
+}
+
 .ed-example input {
   margin-bottom: 5px;
 }
 
-.ed-form {
+/* Дотикова ціль, а не значок: «×» стоїть упритул до полів, і промах тут
+   стирає введене. */
+.ed-drop {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  color: var(--haze-2);
+  font-size: 22px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+
+.ed-drop:active {
+  background: var(--sheet-2);
+  color: var(--frost);
+}
+
+/* «Додати» — порожнє гніздо, а не підкреслене посилання на 26px висоти. */
+.ed-add {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--edge);
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--haze);
+  font-family: var(--sans);
+  font-size: 14.5px;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.ed-add:active {
+  background: var(--sheet);
+  color: var(--frost);
+}
+
+/* Усередині панелі рамки немає: три пунктирні прямокутники поспіль читаються
+   як сітка порожніх гнізд, хоча вкладене гніздо тут лише одне. */
+.ed-add-inner {
+  min-height: 40px;
+  font-size: 14px;
+  border: none;
+  color: var(--haze-2);
+}
+
+/* Кінцева дія екрана. У шапці, бо низ редактора недосяжний без прокрутки. */
+.btn-save {
+  flex: none;
+  min-height: 40px;
+  border: none;
+  border-radius: 12px;
+  background: var(--frost);
+  color: var(--night);
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 600;
+  padding: 0 18px;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.btn-save:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btn-save:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+/* Поле з кнопкою в один рядок — «Новий список» на екрані списків. */
+.ed-inline {
   display: flex;
   gap: 7px;
   align-items: center;
 }
 
-.ed-form-lbl {
-  max-width: 110px;
-}
-
-.ed-drop {
-  background: none;
-  border: none;
-  color: var(--haze-2);
-  font-size: 20px;
-  line-height: 1;
-  padding: 4px 8px;
-  cursor: pointer;
+.ed-inline input {
+  background: var(--night);
+  border-radius: 11px;
+  padding: 11px 12px;
 }
 
 .ed-check {
@@ -1616,4 +1770,145 @@
   color: var(--haze-2);
   line-height: 1.55;
   margin-top: 18px;
+}
+
+/* ==========================================================================
+   Профіль
+
+   Сяйва тут немає навмисно — з тієї самої причини, що й у редакторі: насичений
+   колір у цьому застосунку означає стан памʼяті слова, а на профілі його
+   немає. Екран тримається на тих самих нейтралях, що й решта хрому.
+   ========================================================================== */
+
+/* Плитка впізнання: фото і пошта. Стоїть окремою панеллю, а не стовпчиком під
+   заголовком — інакше рубрика, назва екрана й коло сходяться в три рядки
+   поспіль і читаються як одна злипла грудка. */
+.p-id {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 22px 0 24px;
+  padding: 14px;
+  border: 1px solid var(--edge);
+  border-radius: var(--r);
+  background: var(--sheet);
+  box-shadow: var(--lift);
+}
+
+.p-id-main {
+  min-width: 0;
+}
+
+.p-id-mail {
+  color: var(--frost);
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.p-id-sub {
+  color: var(--haze-2);
+  font-size: 13px;
+  margin-top: 3px;
+}
+
+/* Фото і є кнопка заміни. Підпис «змінити» лежить смужкою по нижньому краю
+   кола — без нього дотик по аватару лишався б здогадкою. */
+.p-avatar {
+  position: relative;
+  flex: none;
+  width: 72px;
+  height: 72px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--edge);
+  background: var(--sheet);
+  color: var(--haze);
+  font-family: var(--display);
+  font-size: 26px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.p-avatar:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.p-avatar-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 3px 0 5px;
+  background: color-mix(in srgb, var(--night) 78%, transparent);
+  color: var(--frost);
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.p-avatar img,
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Системний вибір файлу лишається прихованим: його відкриває дотик по фото. */
+.p-file {
+  display: none;
+}
+
+/* «Зберегти» тут компактна й праворуч — та сама, що в шапці редактора. Плита
+   на всю ширину читалась би як головна дія екрана, хоча профіль складається з
+   кількох рівноправних блоків, і жоден із них не головний. */
+.p-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 2px 0 8px;
+}
+
+/* Двоє коротких полів в один рядок: імʼя з прізвищем і дві цілі. Окремими
+   рядками вони з'їдали б пів екрана під чотири слова. */
+.p-pair {
+  display: flex;
+  gap: 10px;
+}
+
+.p-pair .field {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Рядок «ключ — значення»: пошта й пояс. Це не поля, і виглядати вони як поля
+   не мусять — редагувати там нічого. */
+.p-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--edge-soft);
+}
+
+.p-row-key {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+  flex: none;
+}
+
+.p-row-val {
+  color: var(--frost);
+  font-size: 15px;
+  text-align: right;
+  overflow-wrap: anywhere;
 }

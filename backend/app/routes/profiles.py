@@ -109,7 +109,9 @@ async def create_profile(
     avatar_key = f"avatars/{user_id}_avatar.jpg"
     avatar_bytes = await profile_data.avatar.read()
     try:
-        await s3_client.upload_file(file_name=avatar_key, file_data=avatar_bytes)
+        await s3_client.upload_file(
+            file_name=avatar_key, file_data=avatar_bytes, private=False
+        )
     except BaseS3Error:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -136,7 +138,7 @@ async def create_profile(
     await db.refresh(new_profile)
 
     # Отримання URL аватара
-    avatar_url = await s3_client.get_file_url(avatar_key)
+    avatar_url = await s3_client.get_file_url(avatar_key, private=False)
 
     return ProfileResponseSchema(
         id=new_profile.id,
@@ -207,7 +209,11 @@ async def update_profile(
     await db.commit()
     await db.refresh(profile)
 
-    avatar_url = await s3_client.get_file_url(profile.avatar) if profile.avatar else None
+    avatar_url = (
+        await s3_client.get_file_url(profile.avatar, private=False)
+        if profile.avatar
+        else None
+    )
 
     return ProfileResponseSchema(
         id=profile.id,
@@ -261,10 +267,17 @@ async def update_profile_avatar(
     result = await db.execute(stmt)
     profile = result.scalars().first()
 
+    # Публічний бакет, а не приватний (за замовчуванням `upload_file` пише в
+    # приватний). Раніше аватар лягав у приватний, а `/accounts/me/` будував
+    # посилання на публічний — тобто картинка завантажувалась успішно й одразу
+    # віддавала 404. Приватний бакет тут і не потрібен: посилання на нього
+    # підписане й живе годину, тож аватар у шапці ламався б щодня.
     avatar_key = f"avatars/{user_id}_avatar.jpg"
     avatar_bytes = await avatar_data.avatar.read()
     try:
-        await s3_client.upload_file(file_name=avatar_key, file_data=avatar_bytes)
+        await s3_client.upload_file(
+            file_name=avatar_key, file_data=avatar_bytes, private=False
+        )
     except BaseS3Error:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -283,7 +296,7 @@ async def update_profile_avatar(
     await db.commit()
     await db.refresh(profile)
 
-    avatar_url = await s3_client.get_file_url(avatar_key)
+    avatar_url = await s3_client.get_file_url(avatar_key, private=False)
 
     return ProfileResponseSchema(
         id=profile.id,
@@ -340,7 +353,7 @@ async def delete_profile_avatar(
         )
 
     try:
-        await s3_client.delete_file(profile.avatar)
+        await s3_client.delete_file(profile.avatar, private=False)
     except S3FileNotFoundError:
         pass
     except BaseS3Error:

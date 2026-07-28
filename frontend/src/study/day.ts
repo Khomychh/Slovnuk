@@ -33,6 +33,40 @@ export function resolveTimeZone(name: string | null | undefined): string {
   }
 }
 
+/** Пояс, у якому зараз стоїть телефон. */
+export function detectTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+}
+
+/**
+ * Чи треба переписати збережений пояс на той, що показує телефон.
+ *
+ * Органу керування поясом у застосунку немає навмисно: доба їде за телефоном,
+ * як і годинник на ньому. Наслідок цього видно не одразу — календар прогресу
+ * рахує дні заново (`GROUP BY … AT TIME ZONE`), тож після перельоту нічні
+ * відповіді можуть перескочити в сусідню добу. Закриті дні при цьому не
+ * перераховуються: `is_goal_met` — заморожений факт.
+ *
+ * Альтернатива «записати один раз при першому вході» виглядає обережнішою, а
+ * насправді створює стан, який користувач не може ні побачити, ні виправити —
+ * пояс назавжди лишається тим, у якому людина колись зареєструвалась.
+ *
+ * Непридатне значення від браузера не пишемо: краще лишити збережене, ніж
+ * замінити його на сміття, яке сервер потім відкине.
+ */
+export function timeZoneNeedsSync(
+  stored: string | null | undefined,
+  detected: string,
+): boolean {
+  if (!detected) return false;
+  try {
+    new Intl.DateTimeFormat("en-CA", { timeZone: detected });
+  } catch {
+    return false;
+  }
+  return stored !== detected;
+}
+
 const formatters = new Map<string, Intl.DateTimeFormat>();
 
 function formatterFor(timeZone: string): Intl.DateTimeFormat {

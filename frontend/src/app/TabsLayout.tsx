@@ -11,6 +11,7 @@
 
 import { NavLink, Outlet } from "react-router-dom";
 import { useOnline } from "../app/useOnline";
+import { useTimeZoneSync } from "../study/queries";
 
 const TABS = [
   {
@@ -60,6 +61,8 @@ const TABS = [
 
 export default function TabsLayout() {
   const online = useOnline();
+  // Пояс переписується сам, коли телефон переїхав: органу керування ним немає.
+  useTimeZoneSync();
 
   return (
     <>

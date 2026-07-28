@@ -31,6 +31,8 @@ export type CurrentUser = {
   role: string;
   first_name: string | null;
   last_name: string | null;
+  /** Готова адреса файлу в публічному бакеті, а не ключ. null — аватара немає. */
+  avatar: string | null;
 };
 
 type LoginResponse = {
@@ -45,6 +47,8 @@ type AuthValue = {
   status: "loading" | "authenticated" | "anonymous";
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  /** Перечитати `/accounts/me/` — після правки імені чи аватара. */
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -105,8 +109,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<AuthValue>(
-    () => ({ user, status, login, logout }),
-    [user, status, login, logout],
+    () => ({ user, status, login, logout, refreshUser: loadUser }),
+    [user, status, login, logout, loadUser],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;
