@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.cruds import sharing as sharing_crud
 from app.cruds import study as study_crud
 from app.cruds import vocabulary as vocabulary_crud
 from app.database.database import get_db
@@ -122,6 +123,7 @@ async def get_lists(
     lists = await vocabulary_crud.get_own_lists(db, current_user.id)
     cards_by_list = await vocabulary_crud.count_cards_by_list(db, current_user.id)
     due_by_list = await vocabulary_crud.count_due_by_list(db, current_user.id, now)
+    share_tokens = await sharing_crud.active_tokens_by_list(db, current_user.id)
     unlisted_cards, unlisted_due = await vocabulary_crud.count_unlisted(
         db, current_user.id, now
     )
@@ -134,6 +136,7 @@ async def get_lists(
                 position=row.position,
                 card_count=cards_by_list.get(row.id, 0),
                 due_count=due_by_list.get(row.id, 0),
+                share_token=share_tokens.get(row.id),
             )
             for row in lists
         ],
@@ -223,6 +226,7 @@ async def update_list(
     now = datetime.now(timezone.utc)
     cards_by_list = await vocabulary_crud.count_cards_by_list(db, current_user.id)
     due_by_list = await vocabulary_crud.count_due_by_list(db, current_user.id, now)
+    share = await sharing_crud.get_active_share(db, word_list.id)
 
     return WordListSchema(
         id=word_list.id,
@@ -230,6 +234,7 @@ async def update_list(
         position=word_list.position,
         card_count=cards_by_list.get(word_list.id, 0),
         due_count=due_by_list.get(word_list.id, 0),
+        share_token=share.token if share else None,
     )
 
 

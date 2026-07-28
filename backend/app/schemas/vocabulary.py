@@ -157,11 +157,20 @@ class CardPageSchema(BaseModel):
 
 
 class WordListSchema(BaseModel):
+    """
+    `share_token` заповнений, якщо список зараз поділений.
+
+    Токен їде разом зі списком навмисно: інакше акордеон словника не міг би
+    показати іконку «поділено», не смикнувши окремий запит на кожен список.
+    Бачить його лише власник — це його ж списки.
+    """
+
     id: int
     name: str
     position: int
     card_count: int
     due_count: int
+    share_token: str | None = None
 
 
 class UnlistedSchema(BaseModel):
