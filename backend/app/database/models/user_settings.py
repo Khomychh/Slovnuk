@@ -97,6 +97,16 @@ class UserSettingsModel(Base, TimestampMixin):
         String(64), default=DEFAULT_TIMEZONE, nullable=False
     )
 
+    # Список, куди фронтенд кладе нові картки, коли користувач не вибрав інший.
+    # Тут, а не прапорцем на word_lists: один дефолт має бути неможливо
+    # порушити за типом даних, а не за домовленістю «гасити попередній».
+    # SET NULL, бо видалення списку не повинно ні падати, ні тягти за собою
+    # прибирання позначки окремим запитом. NULL — нормальний стан: тоді нова
+    # картка створюється без списку (CONTEXT.md, «Список за замовчуванням»).
+    default_list_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("word_lists.id", ondelete="SET NULL"), nullable=True
+    )
+
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True
     )

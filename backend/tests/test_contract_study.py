@@ -271,3 +271,94 @@ async def test_patch_settings_rejects_retention_out_of_range(
         f"{API}/settings/", json={"desired_retention": 5.0}, headers=auth_headers
     )
     assert response.status_code == 422
+
+
+# --------------------------------------------------------------------------
+# Список за замовчуванням
+# --------------------------------------------------------------------------
+
+
+async def _create_list(client: AsyncClient, headers: dict, name: str) -> dict:
+    response = await client.post(f"{VOCAB}/lists/", json={"name": name}, headers=headers)
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+async def test_default_list_starts_unset(client: AsyncClient, auth_headers):
+    """Не позначено жодного — нормальний стан, а не «не налаштовано»."""
+    response = await client.get(f"{API}/settings/", headers=auth_headers)
+    assert response.status_code == 200, response.text
+    assert response.json()["default_list_id"] is None
+
+
+async def test_set_and_clear_default_list(client: AsyncClient, auth_headers):
+    word_list = await _create_list(client, auth_headers, "Загальний")
+
+    response = await client.patch(
+        f"{API}/settings/",
+        json={"default_list_id": word_list["id"]},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["default_list_id"] == word_list["id"]
+
+    # Явний null знімає позначку. Це єдине поле, де null означає дію, а не
+    # «не передали», і саме тому воно перевіряється окремо.
+    response = await client.patch(
+        f"{API}/settings/", json={"default_list_id": None}, headers=auth_headers
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["default_list_id"] is None
+
+
+async def test_default_list_must_be_own(
+    client: AsyncClient, auth_headers, other_auth_headers
+):
+    """
+    Чужий список — 422, а не тихе збереження: користувач побачив би
+    «збережено», а нові картки йшли б у список, якого він не бачить.
+    """
+    stranger_list = await _create_list(client, other_auth_headers, "Чужий")
+
+    response = await client.patch(
+        f"{API}/settings/",
+        json={"default_list_id": stranger_list["id"]},
+        headers=auth_headers,
+    )
+    assert response.status_code == 422, response.text
+    assert response.json()["detail"]["code"] == "unknown_list_ids"
+
+
+async def test_deleting_list_clears_default(client: AsyncClient, auth_headers):
+    """
+    ON DELETE SET NULL. Інакше видалення списку або падало б, або лишало
+    позначку, що вказує в нікуди, — і нові картки тихо йшли б у порожнечу.
+    """
+    word_list = await _create_list(client, auth_headers, "Тимчасовий")
+    await client.patch(
+        f"{API}/settings/",
+        json={"default_list_id": word_list["id"]},
+        headers=auth_headers,
+    )
+
+    response = await client.delete(
+        f"{VOCAB}/lists/{word_list['id']}/", headers=auth_headers
+    )
+    assert response.status_code == 204, response.text
+
+    response = await client.get(f"{API}/settings/", headers=auth_headers)
+    assert response.json()["default_list_id"] is None
+
+
+async def test_explicit_null_on_not_null_field_is_ignored(
+    client: AsyncClient, auth_headers
+):
+    """
+    Раніше {"theme": null} доходив до setattr і давав 500 на IntegrityError.
+    Тепер null ігнорується для всіх колонок, крім default_list_id.
+    """
+    response = await client.patch(
+        f"{API}/settings/", json={"theme": None}, headers=auth_headers
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["theme"] is not None

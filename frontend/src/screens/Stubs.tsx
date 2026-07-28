@@ -5,21 +5,11 @@
  * буде — порожній екран без пояснення виглядає як поломка.
  *
  * «Сьогодні» тут більше немає: він переїхав у `TodayScreen.tsx` разом із
- * блоком 2.
+ * блоком 2, а «Словник» — у `VocabularyScreen.tsx` разом із блоком 3.
  */
 
 import { useAuth } from "../auth/AuthProvider";
 import { Screen } from "../ui/parts";
-
-export function VocabularyScreen() {
-  return (
-    <Screen eyebrow="словник" title="Мої слова">
-      <div className="stub">
-        Тут будуть списки, пошук по словах і граматиці та редактор картки. Блок 3.
-      </div>
-    </Screen>
-  );
-}
 
 export function GrammarScreen() {
   return (

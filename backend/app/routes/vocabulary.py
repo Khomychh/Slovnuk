@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -300,8 +301,13 @@ async def get_stats(
 async def get_cards(
     list_id: int | None = Query(None, description="Картки цього списку"),
     unlisted: bool = Query(False, description="Тільки картки без жодного списку"),
-    q: str | None = Query(None, description="Пошук по слову і перекладу"),
+    q: str | None = Query(
+        None, description="Пошук по слову, перекладу, уточненню і формах"
+    ),
     word: str | None = Query(None, description="Точний збіг — перевірка дубліката"),
+    sort: Literal["created", "word"] = Query(
+        "created", description="created — новіші зверху, word — за абеткою"
+    ),
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
     current_user: UserModel = Depends(get_current_authenticated_user),
@@ -320,7 +326,7 @@ async def get_cards(
 
     total = await vocabulary_crud.count_cards(db, conditions)
     cards = await vocabulary_crud.fetch_cards(
-        db, conditions, limit=per_page, offset=(page - 1) * per_page
+        db, conditions, limit=per_page, offset=(page - 1) * per_page, sort=sort
     )
 
     return CardPageSchema(

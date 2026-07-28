@@ -160,6 +160,9 @@ class StudySettingsResponseSchema(BaseModel):
     daily_review_goal: int
     desired_retention: float
     timezone: str
+    # Список за замовчуванням для нових карток. NULL — нормальний стан: жоден не
+    # позначено, і нова картка створюється без списку.
+    default_list_id: int | None
     # Самі ваги назовні не віддаємо: 21 число фронтенду ні про що не говорить,
     # а показати «параметри підібрано чи ще ні» треба.
     fsrs_parameters_version: int | None
@@ -193,6 +196,10 @@ class StudySettingsUpdateSchema(BaseModel):
     # лише parameters, а desired_retention бере як є.
     desired_retention: float | None = Field(default=None, ge=0.7, le=0.99)
     timezone: str | None = Field(default=None, max_length=64)
+    # Єдине поле, де None означає не «не передали», а «зняти позначку». Роут
+    # розрізняє їх через exclude_unset=True, тож {"default_list_id": null}
+    # чистить дефолт, а відсутнє поле лишає його як є.
+    default_list_id: int | None = None
 
     model_config = ConfigDict(extra="forbid")
 

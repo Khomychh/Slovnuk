@@ -6,6 +6,7 @@ from fsrs import Rating, Scheduler
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.cruds import study as study_crud
+from app.cruds import vocabulary as vocabulary_crud
 from app.database.database import get_db
 from app.database.models import ReviewLogModel, UserModel
 from app.schemas.study import (
@@ -371,10 +372,33 @@ async def update_settings(
     Зміна цілей не переписує історію: дні, які вже мають рядок, зберігають ті
     цілі, що діяли тоді. Нові значення почнуть діяти з наступного дня — або з
     сьогоднішнього, якщо жодної дії сьогодні ще не було.
+
+    `default_list_id` — єдине поле, яке можна занулити: null знімає позначку.
+    Решта колонок NOT NULL, і явний null для них раніше давав 500 на
+    IntegrityError; тепер він просто ігнорується.
     """
     settings = await study_crud.get_user_settings(db, current_user.id)
+    fields = payload.model_dump(exclude_unset=True)
 
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    if fields.get("default_list_id") is not None:
+        # Чужий чи неіснуючий список — 422, а не тихе збереження: інакше
+        # користувач бачив би «збережено», а нові картки йшли б у порожнечу.
+        own = await vocabulary_crud.filter_own_list_ids(
+            db, current_user.id, [fields["default_list_id"]]
+        )
+        if not own:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={
+                    "code": "unknown_list_ids",
+                    "message": "Some list ids do not belong to you.",
+                    "list_ids": [fields["default_list_id"]],
+                },
+            )
+
+    for field, value in fields.items():
+        if value is None and field != "default_list_id":
+            continue
         setattr(settings, field, value)
 
     await db.commit()

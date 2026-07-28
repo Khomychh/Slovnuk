@@ -199,3 +199,88 @@ async def test_stats(client: AsyncClient, auth_headers):
     bands = body["stability_bands"]
     assert sum(bands.values()) == body["cards"] == 1
     assert bands["new"] == 1, "щойно створена картка ще ніде не тримається"
+
+
+# --------------------------------------------------------------------------
+# Порядок і пошук
+# --------------------------------------------------------------------------
+
+
+async def test_sort_word_orders_alphabetically(client: AsyncClient, auth_headers):
+    """
+    Абетковий порядок потрібен саме тому, що дата не працює: імпорт (ADR-0004)
+    ставить усім карткам однаковий created_at, і `sort=created` вироджується в
+    порядок id.
+    """
+    for word in ("zebra", "apple", "mango"):
+        await _create_card(client, auth_headers, word=word, senses=[], forms=[])
+
+    response = await client.get(f"{API}/cards/?sort=word", headers=auth_headers)
+    assert response.status_code == 200, response.text
+    assert [item["word"] for item in response.json()["items"]] == [
+        "apple",
+        "mango",
+        "zebra",
+    ]
+
+    # За замовчуванням порядок лишається старим — новіші зверху.
+    response = await client.get(f"{API}/cards/", headers=auth_headers)
+    assert [item["word"] for item in response.json()["items"]] == [
+        "mango",
+        "apple",
+        "zebra",
+    ]
+
+
+async def test_unknown_sort_is_rejected(client: AsyncClient, auth_headers):
+    """
+    Невідоме значення — 422, а не тихе повернення до дефолту: інакше одруківка
+    у фронтенді виглядала б як «сортування не працює».
+    """
+    response = await client.get(f"{API}/cards/?sort=stability", headers=auth_headers)
+    assert response.status_code == 422
+
+
+async def test_search_finds_card_by_form(client: AsyncClient, auth_headers):
+    """
+    143 зі 157 форм словника не є підрядком свого слова. Без пошуку по формах
+    картку `go` не знайти за `went` — старий PWA це вмів, і втрата була б тихою.
+    """
+    await _create_card(
+        client,
+        auth_headers,
+        word="go",
+        senses=[{"translation": "йти"}],
+        forms=[{"label": "Past", "value": "went"}],
+    )
+
+    response = await client.get(f"{API}/cards/?q=went", headers=auth_headers)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["total"] == 1
+    assert body["items"][0]["word"] == "go"
+
+
+async def test_search_finds_card_by_gloss(client: AsyncClient, auth_headers):
+    await _create_card(
+        client,
+        auth_headers,
+        word="run",
+        senses=[{"translation": "бігти", "gloss": "рухатись швидко"}],
+        forms=[],
+    )
+
+    response = await client.get(f"{API}/cards/?q=швидко", headers=auth_headers)
+    assert response.status_code == 200, response.text
+    assert response.json()["total"] == 1
+
+
+async def test_search_still_matches_word_and_translation(
+    client: AsyncClient, auth_headers
+):
+    """Розширення пошуку не мусить нічого зламати в тому, що вже працювало."""
+    await _create_card(client, auth_headers, word="run", forms=[])
+
+    for query in ("run", "бігти"):
+        response = await client.get(f"{API}/cards/?q={query}", headers=auth_headers)
+        assert response.json()["total"] == 1, query

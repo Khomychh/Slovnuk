@@ -79,6 +79,22 @@ def card_filters(
                         func.lower(WordSenseModel.translation).like(pattern),
                     )
                 ),
+                exists().where(
+                    and_(
+                        WordSenseModel.card_id == CardModel.id,
+                        func.lower(WordSenseModel.gloss).like(pattern),
+                    )
+                ),
+                # Форми шукаються разом зі словом навмисно: 143 зі 157 форм
+                # словника не є підрядком свого слова (woke, given, brought),
+                # тож без цього картку не знайти за формою, яку щойно зустрів у
+                # тексті. Старий PWA це вмів (cardSearchText).
+                exists().where(
+                    and_(
+                        WordFormModel.card_id == CardModel.id,
+                        func.lower(WordFormModel.value).like(pattern),
+                    )
+                ),
             )
         )
 
@@ -90,11 +106,37 @@ async def count_cards(db: AsyncSession, conditions: Sequence) -> int:
     return (await db.execute(stmt)).scalar_one()
 
 
+def card_order(sort: str):
+    """
+    Порядок сторінки словника.
+
+    `created` — новіші зверху, як у старому PWA. Після імпорту він вироджується:
+    ADR-0004 не переносить дат, тож у всіх карток однаковий `created_at` і
+    фактичний порядок задає `id`. Власник це прийняв свідомо — з часом дати
+    розходяться самі.
+
+    `word` — за нормалізованим словом, тобто тим самим, за яким шукає `?q=`, а
+    не за сирим `word`: інакше «Apple» стояло б перед «apple» у сортуванні, але
+    збігалося б у пошуку.
+
+    Другий ключ `id` є завжди: без нього рядки з однаковим значенням першого
+    ключа можуть мінятись місцями між сторінками, і при зсувній пагінації
+    картка або продублюється, або зникне.
+    """
+    if sort == "word":
+        return (CardModel.word_normalized.asc(), CardModel.id.asc())
+    return (CardModel.created_at.desc(), CardModel.id.desc())
+
+
 async def fetch_cards(
-    db: AsyncSession, conditions: Sequence, limit: int, offset: int
+    db: AsyncSession,
+    conditions: Sequence,
+    limit: int,
+    offset: int,
+    sort: str = "created",
 ) -> Sequence[CardModel]:
     """
-    Сторінка словника, новіші зверху — як у старому PWA.
+    Сторінка словника.
 
     Зсувна пагінація тут безпечна, на відміну від черги: рядки словника під час
     перегляду нікуди не діваються, тож сторінки не з'їжджають.
@@ -103,7 +145,7 @@ async def fetch_cards(
         select(CardModel)
         .where(*conditions)
         .options(*CARD_LOADERS)
-        .order_by(CardModel.created_at.desc(), CardModel.id.desc())
+        .order_by(*card_order(sort))
         .limit(limit)
         .offset(offset)
     )
