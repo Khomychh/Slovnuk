@@ -61,14 +61,36 @@ class QueueCardSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class RatingPreviewSchema(BaseModel):
+    """
+    Секунди до наступного показу для кожної з чотирьох оцінок.
+
+    Секунди, а не дні: перша відповідь на нове слово повертає його через 1 і 10
+    хвилин, і в днях це був би нуль. Підпис («10 хвилин» / «за 12 днів») складає
+    фронтенд — формат залежить від мови, а мова живе там.
+    """
+
+    again: int
+    hard: int
+    good: int
+    easy: int
+
+
 class QueueItemSchema(BaseModel):
     track_id: int = Field(validation_alias="id")
     kind: ReviewKindEnum
     state: ReviewStateEnum
     due_at: datetime
     card: QueueCardSchema
+    # Прогноз їде разом із карткою, щоб офлайн-відповідь теж могла показати
+    # «наступного разу — за N». Чому саме так — у services/scheduler.py,
+    # preview_intervals.
+    preview: RatingPreviewSchema
 
-    model_config = ConfigDict(from_attributes=True)
+    # populate_by_name — бо preview не є колонкою доріжки, тож роут будує схему
+    # явно, полями. Без цього validation_alias="id" вимагав би ключ "id" і
+    # відкидав track_id=... прямо в конструкторі.
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class QueueResponseSchema(BaseModel):

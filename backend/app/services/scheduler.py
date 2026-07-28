@@ -30,13 +30,24 @@ _FSRS_TO_STATE = {
 }
 
 
-def build_scheduler(settings: UserSettingsModel) -> Scheduler:
+def build_scheduler(
+    settings: UserSettingsModel, *, enable_fuzzing: bool = True
+) -> Scheduler:
     """
     Кроки навчання — дефолтні бібліотечні (1 хв, 10 хв для нових,
     10 хв для забутих). Явно не передаємо, щоб не розходитись
     із бібліотекою при оновленні (ADR-0002).
+
+    enable_fuzzing=False потрібен лише прогнозу інтервалів. Фазі — це навмисний
+    випадковий розкид у кілька відсотків, який FSRS додає карткам у стані
+    Review, щоб повторення не збивались у купу в один день. Для реальної
+    відповіді він корисний; у прогнозі він означав би, що два послідовні
+    відкриття черги показують «за 11 днів» і «за 9 днів» для тієї самої картки.
     """
-    common = dict(desired_retention=settings.desired_retention)
+    common = dict(
+        desired_retention=settings.desired_retention,
+        enable_fuzzing=enable_fuzzing,
+    )
     if settings.fsrs_parameters:
         try:
             return Scheduler(parameters=settings.fsrs_parameters, **common)
@@ -71,6 +82,46 @@ def apply_card_to_track(track: ReviewTrackModel, card: Card) -> None:
     track.difficulty = card.difficulty
     track.due_at = card.due
     track.last_reviewed_at = card.last_review
+
+
+def preview_intervals(
+    track: ReviewTrackModel,
+    scheduler: Scheduler,
+    now: datetime,
+) -> dict[Rating, int]:
+    """
+    Скільки секунд до наступного показу дала б кожна з чотирьох оцінок.
+
+    Стану доріжки не міняє: review_card робить copy(card) і повертає нову
+    картку, тож чотири прогони поспіль незалежні.
+
+    Навіщо це в черзі, коли POST /review/ і так віддає due_at. Через офлайн:
+    відповідь на картку без мережі не отримує жодної відповіді сервера, а
+    підпис «наступного разу — за 12 днів» показати треба. Прогноз їде разом із
+    карткою і лежить у кеші поруч із нею. Побічний виграш — підпис зʼявляється
+    миттєво на натисканні, а не через круг до сервера.
+
+    Прогноз не є обіцянкою, і розходиться з фактом двома шляхами. Перший — час:
+    до реальної відповіді користувач може дійти через годину, і сервер порахує
+    від того моменту. Другий — фазі: справжня відповідь отримує випадковий
+    розкид у кілька відсотків, а прогноз рахується без нього (scheduler сюди
+    треба передавати з enable_fuzzing=False). Тому онлайн підпис слід брати з
+    due_at у відповіді POST /review/, а прогноз лишити запасним варіантом для
+    офлайну.
+    """
+    card = track_to_card(track)
+    return {
+        rating: max(
+            0,
+            int(
+                (
+                    scheduler.review_card(card, rating, review_datetime=now)[0].due
+                    - now
+                ).total_seconds()
+            ),
+        )
+        for rating in Rating
+    }
 
 
 def review_track(

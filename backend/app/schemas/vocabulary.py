@@ -191,6 +191,23 @@ class WordListPageSchema(BaseModel):
     unlisted: UnlistedSchema
 
 
+class StabilityBandsSchema(BaseModel):
+    """
+    Розподіл словника за стабільністю доріжки перекладу — теплова смуга.
+
+    Одиниця — слово, а не доріжка: рахується лише переклад, тож сума полів
+    дорівнює cards. Діапазони в днях: до 1 · 1–6 · 6–30 · 30–180 · понад 180.
+    Межа 6 — та сама, що в означенні «Вивчено».
+    """
+
+    new: int
+    under_day: int
+    days: int
+    weeks: int
+    months: int
+    long: int
+
+
 class VocabularyStatsSchema(BaseModel):
     """
     Панель «Словник» на екрані прогресу.
@@ -205,6 +222,7 @@ class VocabularyStatsSchema(BaseModel):
     cards: int
     due_tracks: int
     learned: int
+    stability_bands: StabilityBandsSchema
 
 
 # --------------------------------------------------------------------------

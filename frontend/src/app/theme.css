@@ -1,0 +1,110 @@
+/* ==========================================================================
+   Токени оформлення.
+
+   Головне правило: КОЛІР ОЗНАЧАЄ РІВНО ОДНУ РІЧ — температуру слова, тобто
+   стабільність його доріжки. Усе інше зроблено світлом і тінню: поверхні,
+   лінії, текст. Тому тут немає --primary, --success і --danger: щойно кнопка
+   стане «синьою», а помилка «червоною», шкала температури перестане читатись.
+
+   Темна тема — головна, світла запасна. Так спроєктовано навмисно: застосунком
+   користуються з телефона ввечері й у транспорті.
+   ========================================================================== */
+
+:root {
+  color-scheme: dark;
+
+  /* Ґрунт — темне тепле дерево, а не нейтральний чорний: на ньому холодний
+     кінець шкали читається як холодний. */
+  --ground: #14100d;
+  --surface: #1e1915;
+  --surface-2: #29221b;
+  --ink: #f2e9dc;
+  --dim: #a08d7c;
+  --dimmer: #6e6055;
+  --line: #332a23;
+
+  /* Шкала температури: холодне нове → тепле давно відоме. Зупинена на золоті,
+     а не на червоному — гаряче тут означає «добре», а не «тривога». */
+  --t0: #3e566b; /* нове             */
+  --t1: #5c7c8a; /* до 1 дня         */
+  --t2: #8e9b8e; /* 1–6 днів         */
+  --t3: #b99560; /* 6–30 днів        */
+  --t4: #d9922f; /* 30–180 днів      */
+  --t5: #f5c542; /* понад 180 днів   */
+
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    sans-serif;
+  --serif: ui-serif, Georgia, "Noto Serif", serif;
+  --mono: ui-monospace, "SF Mono", "Roboto Mono", Consolas, monospace;
+
+  --r: 16px;
+  --pad: 20px;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Телефон — єдиний цільовий пристрій. На широкому екрані застосунок не
+   розтягується, а лишається колонкою: десктопного макета не існує. */
+.shell {
+  flex: 1;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--dim);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dimmer);
+}
+
+.h-title {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 2px 0 0;
+  text-wrap: balance;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

@@ -153,7 +153,7 @@ async def register_user(
     else:
         # якщо помилок немає, то відправляємо лист на електронну пошту
         activation_link = (
-            f"{settings.FRONTEND_BASE_URL}/accaunts/activate"
+            f"{settings.FRONTEND_BASE_URL}/accounts/activate"
             f"?email={new_user.email}&token={activation_token.token}"
         )
         background_tasks.add_task(

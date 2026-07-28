@@ -2,15 +2,17 @@ from datetime import date, datetime, timezone
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fsrs import Rating
+from fsrs import Rating, Scheduler
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.cruds import study as study_crud
 from app.database.database import get_db
 from app.database.models import ReviewLogModel, UserModel
 from app.schemas.study import (
+    QueueCardSchema,
     QueueItemSchema,
     QueueResponseSchema,
+    RatingPreviewSchema,
     StudyDayResponseSchema,
     StudyDaySchema,
     StudyDaysResponseSchema,
@@ -20,7 +22,7 @@ from app.schemas.study import (
     TrackReviewResponseSchema,
 )
 from app.security.dependencies import get_current_authenticated_user
-from app.services.scheduler import review_track
+from app.services.scheduler import build_scheduler, preview_intervals, review_track
 from app.services.study_day import (
     is_goal_met,
     local_day,
@@ -29,6 +31,19 @@ from app.services.study_day import (
 )
 
 router = APIRouter()
+
+
+def _rating_preview(
+    track, scheduler: Scheduler, now: datetime
+) -> RatingPreviewSchema:
+    """Прогноз інтервалів на чотири оцінки — підпис під кнопками після відповіді."""
+    seconds = preview_intervals(track, scheduler, now)
+    return RatingPreviewSchema(
+        again=seconds[Rating.Again],
+        hard=seconds[Rating.Hard],
+        good=seconds[Rating.Good],
+        easy=seconds[Rating.Easy],
+    )
 
 
 async def _day_counts(
@@ -96,10 +111,29 @@ async def get_queue(
     )
     tracks = await study_crud.fetch_queue(db, current_user.id, list_ids, now, limit)
 
+    # Планувальник будується один раз на всю вибірку, а не на кожну доріжку:
+    # Scheduler не тримає стану між викликами, а конструктор валідує 21 вагу.
+    # Без фазі — інакше два послідовні відкриття черги показали б для тієї самої
+    # картки різні прогнози.
+    settings = await study_crud.get_user_settings(db, current_user.id)
+    scheduler = build_scheduler(settings, enable_fuzzing=False)
+
+    items = [
+        QueueItemSchema(
+            track_id=track.id,
+            kind=track.kind,
+            state=track.state,
+            due_at=track.due_at,
+            card=QueueCardSchema.model_validate(track.card),
+            preview=_rating_preview(track, scheduler, now),
+        )
+        for track in tracks
+    ]
+
     return QueueResponseSchema(
         due_count=due_count,
         new_count=new_count,
-        items=[QueueItemSchema.model_validate(track) for track in tracks],
+        items=items,
     )
 
 

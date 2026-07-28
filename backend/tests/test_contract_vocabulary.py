@@ -192,3 +192,10 @@ async def test_stats(client: AsyncClient, auth_headers):
     # прострочені. Знаменники різні — це записано в схемі.
     assert body["due_tracks"] == 2
     assert body["learned"] == 0
+
+    # Теплова смуга рахує тільки доріжку перекладу, тож її сума дорівнює
+    # кількості карток, а не доріжок. Без цього підпис «608 слів» над смугою,
+    # яка складається в 705, брехав би.
+    bands = body["stability_bands"]
+    assert sum(bands.values()) == body["cards"] == 1
+    assert bands["new"] == 1, "щойно створена картка ще ніде не тримається"

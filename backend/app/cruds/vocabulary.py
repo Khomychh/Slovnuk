@@ -8,7 +8,7 @@
 from datetime import datetime
 from typing import Sequence
 
-from sqlalchemy import Select, and_, exists, func, or_, select
+from sqlalchemy import Select, and_, case, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -284,4 +284,55 @@ async def get_stats(db: AsyncSession, user_id: int, now: datetime) -> dict[str, 
         "cards": (await db.execute(cards_stmt)).scalar_one(),
         "due_tracks": (await db.execute(due_stmt)).scalar_one(),
         "learned": (await db.execute(learned_stmt)).scalar_one(),
+        "stability_bands": await get_stability_bands(db, user_id),
     }
+
+
+# Межі в днях. 6 збігається з LEARNED_STABILITY_DAYS навмисно: інакше на екрані
+# стояли б два різні визначення «слово тримається в памʼяті».
+STABILITY_BAND_EDGES = (1.0, LEARNED_STABILITY_DAYS, 30.0, 180.0)
+
+
+async def get_stability_bands(db: AsyncSession, user_id: int) -> dict[str, int]:
+    """
+    Скільки слів у якому діапазоні стабільності — теплова смуга екрана прогресу.
+
+    Рахуються ЛИШЕ доріжки перекладу, той самий вибір і з тієї ж причини, що в
+    learned: інакше картка з формами важила б удвічі, а вимкнення тренування
+    форм тихо міняло б картинку. Наслідок корисний — сума діапазонів дорівнює
+    кількості карток, тож підпис «608 слів» над смугою не бреше.
+
+    Стан NEW виділено окремо, а не покладено в «до 1 дня»: у нового слова
+    stability ще NULL, і назвати це «тримається менше дня» означало б вигадати
+    величину, якої немає.
+
+    Увага: сума діапазонів від 6 днів і вище НЕ дорівнює learned. learned
+    додатково виключає доріжки в стадії повторного вивчення, а смуга — ні: вона
+    відповідає на «наскільки міцно», а не на «чи можна вважати вивченим».
+    """
+    low, learned_edge, month, half_year = STABILITY_BAND_EDGES
+
+    band = case(
+        (ReviewTrackModel.state == ReviewStateEnum.NEW, "new"),
+        (ReviewTrackModel.stability < low, "under_day"),
+        (ReviewTrackModel.stability < learned_edge, "days"),
+        (ReviewTrackModel.stability < month, "weeks"),
+        (ReviewTrackModel.stability < half_year, "months"),
+        else_="long",
+    )
+
+    stmt = (
+        select(band, func.count())
+        .select_from(ReviewTrackModel)
+        .join(CardModel, ReviewTrackModel.card_id == CardModel.id)
+        .where(
+            CardModel.user_id == user_id,
+            ReviewTrackModel.kind == ReviewKindEnum.TRANSLATION,
+        )
+        .group_by(band)
+    )
+
+    counts = {name: 0 for name in ("new", "under_day", "days", "weeks", "months", "long")}
+    for name, count in (await db.execute(stmt)).all():
+        counts[name] = count
+    return counts

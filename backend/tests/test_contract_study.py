@@ -60,6 +60,44 @@ async def test_queue_returns_both_tracks_of_a_card(client: AsyncClient, auth_hea
     assert item["card"]["forms"][0]["value"] == "ran"
 
 
+async def test_queue_carries_interval_preview(client: AsyncClient, auth_headers):
+    """
+    Прогноз їде разом із карткою, бо офлайн-відповідь не отримує від сервера
+    нічого, а підпис «наступного разу — за N» показати треба (ADR-0009).
+    """
+    await _create_card(client, auth_headers)
+
+    body = (await client.get(f"{API}/queue/", headers=auth_headers)).json()
+    preview = body["items"][0]["preview"]
+
+    assert set(preview) == {"again", "hard", "good", "easy"}
+    # Кроки навчання: нове слово повертається через хвилини, тому одиниця —
+    # секунда. У днях перші три оцінки дали б нуль.
+    assert preview["again"] < preview["hard"] < preview["good"] < preview["easy"]
+    assert preview["again"] < 3600, "«Не згадав» на новому слові — це хвилини"
+    assert preview["easy"] > 86400, "«Легко» на новому слові — це дні"
+
+
+async def test_queue_preview_does_not_schedule_anything(
+    client: AsyncClient, auth_headers
+):
+    """
+    Прогноз рахує чотири варіанти, але доріжку лишає незайманою: два запити
+    черги поспіль мають дати те саме, і слово має лишитись новим.
+    """
+    await _create_card(client, auth_headers)
+
+    first = (await client.get(f"{API}/queue/", headers=auth_headers)).json()
+    second = (await client.get(f"{API}/queue/", headers=auth_headers)).json()
+
+    assert second["new_count"] == first["new_count"] == 2
+    by_track = {item["track_id"]: item for item in second["items"]}
+    for item in first["items"]:
+        same = by_track[item["track_id"]]
+        assert same["state"] == item["state"] == "new"
+        assert same["preview"] == item["preview"]
+
+
 async def test_queue_respects_limit(client: AsyncClient, auth_headers):
     await _create_card(client, auth_headers, word="run")
     await _create_card(client, auth_headers, word="go")

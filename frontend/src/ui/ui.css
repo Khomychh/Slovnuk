@@ -1,0 +1,169 @@
+/* Спільні дрібниці інтерфейсу. Жодного відтінку тут немає навмисно: колір
+   зарезервовано за температурою слова (див. theme.css). */
+
+.screen {
+  flex: 1;
+  overflow-y: auto;
+  padding: 26px var(--pad) 26px;
+  min-height: 0;
+}
+
+/* --- поля --- */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 16px;
+}
+
+.field > label {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dimmer);
+}
+
+.field > input {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 13px;
+  padding: 14px 15px;
+  font-size: 16px; /* менше 16px — і iOS збільшує сторінку на фокусі */
+  font-family: var(--sans);
+  color: var(--ink);
+}
+
+.field > input::placeholder {
+  color: var(--dimmer);
+}
+
+.field > input:focus {
+  outline: none;
+  border-color: var(--dim);
+}
+
+/* --- кнопки --- */
+.btn {
+  width: 100%;
+  border: none;
+  border-radius: 13px;
+  background: var(--ink);
+  color: var(--ground);
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 600;
+  padding: 16px;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.btn-quiet {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: none;
+  color: var(--dim);
+  font-family: var(--sans);
+  font-size: 15px;
+  padding: 14px;
+  cursor: pointer;
+}
+
+.btn-link {
+  border: none;
+  background: none;
+  color: var(--dim);
+  font-family: var(--sans);
+  font-size: 14px;
+  padding: 6px 2px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* --- повідомлення --- */
+.msg {
+  border-radius: 12px;
+  padding: 13px 15px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  background: var(--surface-2);
+  color: var(--dim);
+}
+
+/* Помилка відрізняється не кольором, а лінією збоку: колір тут означав би
+   температуру. */
+.msg-error {
+  border-left: 2px solid var(--t0);
+  color: var(--ink);
+}
+
+.hint {
+  font-size: 13.5px;
+  color: var(--dimmer);
+  line-height: 1.55;
+  margin: 0 0 20px;
+}
+
+/* --- смуга офлайну --- */
+.offline-bar {
+  flex: none;
+  background: var(--surface-2);
+  color: var(--dim);
+  font-size: 13px;
+  text-align: center;
+  padding: 8px 14px;
+}
+
+/* --- панель вкладок --- */
+.tabs {
+  flex: none;
+  display: flex;
+  border-top: 1px solid var(--line);
+  background: var(--ground);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.tabs a {
+  flex: 1;
+  color: var(--dimmer);
+  font-size: 11px;
+  padding: 11px 2px 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  text-decoration: none;
+}
+
+.tabs a.active {
+  color: var(--ink);
+}
+
+.tabs svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* --- заглушки блоку 1 --- */
+.stub {
+  margin-top: 26px;
+  padding: 18px 16px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r);
+  color: var(--dimmer);
+  font-size: 14px;
+  line-height: 1.55;
+}

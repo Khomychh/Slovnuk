@@ -1,0 +1,101 @@
+# Фронтенд Slovnuk
+
+React 19 + TypeScript + Vite, встановлюваний PWA. Тільки телефони: макет —
+колонка до 480 px, десктопного варіанта немає навмисно.
+
+Рішення, які тут не видно з коду, лежать в
+[ADR-0007](../docs/adr/0007-oflain-tilky-navchannia.md) (що працює офлайн),
+[ADR-0008](../docs/adr/0008-odyn-origin-i-tokeny-v-localstorage.md) (один домен,
+токени) і [ADR-0009](../docs/adr/0009-interval-pokazuietsia-pislia-vidpovidi.md)
+(інтервал після відповіді). Мова термінів — у [CONTEXT.md](../CONTEXT.md).
+
+## Запуск
+
+Потрібен піднятий бекенд на `localhost:8000`:
+
+```bash
+docker compose up -d postgres minio          # з кореня репозиторію
+cd backend && python -m uvicorn app.main:app --port 8000
+```
+
+Далі:
+
+```bash
+cd frontend
+npm install
+npm run dev          # http://localhost:5173
+```
+
+Vite проксює `/api/*` на бекенд, тож у розробці фронтенд і API — **один origin**,
+рівно як у продакшені під Caddy. Це не зручність: якби в розробці був CORS, а в
+продакшені ні, перевірялась би не та конфігурація.
+
+## Типи API
+
+Типи не пишуться руками — вони генеруються зі схеми бекенда:
+
+```bash
+# 1. вивантажити схему (бекенд запускати не обовʼязково)
+cd backend && python -c "import json,io; from app.main import app; io.open('openapi.json','w',encoding='utf-8').write(json.dumps(app.openapi(), ensure_ascii=False, indent=1))"
+
+# 2. згенерувати
+cd ../frontend && npm run api-types
+```
+
+`src/api/schema.d.ts` у git не лежить: єдине джерело правди — Pydantic-схеми.
+Після будь-якої зміни в них обидві команди треба повторити, інакше типи тихо
+розійдуться з тим, що справді віддає сервер.
+
+## Перевірка
+
+```bash
+npm run typecheck
+npm run build
+```
+
+Тестів тут поки немає, і це свідомо. Логіки, яку варто пінити юніт-тестом, у
+блоці 1 ще нема — весь ризик у ланцюжку «логін → токен → 401 → оновлення», а він
+перевіряється тільки живим браузером проти живого бекенда. Vitest приходить у
+блоці 2 (локальне правило показу) і блоці 5 (межі доби й тижня в поясі
+користувача — дзеркало `backend/tests/test_day_counts.py`), Playwright — там же.
+
+## Продакшен
+
+```bash
+npm run build        # → frontend/dist
+```
+
+Вміст `dist/` віддає Caddy, він же проксює API. Увесь потрібний конфіг:
+
+```caddyfile
+slovnuk.ivankhomych.com {
+    handle /api/* {
+        reverse_proxy slovnuk-backend:8000
+    }
+    handle {
+        root * /srv/slovnuk
+        try_files {path} /index.html
+        file_server
+    }
+}
+```
+
+`try_files {path} /index.html` обовʼязковий: застосунок односторінковий, і
+посилання з листа активації веде на шлях, якого на диску немає.
+
+`FRONTEND_BASE_URL` у `.env` бекенда мусить дорівнювати цьому домену — з нього
+будуються посилання в листах активації та скидання пароля.
+
+## Що вже є
+
+Блок 1 — оболонка:
+
+- вхід, вихід, зберігання токенів, автоматичне оновлення access при 401;
+- маршрути листів: `/accounts/activate`, `/accounts/reset-password/complete`
+  (**перейменовувати не можна** — їх будує бекенд);
+- скидання пароля обома екранами;
+- чотири вкладки з заглушками, PWA-маніфест, service worker на оболонку.
+
+Service worker кешує тільки оболонку. Відповіді API навмисно не кешуються:
+офлайн-навчання зі своїми правилами приходить у блоці 2 (ADR-0007), а мовчазне
+кешування до того означало б показувати вчорашній словник і не знати про це.

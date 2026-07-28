@@ -295,3 +295,13 @@ pyrightconfig.json
 
 slovnyk-2026-07-27 (1).json
 .mcp.json
+
+# --- фронтенд ---
+node_modules/
+frontend/dist/
+frontend/dev-dist/
+frontend/.vite/
+# Згенеровані типи й схема, з якої вони робляться: єдине джерело правди —
+# Pydantic-схеми в backend/app/schemas/. Див. frontend/README.md.
+frontend/src/api/schema.d.ts
+backend/openapi.json
