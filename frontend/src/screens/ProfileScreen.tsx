@@ -24,6 +24,7 @@ import { changePassword, patchProfile, uploadAvatar } from "../api/profile";
 import { useAuth } from "../auth/AuthProvider";
 import { useOnline } from "../app/useOnline";
 import { avatarVersion, markAvatarChanged, prepareAvatar } from "../profile/avatar";
+import { AvatarImage } from "../profile/AvatarImage";
 import {
   avatarSrc,
   fullName,
@@ -70,7 +71,16 @@ export default function ProfileScreen() {
   }, [refreshUser]);
 
   return (
-    <Screen title={fullName(user)}>
+    <Screen
+      title={fullName(user)}
+      /* Профіль — найдовший екран застосунку, і «Вийти» лежало в самому його
+         кінці. Тихим воно лишається: прибити не означає підвищити. */
+      foot={
+        <button className="btn-quiet" type="button" onClick={logout}>
+          Вийти
+        </button>
+      }
+    >
       <AvatarBlock />
       <NameBlock key={user?.id ?? 0} />
 
@@ -102,16 +112,6 @@ export default function ProfileScreen() {
       </div>
 
       <PasswordBlock />
-
-      <button
-        className="btn-quiet"
-        type="button"
-        onClick={logout}
-        style={{ marginTop: 26 }}
-      >
-        Вийти
-      </button>
-
     </Screen>
   );
 }
@@ -122,6 +122,7 @@ function AvatarBlock() {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [unreachable, setUnreachable] = useState(false);
   const [version, setVersion] = useState(avatarVersion);
 
   const src = avatarSrc(user?.avatar, version);
@@ -160,7 +161,7 @@ function AvatarBlock() {
           aria-label={src ? "Замінити фото" : "Додати фото"}
           onClick={() => input.current?.click()}
         >
-          {src ? <img src={src} alt="" /> : <span>{initial}</span>}
+          <AvatarImage src={src} initial={initial} onFail={() => setUnreachable(true)} />
           <span className="p-avatar-hint">{busy ? "…" : "змінити"}</span>
         </button>
         {/* Тут лише пошта. Підпису «натисни на коло» немає — на самому колі
@@ -179,6 +180,16 @@ function AvatarBlock() {
         />
       </div>
       {error ? <div className="msg msg-error">{error}</div> : null}
+      {/* Файл завантажився, а картинка з нього не приїхала — це не помилка
+          користувача, і мовчати про неї не можна: без цього рядка залишається
+          враження, що завантаження не спрацювало. Причина завжди одна —
+          `S3_STORAGE_PUBLIC_ENDPOINT` на сервері не вказує на публічну адресу. */}
+      {unreachable && !error ? (
+        <div className="hint">
+          Фото збережено, але показати його не вдалось — сховище недоступне з
+          цього пристрою.
+        </div>
+      ) : null}
     </>
   );
 }

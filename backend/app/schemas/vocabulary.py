@@ -107,12 +107,18 @@ class CardTrackSchema(BaseModel):
     Увага: тут ОБИДВІ доріжки картки, зокрема FORMS у картки без форм — та, яку
     черга ховає. Рахувати з цього масиву «скільки на повторення» не можна, для
     цього є `due_count` списків і лічильники черги.
+
+    `stability` віддається заради сяйва на панелі перегляду картки (ADR-0016):
+    воно береться з тих самих шести діапазонів, що й теплова смуга «Прогресу»
+    (`STABILITY_BAND_EDGES`). `None` — це стан NEW, у якого величини ще немає;
+    підставляти нуль не можна, бо це означало б «тримається менше дня».
     """
 
     id: int
     kind: ReviewKindEnum
     state: ReviewStateEnum
     due_at: datetime
+    stability: float | None
 
     model_config = ConfigDict(from_attributes=True)
 

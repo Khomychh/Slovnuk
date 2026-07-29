@@ -14,6 +14,7 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { avatarVersion } from "./avatar";
+import { AvatarImage } from "./AvatarImage";
 import { avatarSrc } from "./profile";
 
 export function ProfileAvatar() {
@@ -29,7 +30,7 @@ export function ProfileAvatar() {
 
   return (
     <Link className="avatar" to="/profile" aria-label="Профіль">
-      {src ? <img src={src} alt="" /> : initial}
+      <AvatarImage src={src} initial={initial} />
     </Link>
   );
 }

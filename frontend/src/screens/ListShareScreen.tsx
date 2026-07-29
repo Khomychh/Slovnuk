@@ -101,8 +101,37 @@ export default function ListShareScreen() {
 
   const busy = share.isPending || unshare.isPending;
 
+  /*
+   * Дія екрана залежить від того, чи посилання вже є: створити — або поділитись
+   * і скопіювати. «Вимкнути» в смугу не йде: воно незворотне (увімкнути знову
+   * означає НОВЕ посилання), і його місце — у кінці тексту, який це пояснює.
+   */
+  const foot =
+    token && url ? (
+      <div className="share-actions">
+        <button className="btn" type="button" disabled={!online} onClick={sendOut}>
+          <span className="btn-with-icon">
+            <ShareIcon />
+            Поділитись
+          </span>
+        </button>
+        <button className="btn-quiet" type="button" onClick={copy}>
+          Копіювати
+        </button>
+      </div>
+    ) : (
+      <button
+        className="btn"
+        type="button"
+        disabled={!online || busy}
+        onClick={() => run(() => share.mutateAsync(listId), null)}
+      >
+        {busy ? "Створюємо…" : "Створити посилання"}
+      </button>
+    );
+
   return (
-    <Screen back={back} title={list.name}>
+    <Screen back={back} title={list.name} foot={foot}>
       <p className="hint" style={{ marginTop: 10 }}>
         {words(list.card_count)} у цьому списку.
       </p>
@@ -117,23 +146,6 @@ export default function ListShareScreen() {
               обміну недоступний, це єдиний шлях, і ховати адресу за кнопкою
               означало б робити тупик. */}
           <div className="share-url">{url}</div>
-
-          <div className="share-actions">
-            <button
-              className="btn"
-              type="button"
-              disabled={!online}
-              onClick={sendOut}
-            >
-              <span className="btn-with-icon">
-                <ShareIcon />
-                Поділитись
-              </span>
-            </button>
-            <button className="btn-quiet" type="button" onClick={copy}>
-              Копіювати
-            </button>
-          </div>
 
           <p className="hint">
             Посилання багаторазове й безадресне: ним скористається будь-хто, кому
@@ -158,14 +170,6 @@ export default function ListShareScreen() {
             хто його відкриє, зможе взяти ці слова собі: він отримає власні
             картки з чистим графіком повторень, а не доступ до ваших.
           </p>
-          <button
-            className="btn"
-            type="button"
-            disabled={!online || busy}
-            onClick={() => run(() => share.mutateAsync(listId), null)}
-          >
-            {busy ? "Створюємо…" : "Створити посилання"}
-          </button>
         </>
       )}
 

@@ -125,6 +125,7 @@ async def get_queue(
             kind=track.kind,
             state=track.state,
             due_at=track.due_at,
+            stability=track.stability,
             card=QueueCardSchema.model_validate(track.card),
             preview=_rating_preview(track, scheduler, now),
         )

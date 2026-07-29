@@ -223,7 +223,22 @@ function SharedList({ token }: { token: string }) {
   };
 
   return (
-    <Screen back={home} title={summary.list_name}>
+    <Screen
+      back={home}
+      title={summary.list_name}
+      /* Дія прибита: під нею лежить увесь список слів, і до кнопки, що стояла
+         посеред нього, доводилось вертатись угору. */
+      foot={
+        <button
+          className="btn"
+          type="button"
+          disabled={!canTake || take.isPending}
+          onClick={run}
+        >
+          {take.isPending ? "Беремо…" : "Взяти список"}
+        </button>
+      }
+    >
       {author ? <div className="sh-author">{author}</div> : null}
 
       <div className="sh-headline">{previewHeadline(summary)}</div>
@@ -291,10 +306,6 @@ function SharedList({ token }: { token: string }) {
           </p>
         </>
       ) : null}
-
-      <button className="btn" type="button" disabled={!canTake || take.isPending} onClick={run}>
-        {take.isPending ? "Беремо…" : "Взяти список"}
-      </button>
 
       {!online ? (
         <div className="hint">Щоб узяти список, потрібен звʼязок.</div>
