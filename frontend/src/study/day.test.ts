@@ -10,6 +10,8 @@
 import { describe, expect, it } from "vitest";
 import {
   addDays,
+  closedDays,
+  daysInclusive,
   localDay,
   resolveTimeZone,
   startOfWeek,
@@ -151,5 +153,84 @@ describe("timeZoneNeedsSync", () => {
   it("виправляє зіпсоване збережене значення", () => {
     // У колонці вільний рядок на 64 символи, тож одруківка там можлива.
     expect(timeZoneNeedsSync("Europe/Kyv", KYIV)).toBe(true);
+  });
+});
+
+describe("daysInclusive", () => {
+  it("рахує обидва кінці", () => {
+    expect(daysInclusive("2026-07-27", "2026-07-29")).toBe(3);
+    expect(daysInclusive("2026-07-29", "2026-07-29")).toBe(1);
+  });
+
+  it("не збивається на переході на літній час", () => {
+    // Ніч на 2026-03-29 коротша на годину, але діб від цього не меншає.
+    expect(daysInclusive("2026-03-28", "2026-03-30")).toBe(3);
+  });
+
+  it("віддає нуль, коли кінець раніший за початок", () => {
+    expect(daysInclusive("2026-07-29", "2026-07-27")).toBe(0);
+  });
+});
+
+describe("closedDays", () => {
+  const rows = [
+    { day: "2026-07-25", is_goal_met: true },
+    { day: "2026-07-26", is_goal_met: true },
+    { day: "2026-07-28", is_goal_met: false },
+    { day: "2026-07-29", is_goal_met: false },
+  ];
+
+  it("рахує знаменник календарем, а не кількістю рядків", () => {
+    // 27-го користувач не заходив, рядка за нього немає — але день був, і
+    // закритим він не був. Інакше пропущений день тихо покращував би цифру.
+    expect(closedDays(rows, null, "2026-07-29")).toEqual({ met: 2, total: 5 });
+  });
+
+  it("починає знаменник із першого дня історії, а не з початку періоду", () => {
+    // Рік почався 1 січня, але до 25 липня днів навчання не існувало.
+    expect(closedDays(rows, "2026-01-01", "2026-07-29")).toEqual({
+      met: 2,
+      total: 5,
+    });
+  });
+
+  it("тримається початку періоду, коли історія почалась раніше за нього", () => {
+    expect(closedDays(rows, "2026-07-28", "2026-07-29")).toEqual({
+      met: 0,
+      total: 2,
+    });
+  });
+
+  it("тримає сьогодні у знаменнику, доки воно не закрите", () => {
+    const today = closedDays(rows, "2026-07-29", "2026-07-29");
+    expect(today).toEqual({ met: 0, total: 1 });
+
+    // Щойно обидві цілі добито, та сама доба стає цілою — без стрибка знизу.
+    const done = rows.map((row) =>
+      row.day === "2026-07-29" ? { ...row, is_goal_met: true } : row,
+    );
+    expect(closedDays(done, "2026-07-29", "2026-07-29")).toEqual({
+      met: 1,
+      total: 1,
+    });
+  });
+
+  it("не рахує майбутні дні, якщо вони колись приїдуть", () => {
+    const withFuture = [...rows, { day: "2026-08-05", is_goal_met: true }];
+    expect(closedDays(withFuture, null, "2026-07-29")).toEqual({
+      met: 2,
+      total: 5,
+    });
+  });
+
+  it("порожня історія — порожні плитки, а не ділення на нуль", () => {
+    expect(closedDays([], null, "2026-07-29")).toEqual({ met: 0, total: 0 });
+  });
+
+  it("не залежить від порядку рядків у відповіді", () => {
+    expect(closedDays([...rows].reverse(), null, "2026-07-29")).toEqual({
+      met: 2,
+      total: 5,
+    });
   });
 });

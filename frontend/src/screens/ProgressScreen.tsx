@@ -12,6 +12,10 @@
  * Агрегати за періоди рахує клієнт із тієї самої вибірки `GET /study/days/`.
  * Ендпоінта `/days/summary/` немає навмисно: межі «тижня з понеділка» в поясі
  * користувача інакше жили б у двох реалізаціях і тихо розійшлися б.
+ *
+ * Плитки рахують ЗАКРИТІ ДНІ, а не обсяг роботи. Правило й усі його пастки —
+ * у `closedDays` (`study/day.ts`), під тестами: рахувати їх «на око» прямо тут
+ * означало б, зокрема, що пропущений тиждень покращував би цифру.
  */
 
 import { useMemo } from "react";
@@ -19,8 +23,14 @@ import { useQuery } from "@tanstack/react-query";
 import { ProfileAvatar } from "../profile/ProfileAvatar";
 import { Screen } from "../ui/parts";
 import { useVocabularyStats } from "../vocabulary/queries";
-import { fetchDays, type StudyDay } from "../api/study";
-import { localDay, resolveTimeZone, startOfWeek, type DayKey } from "../study/day";
+import { fetchDays } from "../api/study";
+import {
+  closedDays,
+  localDay,
+  resolveTimeZone,
+  startOfWeek,
+  type DayKey,
+} from "../study/day";
 import { useSettings } from "../study/queries";
 import { plural } from "../ui/plural";
 
@@ -59,32 +69,26 @@ function monthName(day: DayKey): string {
   }).format(new Date(`${day}T00:00:00Z`));
 }
 
-function sumFrom(items: StudyDay[], from: DayKey | null) {
-  let reviews = 0;
-  let words = 0;
-  for (const row of items) {
-    if (from && row.day < from) continue;
-    reviews += row.review_count;
-    words += row.new_count;
-  }
-  return { reviews, words };
-}
-
-function Tile({
-  label,
-  reviews,
-  words,
-}: {
-  label: string;
-  reviews: number;
-  words: number;
-}) {
+/**
+ * Плитка періоду: скільки днів закрито з тих, що були.
+ *
+ * Раніше тут стояв обсяг — повторені доріжки й додані слова. Обсяг за рік
+ * росте сам від того, що ти не кидаєш, і однаково великий у того, хто вчиться
+ * щодня, і в того, хто раз на місяць добиває все за раз. Закриті дні кажуть
+ * саме те, чого від них хочуть: чи тримається звичка.
+ *
+ * Знаменник обовʼязковий. «64» за рік і «64» за місяць — це дві протилежні
+ * новини, а без другого числа вони виглядають однаково.
+ */
+function Tile({ label, met, total }: { label: string; met: number; total: number }) {
   return (
     <div className="tile">
       <div className="tile-lbl">{label}</div>
-      <div className="tile-num">{reviews}</div>
+      <div className="tile-num">{met}</div>
       <div className="tile-sub">
-        {words} {plural(words, "нове слово", "нових слова", "нових слів")}
+        {total > 0
+          ? `з ${total} ${plural(total, "дня", "днів", "днів")}`
+          : "днів ще не було"}
       </div>
     </div>
   );
@@ -110,10 +114,10 @@ export default function ProgressScreen() {
   const totals = useMemo(() => {
     const year = `${today.slice(0, 4)}-01-01`;
     return {
-      all: sumFrom(items, null),
-      year: sumFrom(items, year),
-      month: sumFrom(items, monthStart(today)),
-      week: sumFrom(items, startOfWeek(today)),
+      all: closedDays(items, null, today),
+      year: closedDays(items, year, today),
+      month: closedDays(items, monthStart(today), today),
+      week: closedDays(items, startOfWeek(today), today),
     };
   }, [items, today]);
 
@@ -144,13 +148,10 @@ export default function ProgressScreen() {
   }, [items, today]);
 
   const bands = stats.data?.stability_bands;
-  const cards = stats.data?.cards ?? 0;
-  const dueTracks = stats.data?.due_tracks ?? 0;
-  const learned = stats.data?.learned ?? 0;
 
   return (
     <Screen title="Прогрес" aside={<ProfileAvatar />}>
-      <div className="band" aria-label="Слова за міцністю">
+      <div className="band" aria-label="Слова за температурою">
         {BANDS.map((band) => (
           <i
             key={band.key}
@@ -173,15 +174,6 @@ export default function ProgressScreen() {
           </div>
         ))}
       </div>
-
-      <p className="explain">
-        Смуга рахує доріжку перекладу — по одній на слово, тож її сума дорівнює{" "}
-        {cards} {plural(cards, "слову", "словам", "словам")}. Зараз на повторення
-        чекає {dueTracks} {plural(dueTracks, "доріжка", "доріжки", "доріжок")}: у
-        слова з формами їх дві. Вивчено — {learned}, тобто памʼятається щонайменше
-        тиждень.
-      </p>
-
       <div className="tiles">
         <Tile label="тиждень" {...totals.week} />
         <Tile label="місяць" {...totals.month} />
@@ -203,8 +195,8 @@ export default function ProgressScreen() {
 
       <p className="explain">
         Золото — день, у який виконано обидві цілі. Бірюза — учився, але не
-        добрав. Історія починається з дня переносу словника: до нього днів
-        навчання просто не існує.
+        добрав. Плитки вище рахують саме золоті дні; знаменник іде від першого
+        дня історії, бо до нього днів навчання не існувало.
       </p>
     </Screen>
   );

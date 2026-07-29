@@ -235,8 +235,12 @@ async def test_unknown_sort_is_rejected(client: AsyncClient, auth_headers):
     """
     Невідоме значення — 422, а не тихе повернення до дефолту: інакше одруківка
     у фронтенді виглядала б як «сортування не працює».
+
+    Приклад тут колись був `stability` — доки такого порядку не існувало
+    (ADR-0017 його додав). Значення в цьому тесті мусить лишатись таким, якого
+    в `Literal` немає насправді, інакше тест перевіряє власну вигадку.
     """
-    response = await client.get(f"{API}/cards/?sort=stability", headers=auth_headers)
+    response = await client.get(f"{API}/cards/?sort=difficulty", headers=auth_headers)
     assert response.status_code == 422
 
 

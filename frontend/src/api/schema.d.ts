@@ -2564,8 +2564,8 @@ export interface operations {
                 q?: string | null;
                 /** @description Точний збіг — перевірка дубліката */
                 word?: string | null;
-                /** @description created — новіші зверху, word — за абеткою */
-                sort?: "created" | "word";
+                /** @description created — новіші зверху, word — за абеткою, stability — спершу холодні, нові попереду */
+                sort?: "created" | "word" | "stability";
                 page?: number;
                 per_page?: number;
             };

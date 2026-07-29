@@ -8,6 +8,10 @@
  * Рядок навмисно бідний: без крапки «час повторити» (після імпорту прострочені
  * всі доріжки, і вона стояла б на кожному рядку) і без тегів списків (540 із
  * 608 карток лежать в одному списку, тобто тег не ніс би інформації).
+ *
+ * Єдине, що рядок каже понад текст, — температура на лівій рисці (ADR-0017).
+ * Разом із порядком «спершу холодні» це робить прокрутку словника розгорнутою
+ * тепловою смугою «Прогресу»: та сама величина, ті самі шість зупинок.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -24,8 +28,18 @@ import {
   type Browse,
 } from "../vocabulary/queries";
 import ListFilterSheet from "../vocabulary/ListFilterSheet";
+import SortSheet from "../vocabulary/SortSheet";
+import { cardTemperature } from "../study/temperature";
 import { SpeakButton } from "../tts/SpeakButton";
 import { lists as listsLabel, words } from "../ui/plural";
+import type { CardSort } from "../api/vocabulary";
+
+/** Ті самі слова, що в аркуші: кнопка каже, у якому порядку ти зараз. */
+const SORT_LABEL: Record<CardSort, string> = {
+  created: "нові зверху",
+  word: "за абеткою",
+  stability: "спершу холодні",
+};
 
 function CardRow({ card, onOpen }: { card: Card; onOpen: () => void }) {
   const summary = senseSummary(card);
@@ -38,7 +52,13 @@ function CardRow({ card, onOpen }: { card: Card; onOpen: () => void }) {
   // окремим органом, а кнопка в кнопці недопустима в розмітці й непередбачувана
   // в поведінці.
   return (
-    <div className="v-row">
+    <div
+      className="v-row"
+      // Риска ліворуч несе температуру (ADR-0017). Підказкою вона тут бути не
+      // може: поруч уже стоїть переклад, тобто ховати нічого — на відміну від
+      // закритої картки навчання, де той самий колір заборонений (ADR-0016).
+      style={{ "--temp": cardTemperature(card.tracks) } as React.CSSProperties}
+    >
       <button className="v-row-main" type="button" onClick={onOpen}>
         <span className="v-word-line">
           <span className="v-word">{card.word}</span>
@@ -73,6 +93,7 @@ export default function VocabularyScreen() {
   });
   const [draftQuery, setDraftQuery] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
 
   // Пошук іде на сервер, тож набір тексту не має слати запит на кожну літеру.
   useEffect(() => {
@@ -148,17 +169,8 @@ export default function VocabularyScreen() {
         >
           {activeName} ▾
         </button>
-        <button
-          className="v-sort"
-          type="button"
-          onClick={() =>
-            setBrowse((current) => ({
-              ...current,
-              sort: current.sort === "created" ? "word" : "created",
-            }))
-          }
-        >
-          {browse.sort === "created" ? "нові зверху" : "за абеткою"}
+        <button className="v-sort" type="button" onClick={() => setSortOpen(true)}>
+          {SORT_LABEL[browse.sort]} ▾
         </button>
       </div>
 
@@ -213,6 +225,17 @@ export default function VocabularyScreen() {
             setSheetOpen(false);
           }}
           onClose={() => setSheetOpen(false)}
+        />
+      ) : null}
+
+      {sortOpen ? (
+        <SortSheet
+          sort={browse.sort}
+          onPick={(next) => {
+            setBrowse((current) => ({ ...current, sort: next }));
+            setSortOpen(false);
+          }}
+          onClose={() => setSortOpen(false)}
         />
       ) : null}
     </Screen>

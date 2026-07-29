@@ -6,9 +6,9 @@
 """
 
 from httpx import AsyncClient
-from sqlalchemy import select
+from sqlalchemy import delete, select, update
 
-from app.database.models import ReviewKindEnum, ReviewTrackModel
+from app.database.models import ReviewKindEnum, ReviewStateEnum, ReviewTrackModel
 
 VOCAB = "/api/v1/vocabulary"
 STUDY = "/api/v1/study"
@@ -244,6 +244,112 @@ async def test_removing_all_forms_keeps_the_forms_track(
     # А з черги — так, зникає.
     queue = (await client.get(f"{STUDY}/queue/", headers=auth_headers)).json()
     assert {item["kind"] for item in queue["items"]} == {"translation"}
+
+
+# --------------------------------------------------------------------------
+# «Температура» — порядок за стабільністю (ADR-0017)
+# --------------------------------------------------------------------------
+
+
+async def _set_translation_stability(
+    db_session, card_id: int, stability: float
+) -> None:
+    await db_session.execute(
+        update(ReviewTrackModel)
+        .where(
+            ReviewTrackModel.card_id == card_id,
+            ReviewTrackModel.kind == ReviewKindEnum.TRANSLATION,
+        )
+        .values(stability=stability, state=ReviewStateEnum.REVIEW)
+    )
+    await db_session.commit()
+
+
+async def test_stability_sort_puts_new_words_first_then_coldest(
+    client: AsyncClient, auth_headers, db_session
+):
+    """
+    Порядок `stability` — від холодного кінця рампи до теплого, нові попереду.
+
+    Нове слово стоїть першим не тому, що воно «найслабше»: стабільності в нього
+    ще немає взагалі. Підмінити її нулем означало б стверджувати «тримається
+    менше дня» про слово, якого ніхто не питав.
+    """
+    warm = await _new_card(client, auth_headers, "warm")
+    cold = await _new_card(client, auth_headers, "cold")
+    fresh = await _new_card(client, auth_headers, "fresh")
+
+    await _set_translation_stability(db_session, warm["id"], 200.0)
+    await _set_translation_stability(db_session, cold["id"], 0.5)
+
+    response = await client.get(f"{VOCAB}/cards/?sort=stability", headers=auth_headers)
+    assert response.status_code == 200, response.text
+    assert [item["word"] for item in response.json()["items"]] == [
+        "fresh",
+        "cold",
+        "warm",
+    ]
+
+
+async def test_stability_sort_ignores_the_forms_track(
+    client: AsyncClient, auth_headers, db_session
+):
+    """
+    Сортує доріжка ПЕРЕКЛАДУ, і це не деталь реалізації.
+
+    Цим порядком їде список, кожен рядок якого пофарбовано `cardTemperature` —
+    а вона бере переклад. Візьми тут форми, і список поїхав би не за тим
+    кольором, який сам показує; до того ж картка без форм опинилась би в
+    привілейованому становищі проти картки з формами.
+    """
+    plain = await _new_card(client, auth_headers, "plain")
+    with_forms = await _new_card(
+        client, auth_headers, "go", forms=[{"label": "Past", "value": "went"}]
+    )
+
+    # Переклад холодний, форми — найтепліші, які взагалі бувають.
+    await _set_translation_stability(db_session, with_forms["id"], 0.5)
+    await _set_translation_stability(db_session, plain["id"], 100.0)
+    await db_session.execute(
+        update(ReviewTrackModel)
+        .where(
+            ReviewTrackModel.card_id == with_forms["id"],
+            ReviewTrackModel.kind == ReviewKindEnum.FORMS,
+        )
+        .values(stability=999.0, state=ReviewStateEnum.REVIEW)
+    )
+    await db_session.commit()
+
+    response = await client.get(f"{VOCAB}/cards/?sort=stability", headers=auth_headers)
+    assert [item["word"] for item in response.json()["items"]] == ["go", "plain"], (
+        "картку посортувало теплою доріжкою форм замість холодного перекладу"
+    )
+
+
+async def test_stability_sort_treats_a_trackless_card_as_new(
+    client: AsyncClient, auth_headers, db_session
+):
+    """
+    Картка без доріжки перекладу — теж «ще не міряно», тобто в голову списку.
+
+    Це той самий стан, що NEW, і рампа фарбує її так само (`cardTemperature`
+    віддає `--a0` при порожньому `tracks`). Якби NULL сортувався останнім,
+    список показував би індиго внизу, а не вгорі.
+    """
+    measured = await _new_card(client, auth_headers, "measured")
+    trackless = await _new_card(client, auth_headers, "trackless")
+
+    await _set_translation_stability(db_session, measured["id"], 3.0)
+    await db_session.execute(
+        delete(ReviewTrackModel).where(ReviewTrackModel.card_id == trackless["id"])
+    )
+    await db_session.commit()
+
+    response = await client.get(f"{VOCAB}/cards/?sort=stability", headers=auth_headers)
+    assert [item["word"] for item in response.json()["items"]] == [
+        "trackless",
+        "measured",
+    ]
 
 
 # --------------------------------------------------------------------------
