@@ -1,0 +1,60 @@
+/* ==========================================================================
+   Гарнітури возяться з собою, а не тягнуться з CDN: у продакшені один origin і
+   жодних зовнішніх хостів (ADR-0008), а `woff2` уже стоїть у `globPatterns`
+   service worker'а — тобто офлайн вони кешуються самі.
+
+   Підключені рівно два підмножини на гарнітуру: `latin` і `cyrillic`.
+   `latin-ext` у Unbounded важить 118 КБ сам по собі й потрібен рівно нікому:
+   у словнику немає ні польської, ні чеської. Якщо колись знадобиться — це
+   окремий @font-face з власним unicode-range, а не заміна цих.
+
+   Транскрипція НЕ набирається жодною з них. У даних вона буває і справжньою
+   IPA (`/ˈhæŋ.kɚ.tʃiːf/`), і кирилицею (`ін-РOУЛ-мэнт` — з `э` та `ы`).
+   Системний стек покриває обидва набори гарантовано, веб-гарнітура — ні.
+   ========================================================================== */
+
+/* Unbounded — Kyiv Type Foundry. Дисплейна: слово, великі числа, заголовки. */
+@font-face {
+  font-family: "Unbounded Variable";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("../../node_modules/@fontsource-variable/unbounded/files/unbounded-latin-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Unbounded Variable";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("../../node_modules/@fontsource-variable/unbounded/files/unbounded-cyrillic-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+/* Onest — текст інтерфейсу. */
+@font-face {
+  font-family: "Onest Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../../node_modules/@fontsource-variable/onest/files/onest-latin-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Onest Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../../node_modules/@fontsource-variable/onest/files/onest-cyrillic-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}

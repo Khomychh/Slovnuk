@@ -1,0 +1,2561 @@
+/* ==========================================================================
+   Компоненти. Правила палітри — у theme.css (ADR-0012): насичений колір лише
+   з рампи сяйва, хром — холодні нейтралі, семафора немає ніде.
+
+   Дисплейною гарнітурою (Unbounded) набрано рівно чотири речі: слово в
+   навчанні, велике число на «Сьогодні», заголовки екранів і відповідь. Усе
+   інше — Onest. Дисплейна гарнітура втрачає силу рівно тоді, коли нею
+   починають набирати підписи.
+   ========================================================================== */
+
+.screen {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px var(--pad) 32px;
+  min-height: 0;
+}
+
+/* Шапка екрана: рубрика й заголовок ліворуч, аватар праворуч. Профіль живе
+   саме тут, а не вкладкою: у нього заходять раз на місяць. */
+.screen-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Ліва половина шапки: шеврон «назад» і заголовок в одному рядку. Шеврон
+   висунуто в поле відступу (-8px), щоб заголовок лишався на тій самій
+   вертикалі, що й на екранах без нього. */
+.screen-head-main {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.screen-back {
+  margin-left: -8px;
+}
+
+/* Число в правому куті шапки — моноширинне, як усі лічильники. Стоїть там, де
+   на «Сьогодні» аватар, і зайняло місце, що звільнила рубрика. */
+.head-count {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--haze-2);
+  padding-top: 8px;
+  white-space: nowrap;
+}
+
+.avatar {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  /* Без цього фото вилазить за скруглення і коло стає квадратом. */
+  overflow: hidden;
+  border: 1px solid var(--edge);
+  background: var(--sheet);
+  color: var(--haze);
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-shadow: var(--lift);
+}
+
+/* --- поля --------------------------------------------------------------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.field > label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+}
+
+.field > input,
+.v-search,
+.ed-panel input,
+.ed-panel select,
+.ed-inline input,
+.ed-cat,
+.ed-body {
+  width: 100%;
+  border: 1px solid var(--edge);
+  background: var(--sheet);
+  border-radius: var(--r-sm);
+  padding: 14px 15px;
+  font-size: 16px; /* менше 16px — і iOS збільшує сторінку на фокусі */
+  font-family: var(--sans);
+  color: var(--frost);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.field > input::placeholder,
+.v-search::placeholder,
+.ed-panel input::placeholder,
+.ed-inline input::placeholder,
+.ed-cat::placeholder,
+.ed-body::placeholder {
+  color: var(--haze-2);
+}
+
+.field > input:focus,
+.v-search:focus,
+.ed-panel input:focus,
+.ed-panel select:focus,
+.ed-inline input:focus,
+.ed-cat:focus,
+.ed-body:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--a1) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--a1) 14%, transparent);
+}
+
+/* --- кнопки ------------------------------------------------------------- */
+
+.btn {
+  width: 100%;
+  border: none;
+  border-radius: var(--r-sm);
+  background: var(--frost);
+  color: var(--night);
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 600;
+  padding: 16px;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btn-quiet {
+  width: 100%;
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--haze);
+  font-family: var(--sans);
+  font-size: 15px;
+  padding: 14px;
+  cursor: pointer;
+}
+
+.btn-quiet:active {
+  background: var(--sheet);
+}
+
+.btn-link {
+  border: none;
+  background: none;
+  color: var(--haze);
+  font-family: var(--sans);
+  font-size: 14px;
+  padding: 6px 2px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Кнопка-іконка. Використовується там, де слово коштувало б рядка: «олівець»
+   у перегляді картки, «×» у навчанні, «‹» в аркуші. */
+.icon-btn {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--edge);
+  border-radius: 12px;
+  background: var(--sheet);
+  color: var(--frost);
+  cursor: pointer;
+  padding: 0;
+}
+
+.icon-btn:active {
+  background: var(--sheet-2);
+}
+
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.icon-btn-bare {
+  border-color: transparent;
+  background: none;
+  color: var(--haze);
+}
+
+/* --- динамік ------------------------------------------------------------ */
+
+/* Один орган у шести місцях. Рамки й тла немає навмисно: він стоїть поруч із
+   текстом, який і є головним, — і мусить читатись як позначка на полі, а не як
+   друга кнопка поруч зі словом.
+
+   Дотикова ціль більша за саму іконку: 34–40px проти 16–20px. Промах тут не
+   коштує нічого, але й влучати мусить палець, а не курсор. */
+.spk {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0 0 0 2px;
+  color: var(--haze-2);
+  cursor: pointer;
+}
+
+.spk svg {
+  width: 16px;
+  height: 16px;
+}
+
+.spk-md {
+  width: 40px;
+  height: 40px;
+}
+
+.spk-md svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Друга хвиля й колір рампи — поки звучить голос. Це не прикраса: синтез
+   інколи мовчки не спрацьовує, і без цієї ознаки кнопка виглядала б однаково
+   зламаною і тоді, коли працює зі стишеним телефоном. */
+.spk .spk-wave {
+  opacity: 0;
+  transition: opacity 0.14s ease;
+}
+
+.spk[data-on] {
+  color: var(--a1);
+}
+
+.spk[data-on] .spk-wave {
+  opacity: 1;
+}
+
+.spk:active {
+  color: var(--frost);
+}
+
+/* Праворуч у рядку форми — після мітки, значення й транскрипції. */
+.spk-end {
+  margin-left: auto;
+}
+
+/* На письмовій лінійці поля «слово» в редакторі. */
+.spk-on-rule {
+  position: absolute;
+  right: 0;
+  bottom: 4px;
+}
+
+/* --- повідомлення ------------------------------------------------------- */
+
+.msg {
+  border-radius: var(--r-sm);
+  padding: 13px 15px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  background: var(--sheet);
+  border: 1px solid var(--edge);
+  color: var(--haze);
+}
+
+/* Помилка не червона (ADR-0012): вона позначена лінією й повним контрастом
+   тексту. Червоний тут відкрив би семафор, а разом із ним — зелену «Добре». */
+.msg-error {
+  border-left: 2px solid var(--a0);
+  color: var(--frost);
+}
+
+.hint {
+  font-size: 13.5px;
+  color: var(--haze-2);
+  line-height: 1.55;
+  margin: 0 0 20px;
+}
+
+.hint-center {
+  text-align: center;
+  margin-top: 14px;
+}
+
+/* --- смуга офлайну ------------------------------------------------------ */
+
+.offline-bar {
+  flex: none;
+  background: var(--sheet);
+  border-bottom: 1px solid var(--edge);
+  color: var(--haze);
+  font-size: 12.5px;
+  text-align: center;
+  padding: 8px 14px;
+}
+
+/* --- панель вкладок ----------------------------------------------------- */
+
+.tabs {
+  flex: none;
+  display: flex;
+  border-top: 1px solid var(--edge);
+  background: var(--night);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.tabs a {
+  position: relative;
+  flex: 1;
+  color: var(--haze-2);
+  font-size: 10.5px;
+  padding: 12px 2px 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.tabs a.active {
+  color: var(--frost);
+}
+
+/* Активна вкладка позначена шматочком тієї самої стрічки — четверта поява
+   підпис-елемента, найтихіша. */
+.tabs a.active::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 26px;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: var(--aurora);
+}
+
+.tabs svg {
+  width: 19px;
+  height: 19px;
+}
+
+.stub {
+  margin-top: 24px;
+  padding: 18px 16px;
+  border: 1px dashed var(--edge);
+  border-radius: var(--r);
+  color: var(--haze-2);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* ==========================================================================
+   «Сьогодні»
+   ========================================================================== */
+
+/* Герой екрана. Не біла плитка з написом, а панель, над якою стоїть сяйво:
+   єдине місце, де стрічка рухається. */
+.hero {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 24px 0 26px;
+  padding: 20px 20px 18px;
+  border: 1px solid var(--edge);
+  border-radius: var(--r);
+  background: var(--sheet);
+  box-shadow: var(--lift-high);
+  color: var(--frost);
+  font-family: var(--sans);
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.hero:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.hero:disabled {
+  cursor: default;
+  box-shadow: var(--lift);
+}
+
+.hero:disabled::before {
+  opacity: 0.12;
+}
+
+/* Текст героя стоїть над сяйвом: без position він лишився б під ::before і
+   велике число читалося б крізь кольорову пляму. */
+.hero > span {
+  position: relative;
+}
+
+.hero-lbl {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+}
+
+.hero-num {
+  display: block;
+  font-family: var(--display);
+  font-size: 54px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  margin-top: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-word {
+  display: block;
+  font-family: var(--display);
+  font-size: 27px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  margin-top: 8px;
+}
+
+.hero-sub {
+  display: block;
+  font-size: 13px;
+  color: var(--haze);
+  margin-top: 10px;
+}
+
+/* --- цілі --------------------------------------------------------------- */
+
+.goals {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.goal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.goal-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+}
+
+.goal-num {
+  font-size: 13.5px;
+  color: var(--haze);
+  font-variant-numeric: tabular-nums;
+}
+
+.goal-num b {
+  color: var(--frost);
+  font-weight: 600;
+}
+
+.goal-off {
+  color: var(--haze-2);
+  font-size: 12.5px;
+}
+
+.goal-track {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--edge-soft);
+  overflow: hidden;
+}
+
+.goal-track > .on {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--a2);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Виконана ціль світиться золотом — тим самим, що й найтепліший кінець
+   рампи. Це не «успіх», це «дійшло до гарячого». */
+.goal-track > .on.met {
+  background: var(--a5);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--a5) 55%, transparent);
+}
+
+/* --- тиждень ------------------------------------------------------------ */
+
+.week {
+  margin-top: 26px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.week-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--edge-soft);
+  border: 1px solid transparent;
+}
+
+/* Учився, але до цілі не добрав — обведення без заливки. Порожній день і
+   недобраний мусять виглядати різно, інакше крапки нічого не кажуть. */
+.dot-active {
+  background: none;
+  border-color: var(--haze-2);
+}
+
+.dot-met {
+  background: var(--a5);
+  border-color: var(--a5);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--a5) 60%, transparent);
+}
+
+.dot-today {
+  box-shadow: 0 0 0 2px var(--night), 0 0 0 3px var(--haze-2);
+}
+
+.week-lbl {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--haze-2);
+}
+
+/* --- згорнуті секції ---------------------------------------------------- */
+
+.fold {
+  margin-top: 20px;
+  border-top: 1px solid var(--edge);
+}
+
+.fold > summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 15px 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fold-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+}
+
+.fold-value {
+  font-size: 14px;
+  color: var(--haze);
+}
+
+.fold-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 18px;
+}
+
+.chip {
+  border: 1px solid var(--edge);
+  background: none;
+  color: var(--haze);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-family: var(--sans);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.chip-on {
+  border-color: color-mix(in srgb, var(--a1) 50%, transparent);
+  background: color-mix(in srgb, var(--a1) 12%, transparent);
+  color: var(--frost);
+}
+
+/* Підказка мітки форми. Менша за звичайний чип — це не вибір зі списку, а
+   заготовка для поля, яке лишається вільним для набору. */
+.chip-sm {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 13.5px;
+  color: var(--haze-2);
+}
+
+.chip-sm:active {
+  border-color: color-mix(in srgb, var(--a1) 45%, transparent);
+  color: var(--frost);
+}
+
+.chip-num {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--haze-2);
+}
+
+/* ==========================================================================
+   Навчання
+   ========================================================================== */
+
+.study {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.study-top {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px var(--pad) 0;
+}
+
+.study-close {
+  border: none;
+  background: none;
+  color: var(--haze);
+  font-size: 26px;
+  line-height: 1;
+  padding: 2px 8px 2px 0;
+  cursor: pointer;
+}
+
+/* Смужка тут — рух до денної цілі, а не «скільки лишилось». Черга
+   поповнюється сама через кроки навчання, тож спадного числа не існує. */
+.study-bar {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--edge-soft);
+  overflow: hidden;
+}
+
+.study-bar > i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--a2);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.study-bar > i.met {
+  background: var(--a5);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--a5) 55%, transparent);
+}
+
+.study-count {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  color: var(--haze-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Підпис інтервалу. Місце під нього тримається завжди — інакше картка
+   підстрибувала б на кожній відповіді. */
+.study-note {
+  flex: none;
+  min-height: 22px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--haze);
+  padding: 8px var(--pad) 0;
+}
+
+.study-note b {
+  color: var(--frost);
+  font-weight: 600;
+}
+
+/* Коротка картка стоїть посеред екрана, довга — прокручується від верху.
+   `safe center` саме для цього: без `safe` початок довгого вмісту йде за
+   верхній край і до нього не догортати. */
+.study-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px var(--pad) 20px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: safe center;
+}
+
+/* Сама картка. Над нею стоїть сяйво в кольорі стану цієї доріжки: нове
+   світиться холодним індиго, давно відоме — золотом. Колір береться зі
+   `state`, а не зі стабільності: стабільності в черзі просто немає. */
+.card-panel {
+  position: relative;
+  border: 1px solid var(--edge);
+  border-radius: var(--r);
+  background: var(--sheet);
+  box-shadow: var(--lift-high);
+  padding: 24px 20px 22px;
+  overflow: hidden;
+}
+
+.card-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 120px;
+  background: radial-gradient(
+    120% 100% at 50% 0%,
+    color-mix(in srgb, var(--temp, var(--a1)) 45%, transparent) 0%,
+    transparent 72%
+  );
+  pointer-events: none;
+}
+
+.card-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: var(--temp, var(--a1));
+  opacity: 0.85;
+}
+
+.front {
+  position: relative;
+  text-align: center;
+  cursor: pointer;
+  padding: 6px 0 4px;
+}
+
+.dirhint,
+.fd-hint {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+  margin-bottom: 18px;
+}
+
+/* Слово і динамік в одному рядку. Картка навчання центрована, тож і рядок
+   центрований: динамік «висить» праворуч від слова, а не притискається до краю
+   панелі — інакше він читався б як окрема дія над карткою. */
+.head-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.head-line > .headword,
+.head-line > .ans {
+  min-width: 0;
+}
+
+.headword {
+  font-family: var(--display);
+  font-size: 38px;
+  font-weight: 500;
+  line-height: 1.12;
+  letter-spacing: -0.045em;
+  overflow-wrap: anywhere;
+}
+
+.headword.small {
+  font-size: 27px;
+  letter-spacing: -0.035em;
+}
+
+/* Найдовше «слово» у словнику — ціле речення на 61 символ. Дисплейний кегль
+   на ньому мусить здатись, а не поїхати за край. */
+.headword.tiny {
+  font-family: var(--sans);
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+}
+
+.rev-list {
+  font-family: var(--display);
+  font-size: 25px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.035em;
+}
+
+.rev-item + .rev-item {
+  margin-top: 8px;
+}
+
+.rev-meta {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--haze-2);
+}
+
+.tap-hint {
+  margin-top: 24px;
+  font-size: 12.5px;
+  color: var(--haze-2);
+}
+
+.back {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--edge);
+  text-align: left;
+  animation: rise 0.22s ease;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ans {
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.ipa {
+  font-family: var(--ipa);
+  font-size: 14px;
+  color: var(--haze);
+  text-align: center;
+  margin-top: 8px;
+}
+
+.sense-ans {
+  margin-top: 18px;
+}
+
+.sense-ans + .sense-ans {
+  border-top: 1px solid var(--edge-soft);
+  padding-top: 16px;
+}
+
+.pos-tag {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+  border: 1px solid var(--edge);
+  border-radius: 5px;
+  padding: 2px 6px;
+  margin-right: 9px;
+}
+
+.s-tr-big {
+  font-size: 19px;
+  font-weight: 500;
+}
+
+.s-ipa-tag {
+  font-family: var(--ipa);
+  font-size: 13px;
+  color: var(--haze-2);
+  margin-left: 8px;
+}
+
+.ex {
+  margin-top: 12px;
+  border-left: 1px solid var(--edge);
+  padding-left: 13px;
+}
+
+.ex p {
+  margin: 0 0 9px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--haze);
+}
+
+.ex p:last-child {
+  margin-bottom: 0;
+}
+
+.ex-tr {
+  display: block;
+  color: var(--haze-2);
+  font-size: 13.5px;
+}
+
+.forms,
+.fd {
+  margin-top: 20px;
+}
+
+.forms {
+  padding-top: 16px;
+  border-top: 1px solid var(--edge);
+}
+
+.forms-h {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+  margin-bottom: 10px;
+}
+
+.frow,
+.fd-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 0;
+}
+
+.frow + .frow,
+.fd-row + .fd-row {
+  border-top: 1px solid var(--edge-soft);
+}
+
+.flbl,
+.fd-lbl {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+  min-width: 58px;
+}
+
+.fd-form {
+  font-family: var(--display);
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.fipa,
+.fd-ipa {
+  font-family: var(--ipa);
+  font-size: 13px;
+  color: var(--haze-2);
+}
+
+.fd-tr {
+  margin-top: 18px;
+  font-size: 15px;
+  color: var(--haze);
+}
+
+.fdt-lbl {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+  margin-right: 9px;
+}
+
+.cmt {
+  margin-top: 20px;
+  padding: 13px 15px;
+  background: var(--sheet-2);
+  border-radius: 12px;
+  font-size: 14px;
+  color: var(--haze);
+  line-height: 1.5;
+}
+
+/* --- оцінки ------------------------------------------------------------- */
+
+.study-actions {
+  flex: none;
+  padding: 0 var(--pad) calc(16px + env(safe-area-inset-bottom));
+}
+
+.rate {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+/* Колір кнопки — зупинка на рампі сяйва, тобто те, куди ця відповідь посуне
+   слово. Не «правильно / неправильно»: «Не згадав» — крижане індиго, а не
+   червоне, бо забути слово не є провиною (ADR-0012). */
+.rate button {
+  position: relative;
+  border: 1px solid color-mix(in srgb, var(--c) 48%, transparent);
+  /* Колір густішає донизу, до своєї смужки: кнопка світиться від неї, а не
+     залита рівним відтінком. Рівна заливка на теплому кінці рампи виглядає
+     брудно-коричневою на синьому тлі. */
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--c) 8%, var(--sheet)),
+    color-mix(in srgb, var(--c) 30%, var(--sheet))
+  );
+  color: var(--frost);
+  border-radius: var(--r-sm);
+  padding: 16px 10px;
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.1s ease, background 0.12s ease;
+}
+
+.rate button::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 8px;
+  width: 22px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--c);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--c) 70%, transparent);
+}
+
+.rate button:active {
+  background: color-mix(in srgb, var(--c) 34%, var(--sheet));
+  transform: scale(0.975);
+}
+
+.rate button[data-r="1"] {
+  --c: var(--r1);
+}
+.rate button[data-r="2"] {
+  --c: var(--r2);
+}
+.rate button[data-r="3"] {
+  --c: var(--r3);
+}
+.rate button[data-r="4"] {
+  --c: var(--r4);
+}
+
+.done {
+  text-align: center;
+  padding-top: 60px;
+}
+
+.done-big {
+  font-family: var(--display);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  margin-bottom: 10px;
+}
+
+/* ==========================================================================
+   Словник
+   ========================================================================== */
+
+.v-summary {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+  margin: 20px 0 12px;
+}
+
+.v-search {
+  padding: 13px 15px;
+  font-size: 15px;
+}
+
+.v-search:disabled {
+  opacity: 0.5;
+}
+
+.v-controls {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 4px;
+}
+
+.v-filter,
+.v-sort {
+  border: 1px solid var(--edge);
+  background: var(--sheet);
+  color: var(--frost);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-family: var(--sans);
+  cursor: pointer;
+}
+
+.v-sort {
+  color: var(--haze);
+  margin-left: auto;
+}
+
+.v-list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Рядок слова. Уся площа — одна ціль дотику; ліворуч тонка риска, що
+   спалахує на дотик, бо 608 однакових рядків інакше не мають ритму. */
+/* Рядок словника — смуга з двома органами: увесь текст відкриває картку,
+   динамік праворуч озвучує слово. Тому це вже не кнопка, а контейнер: кнопка
+   всередині кнопки неприпустима в розмітці. */
+.v-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid var(--edge-soft);
+  position: relative;
+}
+
+.v-row-main {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 13px 2px 13px 12px;
+  font-family: var(--sans);
+  color: var(--frost);
+  cursor: pointer;
+}
+
+.v-row::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--edge);
+}
+
+.v-row-main:active {
+  background: var(--sheet);
+}
+
+.v-row:has(> .v-row-main:active)::before {
+  background: var(--a1);
+}
+
+/* У рядку списку ціль більша: сюди тицяють великим пальцем на ходу, у смузі,
+   яка сама цілком є ціллю для іншої дії. */
+.spk-row {
+  width: 44px;
+  height: 44px;
+  margin-right: 2px;
+}
+
+.v-word-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.v-word {
+  font-size: 16px;
+  font-weight: 500;
+  /* До двох рядків: у словнику є «слова» на 61 символ — цілі речення. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.v-ipa {
+  color: var(--haze-2);
+  font-size: 12.5px;
+  font-family: var(--ipa);
+}
+
+.v-tag {
+  margin-left: auto;
+  color: var(--haze-2);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+/* Переклади — рівно один рядок: 62 картки зі словника не вміщаються. */
+.v-tr {
+  display: block;
+  color: var(--haze);
+  font-size: 14px;
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Єдина кнопка застосунку, залита самою стрічкою: додати слово — це і є те,
+   з чого починається вся шкала. */
+.v-add {
+  position: fixed;
+  /* Тримається колонки застосунку, а не краю вікна: на широкому екрані
+     інакше відлітає кудись праворуч, за межі самого застосунку. */
+  right: max(18px, calc(50% - 222px));
+  bottom: 82px;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: none;
+  background: var(--aurora);
+  color: var(--night);
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1;
+  box-shadow: 0 10px 30px -8px color-mix(in srgb, var(--a2) 60%, transparent);
+  cursor: pointer;
+}
+
+.v-add:disabled {
+  background: var(--sheet-2);
+  color: var(--haze-2);
+  box-shadow: none;
+}
+
+.v-lists-line {
+  color: var(--haze);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.v-lists-none {
+  color: var(--haze-2);
+}
+
+/* --- аркуш -------------------------------------------------------------- */
+
+.sheet-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 5, 12, 0.72);
+  display: flex;
+  align-items: flex-end;
+  z-index: 20;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--sheet);
+  border-top: 1px solid var(--edge);
+  border-radius: var(--r) var(--r) 0 0;
+  padding: 10px 0 24px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 -30px 60px -30px rgba(0, 0, 0, 0.9);
+}
+
+.sheet-tall {
+  max-height: 100vh;
+  height: 100%;
+  border-radius: 0;
+  border-top: none;
+  padding: 0;
+}
+
+.sheet-page {
+  padding: 16px var(--pad) 40px;
+}
+
+.sheet-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.sheet-back {
+  background: none;
+  border: none;
+  color: var(--frost);
+  font-size: 26px;
+  line-height: 1;
+  padding: 0 6px 0 0;
+  cursor: pointer;
+}
+
+.sheet-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--edge-soft);
+  color: var(--frost);
+  font-family: var(--sans);
+  font-size: 15px;
+  padding: 14px var(--pad);
+  text-align: left;
+  cursor: pointer;
+}
+
+.sheet-row-on {
+  color: var(--a5);
+}
+
+.sheet-count {
+  color: var(--haze-2);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.sheet-muted {
+  color: var(--haze);
+}
+
+.sheet-star {
+  color: var(--a4);
+}
+
+.sheet-manage {
+  border-bottom: none;
+  color: var(--haze);
+}
+
+/* --- редактор ----------------------------------------------------------- */
+
+.ed-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+  margin: 24px 0 10px;
+}
+
+/* Слово набирається дисплейною гарнітурою на письмовій лінійці, а не в такому
+   самому полі, як коментар. Це єдина ознака, за якою редактор упізнається як
+   екран цього застосунку: сяйва тут немає навмисно (ADR-0012 — насичений колір
+   мусить щось означати, а стану памʼяті на редагуванні не існує). */
+.ed-word-field {
+  margin-bottom: 22px;
+  /* Опора для динаміка: він стоїть на самій лінійці, а не окремим рядком. */
+  position: relative;
+}
+
+.field > input.ed-word {
+  font-family: var(--display);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--edge);
+  border-radius: 0;
+  /* Праворуч — місце під динамік, щоб довге слово не заповзало під нього. */
+  padding: 4px 42px 10px 2px;
+}
+
+/* Транскрипція форми ділить рядок із динаміком: він озвучує саму форму, але
+   стоїть тут, а не поруч із «×», щоб промах пальця не коштував набраного. */
+.ed-ipa-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ed-ipa-row > input {
+  flex: 1;
+  min-width: 0;
+}
+
+.field > input.ed-word::placeholder {
+  color: var(--haze-2);
+  opacity: 0.45;
+}
+
+.field > input.ed-word:focus {
+  border-bottom-color: color-mix(in srgb, var(--a1) 65%, transparent);
+  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--a1) 45%, transparent);
+}
+
+/* Значення і форма — панелі однакової ваги. Раніше значення було в рамці, а
+   форма голою лінійкою, хоча за суттю це однорідні блоки картки. */
+.ed-panel {
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  background: var(--sheet);
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.ed-panel input,
+.ed-panel select {
+  background: var(--night);
+  border-radius: 11px;
+  padding: 11px 12px;
+  margin-bottom: 8px;
+}
+
+/* Транскрипція набирається тим самим стеком, яким показується: у даних вона
+   буває і справжньою IPA (/ˈhæŋ.kɚ.tʃiːf/), і кирилицею (ін-РOУЛ-мэнт). */
+.ed-panel input.ed-ipa {
+  font-family: var(--ipa);
+}
+
+.ed-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.ed-row > input,
+.ed-row > select {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+/* На всю ширину рядка — як і решта полів панелі. Вужчий селект пробували: без
+   сусіда праворуч його правий край не збігається ні з чим, і панель виглядає
+   перекошеною, а не легшою. */
+.ed-pos {
+  flex: 1;
+}
+
+.ed-form-lbl {
+  flex: 0 1 42%;
+}
+
+.ed-form-val {
+  flex: 1 1 58%;
+}
+
+/* Чипи-підказки під полем. Відступ згори обовʼязковий: без нього вони
+   притискаються до рамки поля й читаються як його продовження, а не як окремий
+   ряд кнопок. */
+.ed-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 8px;
+}
+
+.ed-example {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  border-left: 2px solid var(--edge);
+  padding-left: 9px;
+  margin-bottom: 6px;
+}
+
+.ed-example-fields {
+  flex: 1;
+  min-width: 0;
+}
+
+.ed-example input {
+  margin-bottom: 5px;
+}
+
+/* Дотикова ціль, а не значок: «×» стоїть упритул до полів, і промах тут
+   стирає введене. */
+.ed-drop {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  color: var(--haze-2);
+  font-size: 22px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+
+.ed-drop:active {
+  background: var(--sheet-2);
+  color: var(--frost);
+}
+
+/* «Додати» — порожнє гніздо, а не підкреслене посилання на 26px висоти. */
+.ed-add {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--edge);
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--haze);
+  font-family: var(--sans);
+  font-size: 14.5px;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.ed-add:active {
+  background: var(--sheet);
+  color: var(--frost);
+}
+
+/* Усередині панелі рамки немає: три пунктирні прямокутники поспіль читаються
+   як сітка порожніх гнізд, хоча вкладене гніздо тут лише одне. */
+.ed-add-inner {
+  min-height: 40px;
+  font-size: 14px;
+  border: none;
+  color: var(--haze-2);
+}
+
+/* Кінцева дія екрана. У шапці, бо низ редактора недосяжний без прокрутки.
+   Іконка без підпису: слово «Зберегти» з'їдало третину верхньої панелі, а
+   галочка в правому куті впізнається без нього. Заливка лишилась — це
+   єдина головна дія на екрані, і вона мусить відрізнятись від «‹ назад». */
+/* Гола галочка, дзеркальна до шеврона «назад» у тій самій шапці. Тла немає
+   навмисно: залита плитка --frost була єдиним майже білим прямокутником у
+   застосунку. Видно її за кольором — вона світліша за все навколо. */
+.btn-save {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  color: var(--frost);
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.btn-save svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* Іконка в підписаній кнопці на всю ширину — «Зберегти пароль». */
+.btn-with-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+}
+
+.btn-with-icon svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.btn-save:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btn-save:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+/* Поле з кнопкою в один рядок — «Новий список» на екрані списків. */
+.ed-inline {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+
+.ed-inline input {
+  background: var(--night);
+  border-radius: 11px;
+  padding: 11px 12px;
+}
+
+.ed-check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--haze);
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+.ed-check input {
+  width: auto;
+  accent-color: var(--a2);
+}
+
+.ed-lists {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+/* --- перегляд картки ---------------------------------------------------- */
+
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* У перегляді картки слово вирівняне ліворуч, тож динамік іде одразу за ним, а
+   не в кінець рядка: він належить слову, а не смузі. */
+.card-head-word {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.card-head-word > .card-word {
+  min-width: 0;
+}
+
+.card-word {
+  font-family: var(--display);
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.card-sense {
+  border-bottom: 1px solid var(--edge-soft);
+  padding-bottom: 13px;
+  margin-bottom: 13px;
+}
+
+.card-sense-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.card-tr {
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.card-pos {
+  color: var(--haze-2);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.card-ipa {
+  color: var(--haze-2);
+  font-family: var(--ipa);
+  font-size: 13px;
+}
+
+.card-ex {
+  margin-top: 9px;
+  font-size: 14px;
+  color: var(--haze);
+}
+
+.card-ex-uk {
+  color: var(--haze-2);
+}
+
+.card-form {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 0;
+}
+
+.card-form + .card-form {
+  border-top: 1px solid var(--edge-soft);
+}
+
+.card-form-lbl {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+  min-width: 58px;
+}
+
+.card-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+  margin: 22px 0 8px;
+}
+
+.card-comment {
+  font-size: 14px;
+  color: var(--haze);
+  background: var(--sheet-2);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.card-delete {
+  margin-top: 30px;
+}
+
+/* --- керування списками -------------------------------------------------- */
+
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--edge-soft);
+  padding: 12px 0;
+}
+
+/* Рядок, під яким живе смуга-частка: лінію малює вона, тож своєї межі рядок не
+   має. Використовується на «Списках»; «Розділи» лишаються на простому
+   `.list-row` з волосяною межею. */
+.list-item > .list-row {
+  border-bottom: none;
+  padding-bottom: 8px;
+}
+
+.list-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.list-row-name {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.list-row-sub {
+  color: var(--haze-2);
+  font-family: var(--mono);
+  font-size: 11px;
+  /* Стан списку словами: «54 СЛОВА · ЗА ЗАМОВЧУВАННЯМ · ПОДІЛЕНО». Через це
+     іконці шеру не потрібно двох станів — «поділено» вже сказано. */
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Смуга-частка: ширина = частка словника, що лежить у цьому списку. П'ятий
+   масштаб стрічки сяйва (край картки, «Вчити», герой «Прогресу», риска
+   вкладки) — і тут вона не декорація, а дані, як на «Прогресі».
+
+   Градієнт розтягнутий на всю ширину рядка, а не в саму смужку: інакше колір
+   означав би розмір списку (маленький список був би завжди фіолетовим), а
+   температуру слів ця смуга не знає й claims про неї не робить. */
+.list-frac {
+  position: relative;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--aurora);
+  margin-bottom: 12px;
+}
+
+.list-frac::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 var(--frac, 0%);
+  background: var(--edge-soft);
+  border-radius: 2px;
+}
+
+/* Дія в рядку переліку. Гола: чотири обрамлені квадрати на кожному з восьми
+   рядків — це 32 рамки на екрані, а зірка й до того була голим знаком. Малюнок
+   20px, дотикова ціль 36×40. */
+.row-icon {
+  flex: none;
+  width: 36px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--haze);
+  cursor: pointer;
+}
+
+.row-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.row-icon:active:not(:disabled) {
+  color: var(--frost);
+}
+
+.row-icon:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* Видалення стоїть останнім і з відступом: промах пальцем по сусідній іконці не
+   повинен цілити саме в нього. */
+.row-icon-danger {
+  margin-left: 4px;
+}
+
+.list-star {
+  font-size: 18px;
+  line-height: 1;
+  color: var(--haze-2);
+}
+
+.list-star.on {
+  color: var(--a4);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--a4) 60%, transparent);
+}
+
+/* ==========================================================================
+   Прогрес
+
+   Герой екрана — та сама стрічка сяйва, тільки тут вона не декорація: ширина
+   кожної смуги дорівнює кількості слів у цій зупинці. Спектр, у якому живе
+   весь словник.
+   ========================================================================== */
+
+.band {
+  display: flex;
+  height: 58px;
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  margin: 22px 0 18px;
+  background: var(--sheet);
+  box-shadow: var(--lift-high);
+}
+
+/* Межі між зупинками лишаються різкими — ширина тут означає кількість слів, і
+   розмивати її не можна. Світло додається всередині смуги: згори ясніше,
+   знизу глибше, тож смуга виглядає освітленою, а не намальованою. */
+.band > i {
+  display: block;
+  min-width: 0;
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.22),
+    rgba(0, 0, 0, 0.3)
+  );
+  transition: flex-grow 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 18px;
+}
+
+.leg {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  color: var(--haze);
+}
+
+.leg-sw {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.leg-n {
+  flex: 1;
+  min-width: 0;
+}
+
+.leg-v {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--frost);
+  font-variant-numeric: tabular-nums;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.tile {
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  background: var(--sheet);
+  padding: 14px 15px;
+}
+
+.tile-lbl {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+}
+
+.tile-num {
+  font-family: var(--display);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tile-sub {
+  font-size: 12px;
+  color: var(--haze-2);
+  margin-top: 2px;
+}
+
+.cal {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.cal-h {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+  text-align: center;
+  padding-bottom: 2px;
+}
+
+.cal-c {
+  aspect-ratio: 1;
+  border-radius: 7px;
+  background: var(--edge-soft);
+}
+
+.cal-c.act {
+  background: color-mix(in srgb, var(--a2) 35%, var(--edge-soft));
+}
+
+.cal-c.met {
+  background: var(--a5);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--a5) 45%, transparent);
+}
+
+.cal-c.out {
+  background: none;
+}
+
+.cal-c.now {
+  box-shadow: 0 0 0 1.5px var(--haze);
+}
+
+.explain {
+  font-size: 13px;
+  color: var(--haze-2);
+  line-height: 1.55;
+  margin-top: 18px;
+}
+
+/* ==========================================================================
+   Профіль
+
+   Сяйва тут немає навмисно — з тієї самої причини, що й у редакторі: насичений
+   колір у цьому застосунку означає стан памʼяті слова, а на профілі його
+   немає. Екран тримається на тих самих нейтралях, що й решта хрому.
+   ========================================================================== */
+
+/* Плитка впізнання: фото і пошта. Стоїть окремою панеллю, а не стовпчиком під
+   заголовком — інакше рубрика, назва екрана й коло сходяться в три рядки
+   поспіль і читаються як одна злипла грудка. */
+.p-id {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 22px 0 24px;
+  padding: 14px;
+  border: 1px solid var(--edge);
+  border-radius: var(--r);
+  background: var(--sheet);
+  box-shadow: var(--lift);
+}
+
+.p-id-main {
+  min-width: 0;
+}
+
+.p-id-mail {
+  color: var(--frost);
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.p-id-sub {
+  color: var(--haze-2);
+  font-size: 13px;
+  margin-top: 3px;
+}
+
+/* Фото і є кнопка заміни. Підпис «змінити» лежить смужкою по нижньому краю
+   кола — без нього дотик по аватару лишався б здогадкою. */
+.p-avatar {
+  position: relative;
+  flex: none;
+  width: 72px;
+  height: 72px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--edge);
+  background: var(--sheet);
+  color: var(--haze);
+  font-family: var(--display);
+  font-size: 26px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.p-avatar:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.p-avatar-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 3px 0 5px;
+  background: color-mix(in srgb, var(--night) 78%, transparent);
+  color: var(--frost);
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.p-avatar img,
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Системний вибір файлу лишається прихованим: його відкриває дотик по фото. */
+.p-file {
+  display: none;
+}
+
+/* Двоє коротких полів в один рядок: імʼя з прізвищем і дві цілі. Окремими
+   рядками вони з'їдали б пів екрана під чотири слова.
+   Третім у цьому ж рядку стоїть «Зберегти»: профіль складається з кількох
+   рівноправних блоків, і кнопка мусить бути прив'язана оком саме до своєї
+   пари полів, а не висіти окремим рядком під ними. */
+.p-pair {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+/* Кнопка тримається нижнього краю полів, а не їхніх зовнішніх відступів: у
+   `.field` знизу 16px, і без цього галочка провисала б під рамками. */
+.p-pair > .btn-save {
+  margin-bottom: 16px;
+}
+
+.p-pair .field {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Рядок «ключ — значення»: пошта й пояс. Це не поля, і виглядати вони як поля
+   не мусять — редагувати там нічого. */
+.p-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--edge-soft);
+}
+
+.p-row-key {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+  flex: none;
+}
+
+.p-row-val {
+  color: var(--frost);
+  font-size: 15px;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+/* --- озвучення ---------------------------------------------------------- */
+
+/* Чотири преференції одного вигляду: мікропідпис і ряд чипів під ним. Чипи, а
+   не перемикачі й не випадаючі списки, — бо це ті самі органи, якими вже
+   вибирається напрямок показу на «Сьогодні», і другого способу вибирати з
+   двох-трьох названих варіантів у застосунку бути не повинно.
+
+   Підпис стоїть НАД чипами, а не збоку: «лише вручну» і «звичайний» поруч із
+   міткою не вміщаються в колонку телефона, а перенос розсипав би ряд. */
+.tts {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.tts-key {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+  margin-bottom: 8px;
+}
+
+.tts-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Погашений чип — це твердження «на цьому пристрої такого голосу немає», а не
+   «зачекай». Тому він гасне лише тоді, коли список голосів уже приїхав. */
+.chip:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* --- граматика ---------------------------------------------------------- */
+
+.g-list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Рядок нотатки. Форма та сама, що в словнику, — риска ліворуч, що спалахує
+   на дотик, — бо це той самий жест і той самий тип екрана. */
+.g-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--edge-soft);
+  padding: 14px 2px 14px 12px;
+  font-family: var(--sans);
+  color: var(--frost);
+  position: relative;
+  cursor: pointer;
+}
+
+.g-row::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 15px;
+  bottom: 15px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--edge);
+}
+
+.g-row:active {
+  background: var(--sheet);
+}
+
+.g-row:active::before {
+  background: var(--a1);
+}
+
+.g-row-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.g-title {
+  font-size: 16px;
+  font-weight: 500;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Чип розділу — та сама форма, що тег «форми» в словнику. Кольору немає:
+   ADR-0012 лишає насичений колір за рампою сяйва, а розділ стану памʼяті не
+   означає. */
+.g-tag {
+  margin-left: auto;
+  flex: none;
+  color: var(--haze-2);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+/* Уривок — рівно один рядок: інакше дев'ять нотаток перестають бути одним
+   екраном, заради чого список і зроблено плоским. */
+.g-snippet {
+  display: block;
+  color: var(--haze);
+  font-size: 14px;
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.note-title {
+  font-family: var(--display);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+/* --- тіло нотатки ------------------------------------------------------- */
+
+/* Довідник читають, а не проглядають, тож рядок тут довший і повітря більше,
+   ніж деінде в застосунку. */
+.md {
+  margin-top: 18px;
+  color: var(--frost);
+  font-size: 15.5px;
+  line-height: 1.62;
+}
+
+.md-p {
+  margin: 0 0 14px;
+  overflow-wrap: anywhere;
+}
+
+/* Заголовки в тілі — h3…h5 (див. grammar/markdown.tsx). Вони навмисно ближчі
+   до жирного тексту, ніж до заголовка сторінки: у наявних нотатках під `#`
+   стоять цілі речення на 130 символів, і дисплейний кегль зробив би з них
+   півекрана. */
+.md-h {
+  font-family: var(--sans);
+  font-size: 15.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--frost);
+  margin: 20px 0 8px;
+}
+
+.md-h:first-child {
+  margin-top: 0;
+}
+
+.md-list {
+  margin: 0 0 14px;
+  padding-left: 20px;
+}
+
+.md-list li {
+  margin-bottom: 7px;
+  overflow-wrap: anywhere;
+}
+
+.md-list li::marker {
+  color: var(--haze-2);
+}
+
+.md strong {
+  font-weight: 600;
+}
+
+.md em {
+  color: var(--haze);
+  font-style: italic;
+}
+
+.md code {
+  font-family: var(--mono);
+  font-size: 13px;
+  background: var(--sheet-2);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+
+/* --- редактор нотатки --------------------------------------------------- */
+
+.ed-body {
+  display: block;
+  resize: vertical;
+  min-height: 240px;
+  line-height: 1.55;
+  /* Тіло набирається як текст, а не як код: моноширинний тут лише заважав би
+     читати українські речення, з яких нотатки й складаються. */
+  font-family: var(--sans);
+}
+
+/* Рядок «мітка + перемикач»: мітка лишається на місці, вкладки тиснуться
+   праворуч. */
+.ed-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ed-tabs {
+  display: flex;
+  gap: 2px;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  padding: 2px;
+}
+
+.ed-tab {
+  background: none;
+  border: none;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+  cursor: pointer;
+}
+
+.ed-tab-on {
+  background: var(--sheet-2);
+  color: var(--frost);
+}
+
+/* Перегляд займає стільки ж, скільки поле, щоб перемикання не смикало
+   сторінку під пальцем. */
+.ed-preview {
+  min-height: 240px;
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  background: var(--sheet);
+  padding: 4px 15px 14px;
+}
+
+.ed-preview .md {
+  margin-top: 14px;
+}
+
+/* ==========================================================================
+   Шеринг
+
+   Два екрани: посилання очима власника і чужий список очима отримувача. Обидва
+   без сяйва — насичений колір тут нічого не означав би, а ADR-0012 дозволяє
+   рампу лише там, де вона щось каже.
+   ========================================================================== */
+
+/* Адреса видна цілком і виділяється пальцем: коли буфер обміну недоступний
+   (старий WebView, відмова в дозволі), це єдиний спосіб її забрати. Тому не
+   `text-overflow: ellipsis` — обрізана адреса не копіюється. */
+.share-url {
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  background: var(--night);
+  color: var(--haze);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 12px 14px;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.share-actions {
+  display: flex;
+  gap: 8px;
+  margin: 14px 0 4px;
+}
+
+.share-actions > .btn,
+.share-actions > .btn-quiet {
+  width: auto;
+  flex: 1;
+}
+
+/* --- чужий список ------------------------------------------------------- */
+
+.sh-author {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+  margin-top: 8px;
+}
+
+/* Головне речення екрана — наслідок натискання, а не назва чужого списку.
+   Дисплейною гарнітурою, бо це найважливіший рядок тут. */
+.sh-headline {
+  font-family: var(--display);
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  margin: 16px 0 6px;
+}
+
+.sh-row {
+  border-bottom: 1px solid var(--edge-soft);
+  padding: 11px 0;
+}
+
+/* Слово, яке в отримувача вже є, приглушене: воно в переліку присутнє (бо це
+   правда про чужий список), але його доля інша — у режимі «Пропустити» воно не
+   додасться. Приглушення, а не сірий колір «вимкнено»: рядок не є органом
+   керування, гасити його нічому. */
+.sh-row-have {
+  opacity: 0.55;
+}
+
+.sh-word-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sh-word {
+  font-size: 15px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.sh-have {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+  padding: 1px 5px;
+}
+
+.sh-tr {
+  color: var(--haze);
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+/* --- реєстрація --------------------------------------------------------- */
+
+/* Вимоги до пароля ліворуч, «показати» праворуч: перше читають до набору,
+   другим перевіряють набране, і обидва стосуються того самого поля. */
+.reg-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -6px 0 18px;
+}
+
+.reg-row > .hint {
+  flex: 1;
+  margin: 0;
+}
+
+.reg-row > .btn-link {
+  flex: none;
+  white-space: nowrap;
+}
+
+.login-links {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 18px;
+}

@@ -1,0 +1,18 @@
+.git
+.idea
+.venv
+**/__pycache__
+**/*.pyc
+**/*.db
+**/*.db-journal
+frontend
+DEV.md
+README.md
+
+credentials.json
+token.json
+
+slovnyk-2026-07-27 (1).json
+.mcp.json
+CONTEXT.md
+docs/

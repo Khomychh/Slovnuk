@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Slovnuk">
+  <rect width="512" height="512" fill="#14100D"/>
+  <g>
+    <rect x="98"  y="219" width="43" height="171" rx="6" fill="#3E566B"/>
+    <rect x="150" y="190" width="43" height="200" rx="6" fill="#5C7C8A"/>
+    <rect x="202" y="162" width="43" height="228" rx="6" fill="#8E9B8E"/>
+    <rect x="254" y="133" width="43" height="257" rx="6" fill="#B99560"/>
+    <rect x="306" y="105" width="43" height="285" rx="6" fill="#D9922F"/>
+    <rect x="358" y="102" width="43" height="288" rx="6" fill="#F5C542"/>
+  </g>
+</svg>

@@ -1,0 +1,243 @@
+/** Дрібні спільні шматки інтерфейсу. Нічого розумного тут немає навмисно. */
+
+import type { ReactNode } from "react";
+
+export function Screen({
+  eyebrow,
+  title,
+  aside,
+  back,
+  children,
+}: {
+  eyebrow?: string;
+  title?: string;
+  /** Правий верхній кут шапки — там живе аватар профілю на «Сьогодні». */
+  aside?: ReactNode;
+  /**
+   * Повернення на рівень вище. Коли передано, у шапці стає шеврон ліворуч
+   * заголовка — той самий, що в шапках редакторів.
+   *
+   * До цього екрани-нащадки («Списки», «Розділи») мали кнопку `.btn-quiet` на
+   * всю ширину під заголовком: смуга 14px заввишки з підписом «‹ Назад», яка
+   * важила більше за все інше на екрані. Шеврон поруч із назвою заодно каже, у
+   * якій ти вкладці, — тому рубрику на цих екранах прибрано.
+   */
+  back?: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="screen">
+      {eyebrow || title || aside || back ? (
+        <div className="screen-head">
+          <div className="screen-head-main">
+            {back ? (
+              <button
+                className="icon-btn icon-btn-bare screen-back"
+                type="button"
+                aria-label="Назад"
+                onClick={back}
+              >
+                <BackIcon />
+              </button>
+            ) : null}
+            <div>
+              {eyebrow ? <div className="eyebrow">{eyebrow}</div> : null}
+              {title ? <h1 className="h-title">{title}</h1> : null}
+            </div>
+          </div>
+          {aside}
+        </div>
+      ) : null}
+      {children}
+    </div>
+  );
+}
+
+export function Field({
+  label,
+  ...input
+}: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <div className="field">
+      <label htmlFor={input.id}>{label}</label>
+      <input {...input} />
+    </div>
+  );
+}
+
+/* --- іконки --------------------------------------------------------------
+   Малюються, а не беруться емодзі: емодзі на телефоні системa малює кольоровою
+   картинкою, а ADR-0012 лишає насичений колір рампі сяйва. Усі однакового
+   розміру полотна (24) і на `currentColor`, тож колір задає кнопка. */
+
+export function BackIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M15 5l-7 7 7 7"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/**
+ * Іконка збереження. Одна на весь застосунок — у шапці редактора картки, у
+ * редакторі нотатки, у двох блоках профілю і на кнопці нового пароля.
+ *
+ * Галочка, а не дискета: дискети користувач цього застосунку в житті не бачив,
+ * а галочка в правому куті верхньої панелі — те, чим підтверджують форму на
+ * будь-якому телефоні.
+ */
+export function SaveIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4.5 12.5l5 5 10-11"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function PlusIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 5v14M5 12h14"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function PencilIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z" />
+      <path d="M14.5 6.5l3 3" />
+    </svg>
+  );
+}
+
+export function TrashIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13" />
+    </svg>
+  );
+}
+
+/**
+ * Шер. Три вузли й дві грані — це впізнаване «поділитись» і на Android, і на
+ * iOS, на відміну від системного «квадрат зі стрілкою», який на Android нічого
+ * не означає.
+ */
+export function ShareIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="18" cy="5.5" r="2.5" />
+      <circle cx="6" cy="12" r="2.5" />
+      <circle cx="18" cy="18.5" r="2.5" />
+      <path d="M15.8 6.8L8.2 10.7M8.2 13.3l7.6 3.9" />
+    </svg>
+  );
+}
+
+/**
+ * Кнопка збереження — скрізь однакова.
+ *
+ * Тексту немає навмисно: підпис «Зберегти» займав третину верхньої панелі, а
+ * дію в цьому місці однаково впізнають за іконкою. Стан кажуть `title` і
+ * `aria-label`, тобто він лишається доступним, просто не займає місця.
+ *
+ * Галочка гола — ні рамки, ні тла. До цього вона сиділа на плитці `--frost`,
+ * тобто була єдиним майже білим прямокутником у застосунку й важила більше за
+ * заголовок екрана. Тепер вона дзеркальна до шеврона «назад» у тій самій
+ * шапці: зберегти й вийти — дві рівноправні дії по краях панелі, і жодна не
+ * кричить. Не «поверніть кнопці тло, її не видно»: видно її за тим, що вона
+ * єдина світла (`--frost`) серед приглушених, а коли зберігати нема чого —
+ * гасне.
+ *
+ * Окремого кольору для «збережено» немає — ADR-0012 забороняє зелене як
+ * «успіх».
+ */
+export function SaveButton({
+  onClick,
+  disabled,
+  state = "idle",
+  title,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  /** `saving` — запит у польоті, `saved` — змін немає, бо щойно зберегли. */
+  state?: "idle" | "saving" | "saved";
+  /** Причина недоступності, коли вона не в тому, що зберігати нічого. */
+  title?: string;
+}) {
+  const label =
+    state === "saving" ? "Збереження…" : state === "saved" ? "Збережено" : "Зберегти";
+
+  return (
+    <button
+      className="btn-save"
+      type="button"
+      aria-label={label}
+      title={title ?? label}
+      aria-busy={state === "saving" || undefined}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      <SaveIcon />
+    </button>
+  );
+}
+
+export function Message({
+  kind = "info",
+  children,
+}: {
+  kind?: "info" | "error";
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={kind === "error" ? "msg msg-error" : "msg"}
+      role={kind === "error" ? "alert" : undefined}
+    >
+      {children}
+    </div>
+  );
+}

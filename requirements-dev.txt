@@ -1,0 +1,7 @@
+# Залежності для розробки. У requirements.txt їх додавати НЕ можна:
+# backend/Dockerfile копіює той файл цілком в образ API.
+#   pip install -r requirements.txt -r requirements-dev.txt
+pytest==8.4.2
+# tests/test_day_counts.py ходить у живу базу через asyncpg. Без цього плагіна
+# pytest не виконує async-тести взагалі — і мовчки рахує їх пройденими.
+pytest-asyncio==1.4.0
