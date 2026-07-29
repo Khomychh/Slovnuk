@@ -131,53 +131,46 @@ export function weekDays(day: DayKey): DayKey[] {
   return Array.from({ length: 7 }, (_, offset) => addDays(monday, offset));
 }
 
+/**
+ * Перший день місяця, у якому лежить `day`.
+ *
+ * Через рядок, а не через Date: ключ уже «РРРР-ММ-ДД», і перше число того ж
+ * місяця — це той самий рядок з іншим хвостом. Жодного поясу тут не потрібно.
+ */
+export function monthStart(day: DayKey): DayKey {
+  return `${day.slice(0, 7)}-01`;
+}
+
+/** Скільки діб у місяці ключа. Рахується через UTC — ключ уже без часу. */
+export function daysInMonth(day: DayKey): number {
+  const year = Number(day.slice(0, 4));
+  const month = Number(day.slice(5, 7));
+  // Нульовий день наступного місяця — останній день поточного.
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+/** Останній день місяця, у якому лежить `day`. */
+export function monthEnd(day: DayKey): DayKey {
+  return `${day.slice(0, 7)}-${String(daysInMonth(day)).padStart(2, "0")}`;
+}
+
+/**
+ * Додати (або відняти) стільки календарних місяців; повертає ПЕРШЕ число.
+ *
+ * Полудень тут не потрібен і навіть шкідливий: `Date.UTC(y, m + n, 1)` сам
+ * нормалізує перехід через грудень, а числа, що не існують у цільовому місяці
+ * (31 лютого), до цієї функції не доходять — вона завжди починає з першого.
+ */
+export function addMonths(day: DayKey, amount: number): DayKey {
+  const year = Number(day.slice(0, 4));
+  const month = Number(day.slice(5, 7));
+  const moment = new Date(Date.UTC(year, month - 1 + amount, 1));
+  return moment.toISOString().slice(0, 10);
+}
+
 /** Скільки діб від `from` до `to` включно з обома кінцями. Назад — нуль. */
 export function daysInclusive(from: DayKey, to: DayKey): number {
   if (from > to) return 0;
   const span = toUtcNoon(to).getTime() - toUtcNoon(from).getTime();
   return Math.round(span / 86_400_000) + 1;
-}
-
-/** Скільки днів закрито і скільки їх узагалі було. */
-export type ClosedDays = { met: number; total: number };
-
-/**
- * Закриті дні за період — те, що показують плитки «Прогресу».
- *
- * Три правила, кожне з яких можна зламати непомітно.
- *
- * **Знаменник починається з першого дня історії, а не з початку періоду.** До
- * переносу словника днів навчання не існувало (ADR-0004), і рахувати січень
- * як «31 день, з них 0 закритих» означало б записати в поразки час, коли
- * застосунку ще не було.
- *
- * **Сьогодні у знаменнику завжди**, навіть незакрите. Воно чесно виглядає
- * невиконаним, бо воно й не виконане; `is_goal_met` дораховується сервером на
- * льоту, тож цифра стане цілою в ту мить, коли ти доб'єш обидві цілі.
- *
- * **Дні без активності до відповіді не приходять** — сервер віддає лише ті, де
- * щось було. Вони не зникають зі знаменника: він рахується календарем, а не
- * довжиною `rows`. Інакше тиждень, у який ти не заходив, показував би
- * бездоганні «2 з 2».
- */
-export function closedDays(
-  rows: { day: DayKey; is_goal_met: boolean }[],
-  from: DayKey | null,
-  today: DayKey,
-): ClosedDays {
-  // Найраніший день шукається перебором, а не як `rows[0]`: порядок відповіді —
-  // питання контракту сервера, а не цієї функції.
-  let first: DayKey | null = null;
-  for (const row of rows) {
-    if (first === null || row.day < first) first = row.day;
-  }
-  if (first === null) return { met: 0, total: 0 };
-
-  const start = from && from > first ? from : first;
-
-  let met = 0;
-  for (const row of rows) {
-    if (row.day >= start && row.day <= today && row.is_goal_met) met += 1;
-  }
-  return { met, total: daysInclusive(start, today) };
 }
