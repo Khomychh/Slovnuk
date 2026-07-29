@@ -15,6 +15,26 @@
   min-height: 0;
 }
 
+/* Смуга дій екрана — сестра `.screen`, а не його вміст: усередині вона їхала б
+   геть разом із прокруткою. Стоїть над панеллю вкладок, коли та є.
+
+   Своєї safe-area не має навмисно: під вкладками її вже дали вони, а на екранах
+   без вкладок (чужий список за посиланням) внизу немає нічого, тож відступ
+   дається тут через :last-child. */
+.screen-foot {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--edge);
+  background: var(--night);
+  padding: 12px var(--pad);
+}
+
+.screen-foot:last-child {
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
 /* Шапка екрана: рубрика й заголовок ліворуч, аватар праворуч. Профіль живе
    саме тут, а не вкладкою: у нього заходять раз на місяць. */
 .screen-head {
@@ -735,10 +755,15 @@
   justify-content: safe center;
 }
 
-/* Сама картка. Над нею стоїть сяйво в кольорі стану цієї доріжки: нове
-   світиться холодним індиго, давно відоме — золотом. Колір береться зі
-   `state`, а не зі стабільності: стабільності в черзі просто немає. */
+/* Сама картка. Над нею стоїть сяйво в кольорі ТЕМПЕРАТУРИ доріжки: щойно
+   заведене слово світиться холодним індиго, те, що тримається понад півроку, —
+   золотом. Шість зупинок, ті самі, що на тепловій смузі «Прогресу».
+
+   Запасне значення `--temp` навмисно нейтральне, а не перша зупинка рампи: без
+   змінної панель малює закриту картку навчання, а колір температури на ній був
+   би підказкою відповіді (ADR-0016). Ставить змінну екран, не ця таблиця. */
 .card-panel {
+  --temp-off: var(--haze-2);
   position: relative;
   border: 1px solid var(--edge);
   border-radius: var(--r);
@@ -755,7 +780,7 @@
   height: 120px;
   background: radial-gradient(
     120% 100% at 50% 0%,
-    color-mix(in srgb, var(--temp, var(--a1)) 45%, transparent) 0%,
+    color-mix(in srgb, var(--temp, var(--temp-off)) 45%, transparent) 0%,
     transparent 72%
   );
   pointer-events: none;
@@ -766,7 +791,7 @@
   position: absolute;
   inset: 0 0 auto;
   height: 2px;
-  background: var(--temp, var(--a1));
+  background: var(--temp, var(--temp-off));
   opacity: 0.85;
 }
 
@@ -858,6 +883,12 @@
   border-top: 1px solid var(--edge);
   text-align: left;
   animation: rise 0.22s ease;
+}
+
+/* Той самий вміст, але в перегляді картки, де перевороту немає: показувати
+   рух розкриття там, де нічого не розкривалось, — брехати про подію. */
+.back-still {
+  animation: none;
 }
 
 @keyframes rise {
@@ -1042,11 +1073,15 @@
    слово. Не «правильно / неправильно»: «Не згадав» — крижане індиго, а не
    червоне, бо забути слово не є провиною (ADR-0012). */
 .rate button {
-  position: relative;
   border: 1px solid color-mix(in srgb, var(--c) 48%, transparent);
-  /* Колір густішає донизу, до своєї смужки: кнопка світиться від неї, а не
-     залита рівним відтінком. Рівна заливка на теплому кінці рампи виглядає
-     брудно-коричневою на синьому тлі. */
+  /* Колір густішає донизу — світло падає згори, як і всюди в застосунку.
+     Рівна заливка тут не годиться: на теплому кінці рампи вона виглядає
+     брудно-коричневою на синьому тлі.
+
+     Смужки під підписом більше немає. Вона повторювала те, що вже кажуть
+     рамка й градієнт, і була єдиним місцем у застосунку, де насичений колір
+     світив на повну — тобто кричала гучніше за все інше на екрані. ADR-0012
+     від цього не постраждав: колір, що каже, куди посуне слово, лишився. */
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--c) 8%, var(--sheet)),
@@ -1060,19 +1095,6 @@
   font-weight: 500;
   cursor: pointer;
   transition: transform 0.1s ease, background 0.12s ease;
-}
-
-.rate button::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: 8px;
-  width: 22px;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--c);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--c) 70%, transparent);
 }
 
 .rate button:active {
@@ -1262,7 +1284,9 @@
   /* Тримається колонки застосунку, а не краю вікна: на широкому екрані
      інакше відлітає кудись праворуч, за межі самого застосунку. */
   right: max(18px, calc(50% - 222px));
-  bottom: 82px;
+  /* 82px — це висота панелі вкладок. Жестова смуга йде понад неї: без
+     safe-area кнопка на телефоні без рамок сідала просто на вкладки. */
+  bottom: calc(82px + env(safe-area-inset-bottom));
   width: 54px;
   height: 54px;
   border-radius: 50%;
@@ -1297,6 +1321,9 @@
 .sheet-scrim {
   position: fixed;
   inset: 0;
+  /* `inset: 0` у fixed рахується від великого вьюпорта, тобто без адресного
+     рядка. Явна висота повертає аркуш у те, що видно. */
+  height: 100dvh;
   background: rgba(3, 5, 12, 0.72);
   display: flex;
   align-items: flex-end;
@@ -1311,17 +1338,70 @@
   border-top: 1px solid var(--edge);
   border-radius: var(--r) var(--r) 0 0;
   padding: 10px 0 24px;
-  max-height: 80vh;
+  /* dvh, не vh: на телефоні `vh` — це великий вьюпорт, тобто екран БЕЗ
+     адресного рядка. Аркуш на 80vh при видимому адресному рядку виявлявся
+     вищим за те, що видно, і низ його йшов під браузерну панель. */
+  max-height: 80dvh;
   overflow-y: auto;
   box-shadow: 0 -30px 60px -30px rgba(0, 0, 0, 0.9);
 }
 
+/* Аркуш на весь екран. Сам НЕ прокручується: всередині нього живе `.sheet-frame`
+   з власною прокруткою й прибитою смугою дій. Якби прокручувався аркуш,
+   прибивати не було б до чого. */
 .sheet-tall {
-  max-height: 100vh;
   height: 100%;
+  max-height: 100dvh;
   border-radius: 0;
   border-top: none;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Екран, у якого низ прибитий: прокручується тільки середина.
+   Працює і в аркуші, і на весь екран — обидва батьки є колонками flex. */
+.sheet-frame {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Верхня смуга аркуша — теж не їде.
+   «Назад» і «Зберегти» живуть саме тут (parts.tsx: галочка дзеркальна до
+   шеврона), а в довгому редакторі картки прокрутка забирала їх обох. Кнопка,
+   до якої треба догортати, — це кнопка, якої немає. */
+.sheet-head {
+  flex: none;
+  padding: 12px var(--pad) 10px;
+  background: var(--sheet);
+}
+
+.sheet-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px var(--pad) 24px;
+}
+
+/* Смуга вже дала відступ згори — своїх полів прокрутці не треба. */
+.sheet-head + .sheet-scroll {
+  padding-top: 4px;
+}
+
+/* Смуга дій, що не їде разом із вмістом.
+   Верхня межа тут не декоративна: без неї прокручений текст здається обрізаним
+   смугою, а не таким, що йде під неї. */
+.sheet-foot {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--edge);
+  background: var(--sheet);
+  padding: 12px var(--pad) calc(12px + env(safe-area-inset-bottom));
 }
 
 .sheet-page {
@@ -1660,98 +1740,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
-}
-
-/* --- перегляд картки ---------------------------------------------------- */
-
-.card-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-/* У перегляді картки слово вирівняне ліворуч, тож динамік іде одразу за ним, а
-   не в кінець рядка: він належить слову, а не смузі. */
-.card-head-word {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.card-head-word > .card-word {
-  min-width: 0;
-}
-
-.card-word {
-  font-family: var(--display);
-  font-size: 28px;
-  font-weight: 500;
-  letter-spacing: -0.04em;
-  line-height: 1.15;
-  overflow-wrap: anywhere;
-}
-
-.card-sense {
-  border-bottom: 1px solid var(--edge-soft);
-  padding-bottom: 13px;
-  margin-bottom: 13px;
-}
-
-.card-sense-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.card-tr {
-  font-size: 17px;
-  font-weight: 500;
-}
-
-.card-pos {
-  color: var(--haze-2);
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.card-ipa {
-  color: var(--haze-2);
-  font-family: var(--ipa);
-  font-size: 13px;
-}
-
-.card-ex {
-  margin-top: 9px;
-  font-size: 14px;
-  color: var(--haze);
-}
-
-.card-ex-uk {
-  color: var(--haze-2);
-}
-
-.card-form {
-  display: flex;
-  gap: 10px;
-  align-items: baseline;
-  padding: 6px 0;
-}
-
-.card-form + .card-form {
-  border-top: 1px solid var(--edge-soft);
-}
-
-.card-form-lbl {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--haze-2);
-  min-width: 58px;
 }
 
 .card-label {

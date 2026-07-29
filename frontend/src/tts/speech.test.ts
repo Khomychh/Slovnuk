@@ -50,6 +50,7 @@ function item(kind: QueueItem["kind"], word = "go"): QueueItem {
     kind,
     state: "review",
     due_at: "2026-07-29T10:00:00Z",
+    stability: 12,
     card: card(word),
     preview: { again: 60, hard: 600, good: 86400, easy: 345600 },
   };

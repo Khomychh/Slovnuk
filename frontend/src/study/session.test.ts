@@ -26,6 +26,7 @@ function track(id: number): QueueItem {
     kind: "translation",
     state: "review",
     due_at: "2026-07-28T10:00:00Z",
+    stability: 12,
     card: {
       id: id * 10,
       word: `word-${id}`,

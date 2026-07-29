@@ -81,6 +81,9 @@ class QueueItemSchema(BaseModel):
     kind: ReviewKindEnum
     state: ReviewStateEnum
     due_at: datetime
+    # Сяйво панелі після перевороту (ADR-0016). До перевороту не вживається —
+    # на закритій картці колір температури є підказкою відповіді.
+    stability: float | None
     card: QueueCardSchema
     # Прогноз їде разом із карткою, щоб офлайн-відповідь теж могла показати
     # «наступного разу — за N». Чому саме так — у services/scheduler.py,

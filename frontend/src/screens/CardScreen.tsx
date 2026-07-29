@@ -1,19 +1,26 @@
 /**
  * Перегляд картки.
  *
- * Читається як текст, а не як поля вводу: головний сценарій тут — «знайшов
- * слово, хочу побачити, що я про нього записав», а приклади в `textarea`
- * читаються погано.
+ * Малюється тією самою панеллю, що й розкрита картка навчання, і тим самим
+ * кодом (`CardFace`). Причина не декоративна: слово, яке ти щодня бачиш на
+ * картці, у словнику мусить виглядати тим самим словом, а не витягом із бази.
+ * Перевороту тут немає — шукати відповідь нема потреби, ти сам її й записав.
+ *
+ * Сяйво над панеллю — температура доріжки перекладу (ADR-0016). У навчанні воно
+ * зʼявляється лише після перевороту, тут горить одразу: правило одне — колір
+ * приходить разом із відповіддю, а тут відповідь видно завжди.
  *
  * Запиту цей екран не коштує: `CardSchema` не має полегшеного варіанта, тож
- * картка вже цілком лежить у кеші сторінки списку.
+ * картка вже цілком лежить у кеші сторінки списку — разом зі `stability`.
  */
 
 import { useNavigate, useParams } from "react-router-dom";
 import { useOnline } from "../app/useOnline";
-import { POS_LABELS, deletionLosesHistory } from "../vocabulary/card";
+import { deletionLosesHistory, distinctTranscriptions } from "../vocabulary/card";
+import { CardBody, Headword, headwordClass } from "../vocabulary/CardFace";
 import { useCard, useDeleteCard, useLists } from "../vocabulary/queries";
-import { SpeakButton } from "../tts/SpeakButton";
+import { cardTemperature } from "../study/temperature";
+import { PencilIcon } from "../ui/parts";
 
 export default function CardScreen() {
   const navigate = useNavigate();
@@ -43,6 +50,7 @@ export default function CardScreen() {
   const names = (lists.data?.items ?? [])
     .filter((list) => item.list_ids.includes(list.id))
     .map((list) => list.name);
+  const transcriptions = distinctTranscriptions(item);
 
   const onDelete = async () => {
     // Діалог мусить називати справжній наслідок. Стан доріжок уже в payload,
@@ -57,9 +65,14 @@ export default function CardScreen() {
   };
 
   return (
-    <div className="sheet-page">
-      <div className="sheet-bar">
-        <button className="sheet-back" type="button" onClick={() => navigate(-1)}>
+    <div className="sheet-frame">
+      <div className="sheet-head sheet-bar">
+        <button
+          className="sheet-back"
+          type="button"
+          onClick={() => navigate(-1)}
+          aria-label="Назад"
+        >
           ‹
         </button>
         {/* Олівець замість слова «Редагувати»: рядок під шапкою вартий слова
@@ -72,91 +85,55 @@ export default function CardScreen() {
           title={online ? "Редагувати" : "Потрібен звʼязок"}
           onClick={() => navigate(`/vocabulary/cards/${item.id}/edit`)}
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-            <path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z" />
-            <path d="M14.5 6.5l3 3" />
-          </svg>
+          <PencilIcon />
         </button>
       </div>
 
-      <div className="card-head-word">
-        <h1 className="card-word">{item.word}</h1>
-        <SpeakButton text={item.word} size="md" />
-      </div>
+      <div className="sheet-scroll">
+        {/* Списки стоять НАД панеллю, а не в ній: у навчанні їх немає, і панель
+            мусить лишатись описом слова, а не його місця в словнику. */}
+        {names.length > 0 ? (
+          <div className="v-lists-line">{names.join(" · ")}</div>
+        ) : (
+          <div className="v-lists-line v-lists-none">Без списку</div>
+        )}
 
-      {names.length > 0 ? (
-        <div className="v-lists-line">{names.join(" · ")}</div>
-      ) : (
-        <div className="v-lists-line v-lists-none">Без списку</div>
-      )}
-
-      <div className="card-senses">
-        {item.senses.map((sense) => (
-          <div className="card-sense" key={sense.id}>
-            <div className="card-sense-head">
-              {sense.translation ? (
-                <span className="card-tr">{sense.translation}</span>
-              ) : null}
-              {sense.part_of_speech ? (
-                <span className="card-pos">
-                  {POS_LABELS[sense.part_of_speech] ?? sense.part_of_speech}
-                </span>
-              ) : null}
-            </div>
-            {/* Без дужок: у даних транскрипція вже зі своїми роздільниками —
-                «/ɡoʊ/». Обгортка давала б «[/ɡoʊ/]». */}
-            {sense.transcription ? (
-              <div className="card-ipa">{sense.transcription}</div>
+        <div
+          className="card-panel"
+          style={{ "--temp": cardTemperature(item.tracks) } as React.CSSProperties}
+        >
+          <div className="front">
+            <Headword word={item.word} className={headwordClass(item.word)} />
+            {/* Спільний рядок транскрипції — коли вона в картці одна. Коли їх
+                кілька, кожна стоїть біля свого значення; так само, як у
+                навчанні. */}
+            {transcriptions.length === 1 ? (
+              <div className="ipa">{transcriptions[0]}</div>
             ) : null}
-            {sense.examples.map((example) => (
-              <div className="card-ex" key={example.id}>
-                <div>
-                  {example.text_en}
-                  <SpeakButton text={example.text_en} />
-                </div>
-                {example.text_uk ? (
-                  <div className="card-ex-uk">{example.text_uk}</div>
-                ) : null}
-              </div>
-            ))}
           </div>
-        ))}
+
+          <div className="back back-still">
+            <CardBody
+              card={item}
+              formsNote={item.forms_drill_enabled ? undefined : "тренування вимкнено"}
+            />
+          </div>
+        </div>
       </div>
 
-      {item.forms.length > 0 ? (
-        <div className="card-forms">
-          <div className="card-label">
-            Форми{item.forms_drill_enabled ? "" : " · тренування вимкнено"}
-          </div>
-          {item.forms.map((form) => (
-            <div className="card-form" key={form.id}>
-              {form.label ? <span className="card-form-lbl">{form.label}</span> : null}
-              <span>{form.value}</span>
-              {form.transcription ? (
-                <span className="card-ipa">{form.transcription}</span>
-              ) : null}
-              <SpeakButton text={form.value} className="spk-end" />
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      {item.comment ? (
-        <div className="card-comment">
-          <div className="card-label">Коментар</div>
-          {item.comment}
-        </div>
-      ) : null}
-
-      <button
-        className="btn-quiet card-delete"
-        type="button"
-        disabled={!online || remove.isPending}
-        title={online ? undefined : "Потрібен звʼязок"}
-        onClick={onDelete}
-      >
-        Видалити слово
-      </button>
+      {/* Видалення прибите, але тихе: до нього не треба догортати, і водночас
+          воно не претендує на роль головної дії екрана. */}
+      <div className="sheet-foot">
+        <button
+          className="btn-quiet"
+          type="button"
+          disabled={!online || remove.isPending}
+          title={online ? undefined : "Потрібен звʼязок"}
+          onClick={onDelete}
+        >
+          Видалити слово
+        </button>
+      </div>
     </div>
   );
 }

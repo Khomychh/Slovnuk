@@ -27,6 +27,14 @@ import { nextShowLabel, secondsUntil } from "../study/format";
 import { cardSide, progressValue, type QueueItem, type Rating } from "../study/session";
 import { useSettings, useStudy, useToday } from "../study/queries";
 import { answer, beginSession, init } from "../study/store";
+import { temperature } from "../study/temperature";
+import { distinctTranscriptions } from "../vocabulary/card";
+import {
+  CardBody,
+  Headword,
+  POS_LABEL,
+  headwordClass,
+} from "../vocabulary/CardFace";
 import { SpeakButton, useTts } from "../tts/SpeakButton";
 import { autoplayText, stopSpeaking } from "../tts/speech";
 
@@ -37,114 +45,8 @@ const RATINGS: { value: Rating; label: string }[] = [
   { value: 4, label: "Легко" },
 ];
 
-const POS_LABEL: Record<string, string> = {
-  n: "ім.",
-  v: "дієсл.",
-  adj: "прикм.",
-  adv: "присл.",
-  prep: "прийм.",
-  phr: "фраза",
-  other: "інше",
-};
-
-/**
- * Колір сяйва над карткою.
- *
- * Це стан доріжки, а не стабільність: стабільності в черзі немає — `preview`
- * і `state` це все, що приїжджає. Тому холодний кінець тут означає «щойно
- * почали», а не «шість днів», і претендувати на точність смуги «Прогресу» він
- * не може.
- */
-const STATE_COLOR: Record<string, string> = {
-  new: "var(--a0)",
-  learning: "var(--a1)",
-  relearning: "var(--a1)",
-  review: "var(--a3)",
-};
-
 /** Скільки підпис інтервалу тримається на екрані. */
 const LABEL_MS = 2600;
-
-/** Кегль слова: 61-символьні «слова» в словнику є, і вони цілі речення. */
-function headwordClass(word: string): string {
-  if (word.length > 34) return "headword tiny";
-  if (word.length > 16) return "headword small";
-  return "headword";
-}
-
-/** Різні транскрипції картки: коли вона одна, її показують спільним рядком. */
-function distinctTranscriptions(card: QueueItem["card"]): string[] {
-  const seen: string[] = [];
-  for (const sense of card.senses) {
-    const value = sense.transcription?.trim();
-    if (value && !seen.includes(value)) seen.push(value);
-  }
-  return seen;
-}
-
-/** Слово з динаміком поруч. Кнопка стоїть там, де стоїть слово, — і тільки там. */
-function Headword({ word, className }: { word: string; className: string }) {
-  return (
-    <div className="head-line">
-      <div className={className}>{word}</div>
-      <SpeakButton text={word} size="md" />
-    </div>
-  );
-}
-
-function Examples({ examples }: { examples: QueueItem["card"]["senses"][number]["examples"] }) {
-  if (examples.length === 0) return null;
-  return (
-    <div className="ex">
-      {examples.map((example) => (
-        <p key={example.id}>
-          {example.text_en}
-          <SpeakButton text={example.text_en} />
-          {example.text_uk ? <span className="ex-tr">{example.text_uk}</span> : null}
-        </p>
-      ))}
-    </div>
-  );
-}
-
-function Forms({ forms }: { forms: QueueItem["card"]["forms"] }) {
-  if (forms.length === 0) return null;
-  return (
-    <div className="forms">
-      <div className="forms-h">Форми</div>
-      {forms.map((form) => (
-        <div className="frow" key={form.id}>
-          <span className="flbl">{form.label ?? "форма"}</span>
-          <span>{form.value}</span>
-          {form.transcription ? <span className="fipa">{form.transcription}</span> : null}
-          <SpeakButton text={form.value} className="spk-end" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function SenseBlocks({ card }: { card: QueueItem["card"] }) {
-  const transcriptions = distinctTranscriptions(card);
-  return (
-    <>
-      {card.senses.map((sense) => (
-        <div className="sense-ans" key={sense.id}>
-          {sense.part_of_speech ? (
-            <span className="pos-tag">{POS_LABEL[sense.part_of_speech]}</span>
-          ) : null}
-          <span className="s-tr-big">{sense.translation ?? "—"}</span>
-          {/* Транскрипція біля значення потрібна лише коли вони різні: інакше
-              вона вже стоїть спільним рядком угорі. */}
-          {sense.transcription && transcriptions.length > 1 ? (
-            <span className="s-ipa-tag">{sense.transcription}</span>
-          ) : null}
-          <Examples examples={sense.examples} />
-        </div>
-      ))}
-    </>
-  );
-}
 
 function buildFaces({ item, side }: { item: QueueItem; side: "en_uk" | "uk_en" }) {
   const card = item.card;
@@ -223,9 +125,7 @@ function buildFaces({ item, side }: { item: QueueItem; side: "en_uk" | "uk_en" }
           {transcriptions.length > 0 ? (
             <div className="ipa">{transcriptions.join("   ·   ")}</div>
           ) : null}
-          <SenseBlocks card={card} />
-          <Forms forms={card.forms} />
-          {card.comment ? <div className="cmt">{card.comment}</div> : null}
+          <CardBody card={card} />
         </>
       ),
     };
@@ -239,13 +139,7 @@ function buildFaces({ item, side }: { item: QueueItem; side: "en_uk" | "uk_en" }
         {transcriptions.length === 1 ? <div className="ipa">{transcriptions[0]}</div> : null}
       </>
     ),
-    back: (
-      <>
-        <SenseBlocks card={card} />
-        <Forms forms={card.forms} />
-        {card.comment ? <div className="cmt">{card.comment}</div> : null}
-      </>
-    ),
+    back: <CardBody card={card} />,
   };
 }
 
@@ -419,9 +313,17 @@ export default function StudyScreen() {
       </div>
 
       <div className="study-scroll">
+        {/* Сяйво зʼявляється лише на розкритій картці (ADR-0016): на закритій
+            колір температури — це точна підказка відповіді, і рука тягнеться до
+            «Легко» ще до того, як памʼять щось видала. Без `--temp` панель бере
+            запасне значення й лишається нейтральною. */}
         <div
           className="card-panel"
-          style={{ "--temp": STATE_COLOR[item.state] ?? "var(--a1)" } as React.CSSProperties}
+          style={
+            revealed
+              ? ({ "--temp": temperature(item.stability) } as React.CSSProperties)
+              : undefined
+          }
         >
           <div
             className="front"

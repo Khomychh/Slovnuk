@@ -7,12 +7,22 @@ export function Screen({
   title,
   aside,
   back,
+  foot,
   children,
 }: {
   eyebrow?: string;
   title?: string;
   /** Правий верхній кут шапки — там живе аватар профілю на «Сьогодні». */
   aside?: ReactNode;
+  /**
+   * Смуга дій, прибита до низу екрана — над панеллю вкладок, якщо вона є.
+   *
+   * Не частина `children` навмисно: вона мусить лишитись ПОЗА областю, що
+   * прокручується, інакше головна дія екрана їде геть разом із вмістом. Саме
+   * тому `Screen` віддає фрагмент із двох вузлів, а не один `.screen`: обидва
+   * стають дітьми колонки `.shell`, і низ тримається сам.
+   */
+  foot?: ReactNode;
   /**
    * Повернення на рівень вище. Коли передано, у шапці стає шеврон ліворуч
    * заголовка — той самий, що в шапках редакторів.
@@ -26,6 +36,7 @@ export function Screen({
   children: ReactNode;
 }) {
   return (
+    <>
     <div className="screen">
       {eyebrow || title || aside || back ? (
         <div className="screen-head">
@@ -50,6 +61,8 @@ export function Screen({
       ) : null}
       {children}
     </div>
+    {foot ? <div className="screen-foot">{foot}</div> : null}
+    </>
   );
 }
 

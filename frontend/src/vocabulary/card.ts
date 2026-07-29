@@ -12,6 +12,18 @@ import { words } from "../ui/plural";
 import type { components } from "../api/schema";
 
 export type Card = components["schemas"]["CardSchema"];
+
+/**
+ * Вміст картки — рівно те, що потрібно, щоб її намалювати: слово, значення,
+ * форми, коментар.
+ *
+ * Це `QueueCardSchema`, і назва тут не випадкова. Черга віддає картку без
+ * `list_ids`, `created_at` і `tracks`, а `CardSchema` — з ними; структурно
+ * повна картка підходить усюди, де чекають вміст, а не навпаки. Завдяки цьому
+ * перегляд картки й картка навчання малюються тим самим кодом (ADR-0016).
+ */
+export type CardContent = components["schemas"]["QueueCardSchema"];
+
 export type CardCreate = components["schemas"]["CardCreateSchema"];
 export type CardUpdate = components["schemas"]["CardUpdateSchema"];
 export type WordList = components["schemas"]["WordListSchema"];
@@ -299,7 +311,7 @@ export function senseSummary(card: Card): string {
  *
  * Кілька значень часто мають ту саму вимову; показувати її двічі безглуздо.
  */
-export function distinctTranscriptions(card: Card): string[] {
+export function distinctTranscriptions(card: CardContent): string[] {
   const seen = new Set<string>();
   for (const sense of card.senses) {
     const value = (sense.transcription ?? "").trim();

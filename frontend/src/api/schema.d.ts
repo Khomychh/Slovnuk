@@ -758,6 +758,11 @@ export interface components {
          *     Увага: тут ОБИДВІ доріжки картки, зокрема FORMS у картки без форм — та, яку
          *     черга ховає. Рахувати з цього масиву «скільки на повторення» не можна, для
          *     цього є `due_count` списків і лічильники черги.
+         *
+         *     `stability` віддається заради сяйва на панелі перегляду картки (ADR-0016):
+         *     воно береться з тих самих шести діапазонів, що й теплова смуга «Прогресу»
+         *     (`STABILITY_BAND_EDGES`). `None` — це стан NEW, у якого величини ще немає;
+         *     підставляти нуль не можна, бо це означало б «тримається менше дня».
          */
         CardTrackSchema: {
             /** Id */
@@ -769,6 +774,8 @@ export interface components {
              * Format: date-time
              */
             due_at: string;
+            /** Stability */
+            stability: number | null;
         };
         /**
          * CardUpdateSchema
@@ -1059,6 +1066,8 @@ export interface components {
              * Format: date-time
              */
             due_at: string;
+            /** Stability */
+            stability: number | null;
             card: components["schemas"]["QueueCardSchema"];
             preview: components["schemas"]["RatingPreviewSchema"];
         };
