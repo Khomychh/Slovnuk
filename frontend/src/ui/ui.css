@@ -121,7 +121,9 @@
   font-size: 16px; /* менше 16px — і iOS збільшує сторінку на фокусі */
   font-family: var(--sans);
   color: var(--frost);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .field > input::placeholder,
@@ -158,7 +160,9 @@
   font-weight: 600;
   padding: 16px;
   cursor: pointer;
-  transition: transform 0.12s ease, opacity 0.12s ease;
+  transition:
+    transform 0.12s ease,
+    opacity 0.12s ease;
 }
 
 .btn:active:not(:disabled) {
@@ -576,7 +580,9 @@
 }
 
 .dot-today {
-  box-shadow: 0 0 0 2px var(--night), 0 0 0 3px var(--haze-2);
+  box-shadow:
+    0 0 0 2px var(--night),
+    0 0 0 3px var(--haze-2);
 }
 
 .week-lbl {
@@ -1120,7 +1126,9 @@
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
-  transition: transform 0.1s ease, background 0.12s ease;
+  transition:
+    transform 0.1s ease,
+    background 0.12s ease;
 }
 
 .rate button:active {
@@ -1729,7 +1737,9 @@
   color: var(--frost);
   padding: 0;
   cursor: pointer;
-  transition: transform 0.12s ease, opacity 0.12s ease;
+  transition:
+    transform 0.12s ease,
+    opacity 0.12s ease;
 }
 
 .btn-save svg {
@@ -1988,41 +1998,245 @@
   font-variant-numeric: tabular-nums;
 }
 
-.tiles {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  margin-top: 26px;
+/* --- плитки періодів ----------------------------------------------------- */
+
+/* Одиниця сказана ОДИН раз рубрикою над рядом, а не чотири рази на плитках
+   (ADR-0018). Без неї «3» читалося б як кількість повторень, а з нею на
+   плитці лишається місце під ще три символи — саме тому чотири влазять у ряд. */
+.tiles-cap {
+  margin: 26px 0 8px;
 }
 
-.tile {
+/* Одна панель із розділювачами, а не чотири окремі коробки. Плитки тепер
+   перемикачі, тобто один орган керування з чотирьох положень, — і форма мусить
+   це казати. Чотири рамки поряд казали б «чотири незалежні показники». */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   border: 1px solid var(--edge);
   border-radius: var(--r-sm);
   background: var(--sheet);
-  padding: 14px 15px;
+  box-shadow: var(--lift);
+  overflow: hidden;
 }
 
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 11px 4px 13px;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
+}
+
+.tile + .tile {
+  border-left: 1px solid var(--edge);
+}
+
+/* 8px, а не 9.5px, і трекінг 0.08em, а не 0.14em: «ЗАГАЛОМ» — сім символів, і
+   на старих значеннях воно переносилось у другий рядок на вузькому телефоні.
+   Повні слова тут важливіші за розрідженість — «ТИЖД» вимагало б розгадування. */
 .tile-lbl {
   font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.14em;
+  font-size: 8px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--haze-2);
+  white-space: nowrap;
 }
 
 .tile-num {
   font-family: var(--display);
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 600;
   letter-spacing: -0.04em;
-  margin-top: 6px;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
+  color: var(--haze);
 }
 
-.tile-sub {
-  font-size: 12px;
+/* Обране положення підсвічене хромом, а не насиченим кольором. Золото на цьому
+   екрані вже означає «день закрито», і золота плитка «РІК» читалась би як
+   «рік виконано». */
+.tile-on {
+  background: var(--sheet-2);
+}
+
+.tile-on .tile-num {
+  color: var(--frost);
+}
+
+.tile-on .tile-lbl {
+  color: var(--haze);
+}
+
+/* --- панель деталей ------------------------------------------------------ */
+
+/* Спільна для періоду й для дня: обидві відповідають на «а що там усередині»,
+   тож мусять виглядати як одна річ у двох місцях, а не як два віджети. */
+.pd {
+  position: relative;
+  margin-top: 10px;
+  padding: 12px 15px 14px;
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  background: var(--sheet);
+  box-shadow: var(--lift);
+}
+
+/* Дзьоб під обраною плиткою — єдине, що робить панель ЇЇ панеллю, а не
+   черговою карткою нижче. Повернений на 45° квадрат із двома межами: так
+   волосяна рамка панелі не розривається на місці дзьоба.
+
+   `--pick` — номер плитки, 0…3; його ставить React. Центр стовпчика в сітці з
+   чотирьох — це (n + 0.5) × 25%. */
+.pd-beak::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: calc((var(--pick) + 0.5) * 25%);
+  width: 12px;
+  height: 12px;
+  transform: translateX(-50%) rotate(45deg);
+  background: var(--sheet);
+  border-left: 1px solid var(--edge);
+  border-top: 1px solid var(--edge);
+  border-top-left-radius: 3px;
+}
+
+/* Той самий моно-капс, що в рубриках екранів: шапка панелі позначає, про що
+   вона, а не говорить. */
+.pd-head {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--haze-2);
-  margin-top: 2px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--edge-soft);
+}
+
+.pd-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--edge-soft);
+}
+
+.pd-row:last-child {
+  border-bottom: none;
+}
+
+.pd-lbl {
+  font-size: 13px;
+  color: var(--haze);
+}
+
+.pd-val {
+  font-size: 14px;
+  color: var(--frost);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Ціль дня тьмяніша за зроблене: зроблене — це відповідь, ціль — лише тло, на
+   якому її читають. */
+.pd-goal {
+  color: var(--haze-2);
+}
+
+.pd-empty {
+  font-size: 13px;
+  color: var(--haze-2);
+  margin: 10px 0 2px;
+}
+
+/* --- панель дня ---------------------------------------------------------- */
+
+.dd-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* Мітка бере колір своєї клітинки в календарі: бірюза — учився, золото —
+   закрито. Тому панель не потребує підпису «а це який колір». */
+.dd-mark {
+  flex: none;
+  color: var(--a2);
+}
+
+.dd-mark-met {
+  color: var(--a5);
+}
+
+/* --- смужка обсягу ------------------------------------------------------- */
+
+.spark {
+  margin-top: 14px;
+}
+
+.spark-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 40px;
+}
+
+.spark-col {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+/* Стеля ширини потрібна тільки тижню: сім стовпчиків на всю ширину виходять по
+   39px і при висоті 40px читаються як квадрати, а не як графік. На місяці й на
+   роках стовпчик і так вужчий за стелю, тож правило їх не чіпає. */
+.spark-b {
+  display: block;
+  width: 100%;
+  max-width: 20px;
+  border-radius: 2px 2px 0 0;
+  background: var(--haze);
+  transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.spark-b-now {
+  background: var(--frost);
+}
+
+.spark-ticks {
+  display: flex;
+  gap: 3px;
+  margin-top: 5px;
+}
+
+/* Слот підпису завширшки зі стовпчик — на місяці це 7px, а «15» потребує
+   вдвічі більше. Тому текст свідомо ВИЛІВАЄТЬСЯ за свій слот: підписані не всі
+   стовпчики, і сусіди в підписаного завжди порожні. `overflow: hidden` тут
+   різав би кожне двоцифрове число навпіл, і вісь читалась би як «1 8 1 2 2». */
+.spark-t {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  color: var(--haze-2);
 }
 
 .cal {
@@ -2042,10 +2256,21 @@
   padding-bottom: 2px;
 }
 
+/* Клітинка буває і div (чужий місяць, майбутній день), і button (минуле й
+   сьогодні), тож скидання кнопки стоїть тут, а не на окремому класі: інакше
+   сітка з'їхала б рівно в тих рядах, де є кнопки. */
 .cal-c {
   aspect-ratio: 1;
   border-radius: 7px;
   background: var(--edge-soft);
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+
+button.cal-c {
+  cursor: pointer;
 }
 
 .cal-c.act {
@@ -2063,6 +2288,13 @@
 
 .cal-c.now {
   box-shadow: 0 0 0 1.5px var(--haze);
+}
+
+/* Стоїть ПІСЛЯ `.met` і `.now` навмисно: у обраного дня перстень мусить
+   перебивати і сяйво золота, і обвідку сьогодні. Box-shadow, а не outline —
+   інакше він затирав би обвідку фокуса з клавіатури. */
+.cal-c.pick {
+  box-shadow: 0 0 0 2px var(--frost);
 }
 
 .explain {

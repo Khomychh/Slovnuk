@@ -10,9 +10,12 @@
 import { describe, expect, it } from "vitest";
 import {
   addDays,
-  closedDays,
+  addMonths,
+  daysInMonth,
   daysInclusive,
   localDay,
+  monthEnd,
+  monthStart,
   resolveTimeZone,
   startOfWeek,
   timeZoneNeedsSync,
@@ -57,7 +60,9 @@ describe("resolveTimeZone", () => {
   it("на одруківці відкочується на пояс браузера, а не падає", () => {
     const resolved = resolveTimeZone("Europe/Kyviv");
     expect(resolved).not.toBe("Europe/Kyviv");
-    expect(() => new Intl.DateTimeFormat("en-CA", { timeZone: resolved })).not.toThrow();
+    expect(
+      () => new Intl.DateTimeFormat("en-CA", { timeZone: resolved }),
+    ).not.toThrow();
   });
 
   it("порожнє значення теж не валить розрахунок", () => {
@@ -172,65 +177,28 @@ describe("daysInclusive", () => {
   });
 });
 
-describe("closedDays", () => {
-  const rows = [
-    { day: "2026-07-25", is_goal_met: true },
-    { day: "2026-07-26", is_goal_met: true },
-    { day: "2026-07-28", is_goal_met: false },
-    { day: "2026-07-29", is_goal_met: false },
-  ];
-
-  it("рахує знаменник календарем, а не кількістю рядків", () => {
-    // 27-го користувач не заходив, рядка за нього немає — але день був, і
-    // закритим він не був. Інакше пропущений день тихо покращував би цифру.
-    expect(closedDays(rows, null, "2026-07-29")).toEqual({ met: 2, total: 5 });
+describe("межі місяця", () => {
+  it("бере перше й останнє число того самого місяця", () => {
+    expect(monthStart("2026-07-29")).toBe("2026-07-01");
+    expect(monthEnd("2026-07-29")).toBe("2026-07-31");
   });
 
-  it("починає знаменник із першого дня історії, а не з початку періоду", () => {
-    // Рік почався 1 січня, але до 25 липня днів навчання не існувало.
-    expect(closedDays(rows, "2026-01-01", "2026-07-29")).toEqual({
-      met: 2,
-      total: 5,
-    });
+  it("знає короткі місяці й лютий високосного року", () => {
+    expect(daysInMonth("2026-02-14")).toBe(28);
+    expect(daysInMonth("2024-02-14")).toBe(29);
+    expect(monthEnd("2026-04-30")).toBe("2026-04-30");
   });
 
-  it("тримається початку періоду, коли історія почалась раніше за нього", () => {
-    expect(closedDays(rows, "2026-07-28", "2026-07-29")).toEqual({
-      met: 0,
-      total: 2,
-    });
+  it("додає місяці через грудень, а не через 30 діб", () => {
+    // Найлегша помилка тут — рахувати місяць як addDays(day, 30): тоді за рік
+    // смужка «загалом» втратила б пʼять відрізків, а за три роки — два тижні.
+    expect(addMonths("2026-11-01", 3)).toBe("2027-02-01");
+    expect(addMonths("2026-01-01", -1)).toBe("2025-12-01");
   });
 
-  it("тримає сьогодні у знаменнику, доки воно не закрите", () => {
-    const today = closedDays(rows, "2026-07-29", "2026-07-29");
-    expect(today).toEqual({ met: 0, total: 1 });
-
-    // Щойно обидві цілі добито, та сама доба стає цілою — без стрибка знизу.
-    const done = rows.map((row) =>
-      row.day === "2026-07-29" ? { ...row, is_goal_met: true } : row,
-    );
-    expect(closedDays(done, "2026-07-29", "2026-07-29")).toEqual({
-      met: 1,
-      total: 1,
-    });
-  });
-
-  it("не рахує майбутні дні, якщо вони колись приїдуть", () => {
-    const withFuture = [...rows, { day: "2026-08-05", is_goal_met: true }];
-    expect(closedDays(withFuture, null, "2026-07-29")).toEqual({
-      met: 2,
-      total: 5,
-    });
-  });
-
-  it("порожня історія — порожні плитки, а не ділення на нуль", () => {
-    expect(closedDays([], null, "2026-07-29")).toEqual({ met: 0, total: 0 });
-  });
-
-  it("не залежить від порядку рядків у відповіді", () => {
-    expect(closedDays([...rows].reverse(), null, "2026-07-29")).toEqual({
-      met: 2,
-      total: 5,
-    });
+  it("не спотикається об 31 число при переході в короткий місяць", () => {
+    // Січень має 31 день, лютий — ні. Функція завжди повертає ПЕРШЕ число,
+    // тож «31 лютого» тут не може виникнути навіть теоретично.
+    expect(addMonths("2026-01-31", 1)).toBe("2026-02-01");
   });
 });
