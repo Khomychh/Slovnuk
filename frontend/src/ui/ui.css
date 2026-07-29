@@ -1385,7 +1385,11 @@
   max-height: 100dvh;
   border-radius: 0;
   border-top: none;
-  padding: 0;
+  /* Верхня безпечна зона тут своя, а не успадкована від `.shell`: `.sheet-scrim`
+     стоїть `fixed`, тобто рахується від вьюпорта, і відступ каркаса сюди не
+     доходить — шапка аркуша сідала просто під годинник. Тло аркуша при цьому
+     доходить до самого краю екрана, тож шва під смугою статусу немає. */
+  padding: env(safe-area-inset-top) 0 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
