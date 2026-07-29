@@ -7,18 +7,25 @@ import {
   type Location,
 } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
+import { pendingSharePath } from "../sharing/pending";
 import ActivateScreen from "../screens/ActivateScreen";
 import CardEditScreen from "../screens/CardEditScreen";
 import CardScreen from "../screens/CardScreen";
+import CategoriesScreen from "../screens/CategoriesScreen";
+import GrammarScreen from "../screens/GrammarScreen";
+import ListShareScreen from "../screens/ListShareScreen";
 import ListsScreen from "../screens/ListsScreen";
 import LoginScreen from "../screens/LoginScreen";
+import NoteEditScreen from "../screens/NoteEditScreen";
+import NoteScreen from "../screens/NoteScreen";
 import {
   ForgotPasswordScreen,
   ResetPasswordScreen,
 } from "../screens/PasswordScreens";
 import ProgressScreen from "../screens/ProgressScreen";
-import { GrammarScreen } from "../screens/Stubs";
 import ProfileScreen from "../screens/ProfileScreen";
+import RegisterScreen from "../screens/RegisterScreen";
+import ShareImportScreen from "../screens/ShareImportScreen";
 import StudyScreen from "../screens/StudyScreen";
 import TodayScreen from "../screens/TodayScreen";
 import VocabularyScreen from "../screens/VocabularyScreen";
@@ -62,12 +69,37 @@ export default function App() {
           element={<ResetPasswordScreen />}
         />
         <Route path="/accounts/forgot-password" element={<ForgotPasswordScreen />} />
+        {/* Уже залогінений на екрані входу — перекидаємо. Але не завжди на «/»:
+            людина могла прийти за посиланням на список, і тоді доїхати мусить
+            саме туди. Це перекидання спрацьовує одночасно з тим, що робить сам
+            LoginScreen, тож обидва лише ЧИТАЮТЬ токен — інакше перше з'їдало б
+            його, а друге їхало в нікуди. */}
         <Route
           path="/accounts/login"
           element={
-            status === "authenticated" ? <Navigate to="/" replace /> : <LoginScreen />
+            status === "authenticated" ? (
+              <Navigate to={pendingSharePath() ?? "/"} replace />
+            ) : (
+              <LoginScreen />
+            )
           }
         />
+        <Route
+          path="/accounts/register"
+          element={
+            status === "authenticated" ? (
+              <Navigate to={pendingSharePath() ?? "/"} replace />
+            ) : (
+              <RegisterScreen />
+            )
+          }
+        />
+
+        {/* Чужий список за посиланням — ПОЗА RequireAuth навмисно. Екран сам
+            вирішує, що робити з анонімом: спершу запам'ятати токен, і лише потім
+            відправити на вхід. Через RequireAuth токен губився б, бо той робить
+            Navigate із replace, не лишаючи по собі адреси. */}
+        <Route path="/shares/:token" element={<ShareImportScreen />} />
 
         {/* Навчання — ПОЗА TabsLayout навмисно: панель вкладок під час нього
             ховається, щоб палець не вилітав повз кнопку оцінки. Вийти можна
@@ -91,6 +123,7 @@ export default function App() {
           <Route index element={<TodayScreen />} />
           <Route path="/vocabulary" element={<VocabularyScreen />} />
           <Route path="/vocabulary/lists" element={<ListsScreen />} />
+          <Route path="/vocabulary/lists/:id/share" element={<ListShareScreen />} />
           <Route path="/vocabulary/cards/new" element={<CardEditScreen mode="create" />} />
           <Route path="/vocabulary/cards/:id" element={<CardScreen />} />
           <Route
@@ -98,6 +131,13 @@ export default function App() {
             element={<CardEditScreen mode="edit" />}
           />
           <Route path="/grammar" element={<GrammarScreen />} />
+          <Route path="/grammar/categories" element={<CategoriesScreen />} />
+          <Route path="/grammar/notes/new" element={<NoteEditScreen mode="create" />} />
+          <Route path="/grammar/notes/:id" element={<NoteScreen />} />
+          <Route
+            path="/grammar/notes/:id/edit"
+            element={<NoteEditScreen mode="edit" />}
+          />
           <Route path="/progress" element={<ProgressScreen />} />
           {/* Профіль лишається справжнім маршрутом, але вкладки в нього немає:
               заходять сюди через аватар на «Сьогодні». */}
@@ -128,6 +168,15 @@ export default function App() {
             <Route
               path="/vocabulary/cards/:id/edit"
               element={<CardEditScreen mode="edit" />}
+            />
+            <Route
+              path="/grammar/notes/new"
+              element={<NoteEditScreen mode="create" />}
+            />
+            <Route path="/grammar/notes/:id" element={<NoteScreen />} />
+            <Route
+              path="/grammar/notes/:id/edit"
+              element={<NoteEditScreen mode="edit" />}
             />
           </Route>
         </Routes>

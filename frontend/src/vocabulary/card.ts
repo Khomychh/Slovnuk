@@ -8,6 +8,7 @@
  * порожнім. Саме тому тут Vitest, а не жива перевірка.
  */
 
+import { words } from "../ui/plural";
 import type { components } from "../api/schema";
 
 export type Card = components["schemas"]["CardSchema"];
@@ -310,4 +311,38 @@ export function distinctTranscriptions(card: Card): string[] {
 /** Чи змінилось хоч щось — від цього залежить питання при виході з редактора. */
 export function draftIsDirty(before: CardDraft, after: CardDraft): boolean {
   return JSON.stringify(toCardPayload(before)) !== JSON.stringify(toCardPayload(after));
+}
+
+/**
+ * Яку частку словника займає список — ширина смуги під його рядком.
+ *
+ * Знаменник — усі картки користувача, а не сума карток по списках: списки це
+ * мітки, тож картка може лежати у двох, а може ні в одному, і сума їхніх
+ * лічильників не дорівнює словнику ні в той, ні в інший бік. На живих даних це
+ * добре видно: 540 із 608 в одному списку дають майже повну смугу.
+ *
+ * Порожній словник дає нуль, а не діління на нуль. Дуже малий список отримує
+ * мінімум 1.5% — інакше смуга зникає зовсім і рядок читається як зламаний.
+ */
+export function listFraction(cardCount: number, totalCards: number): number {
+  if (totalCards <= 0 || cardCount <= 0) return 0;
+  const share = (cardCount / totalCards) * 100;
+  return Math.min(100, Math.max(1.5, share));
+}
+
+/**
+ * Монорядок під назвою списку: «54 СЛОВА · ЗА ЗАМОВЧУВАННЯМ · ПОДІЛЕНО».
+ *
+ * Стан кажеться словами, а не кольорами й не другим станом іконок: тоді іконка
+ * шеру лишається просто входом, а не носієм інформації, якої на ній не
+ * прочитати.
+ */
+export function listStateLine(
+  list: Pick<WordList, "card_count" | "share_token">,
+  isDefault: boolean,
+): string {
+  const parts = [words(list.card_count)];
+  if (isDefault) parts.push("за замовчуванням");
+  if (list.share_token) parts.push("поділено");
+  return parts.join(" · ");
 }

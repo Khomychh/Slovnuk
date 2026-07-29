@@ -9,8 +9,9 @@
  *              заднім числом не відновити, а синтезувати їх заборонено
  *              (CONTEXT.md, «Запис повторення»). Рядок звідси зникає ЛИШЕ після
  *              успішної відповіді сервера.
- *   snapshot — останнє відоме «Сьогодні», календар і денна дельта, щоб екран
- *              не був порожнім при офлайн-відкритті (ADR-0007).
+ *   snapshot — останнє відоме «Сьогодні», календар, денна дельта й налаштування,
+ *              щоб екран не був порожнім при офлайн-відкритті (ADR-0007) і не
+ *              брехав про вибір користувача (ADR-0014).
  */
 
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
@@ -37,13 +38,14 @@ export type BufferRecord = {
 
 type TodayResponse = components["schemas"]["StudyDayResponseSchema"];
 type DaysResponse = components["schemas"]["StudyDaysResponseSchema"];
+type Settings = components["schemas"]["StudySettingsResponseSchema"];
 
 interface StudyDb extends DBSchema {
   queue: { key: string; value: BufferRecord };
   outbox: { key: number; value: OutboxEntry };
   snapshot: {
     key: string;
-    value: TodayResponse | DaysResponse | Progress | number[];
+    value: TodayResponse | DaysResponse | Progress | Settings | number[];
   };
 }
 
@@ -148,6 +150,22 @@ export async function readProgress(): Promise<Progress | undefined> {
 
 export async function writeProgress(value: Progress): Promise<void> {
   await (await db()).put("snapshot", value, "progress");
+}
+
+/**
+ * Налаштування навчання — останні відомі.
+ *
+ * Без цього дзеркала офлайн діяли б дефолти коду, а не вибір користувача, і
+ * застосунок тихо брехав би про нього двічі: напрямок «укр → англ» ставав би
+ * «англ → укр», а вимкнене озвучення — увімкненим, тобто телефон заговорив би
+ * там, де його свідомо змусили мовчати. Причини й альтернативи — в ADR-0014.
+ */
+export async function readSettings(): Promise<Settings | undefined> {
+  return (await db()).get("snapshot", "settings") as Promise<Settings | undefined>;
+}
+
+export async function writeSettings(value: Settings): Promise<void> {
+  await (await db()).put("snapshot", value, "settings");
 }
 
 /**

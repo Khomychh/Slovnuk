@@ -19,6 +19,7 @@ import { ProfileAvatar } from "../profile/ProfileAvatar";
 import { progressValue } from "../study/session";
 import { useLists, useSettings, useStudy, useToday, useUpdateSettings, useWeek } from "../study/queries";
 import { init, refill, setListFilter } from "../study/store";
+import { unlockSpeech } from "../tts/speech";
 import type { StudyDirection } from "../api/study";
 
 const WEEKDAY_SHORT = ["пн", "вт", "ср", "чт", "пт", "сб", "нд"];
@@ -161,7 +162,13 @@ export default function TodayScreen() {
         className="hero aurora aurora-live"
         type="button"
         disabled={waiting === 0}
-        onClick={() => navigate("/study")}
+        onClick={() => {
+          // Єдиний жест, після якого починається автоозвучення, — саме цей.
+          // На iOS без нього перша картка (і всі наступні) не пролунали б:
+          // подробиці в `unlockSpeech`. На Android виклик не робить нічого.
+          unlockSpeech();
+          navigate("/study");
+        }}
       >
         {waiting > 0 ? (
           <>

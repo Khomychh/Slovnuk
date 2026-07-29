@@ -6,13 +6,11 @@
  * — **Теми.** Палітри світлої теми не існує (`theme.css` тримає одну), тож
  *   перемикач був би мертвим органом керування. Поле `theme` при цьому лишається
  *   в API недоторканим.
- * — **Озвучення.** Це не настройка, а робота в екрані навчання: голоси Web
- *   Speech API вантажаться асинхронно й на різних телефонах різні.
+ * — **Напрямку показу.** Він живе на «Сьогодні»; другий орган керування тим
+ *   самим полем — це два місця, де його шукати.
  * — **Цільової памʼятливості.** Сирий 0.7–0.99 — це кнопка «зіпсувати собі
  *   планування», а різниця між 0.90 і 0.91 людині нічого не каже. Діє серверний
  *   `DEFAULT_DESIRED_RETENTION`.
- * — **Напрямку показу.** Він живе на «Сьогодні»; другий орган керування тим
- *   самим полем — це два місця, де його шукати.
  * — **Вибору часового поясу.** Пояс їде за телефоном сам (`timeZoneNeedsSync`),
  *   і показується тут як рядок, а не як поле: це місце, де видно причину, якщо
  *   календар колись здасться дивним.
@@ -20,7 +18,7 @@
  *   авторизації; доменного сенсу в застосунку для вивчення слів не мають.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ApiError } from "../api/client";
 import { changePassword, patchProfile, uploadAvatar } from "../api/profile";
 import { useAuth } from "../auth/AuthProvider";
@@ -28,13 +26,32 @@ import { useOnline } from "../app/useOnline";
 import { avatarVersion, markAvatarChanged, prepareAvatar } from "../profile/avatar";
 import {
   avatarSrc,
+  fullName,
   nameChanged,
   nameProblem,
   parseGoal,
 } from "../profile/profile";
 import { useSettings, useUpdateSettings } from "../study/queries";
 import { detectTimeZone } from "../study/day";
-import { Screen } from "../ui/parts";
+import { useVoices } from "../tts/SpeakButton";
+import { accentAvailable, speak, speechAvailable, type Accent } from "../tts/speech";
+import { SaveButton, Screen } from "../ui/parts";
+
+/**
+ * Фраза перевірки.
+ *
+ * Три слова, у яких американська й британська вимова розходяться найпомітніше
+ * (`schedule` — SHED-jool проти SKED-jool). Тому кнопка перевіряє не лише «чи є
+ * звук узагалі», а й «чи справді змінився акцент» — на «Hello, this is a test»
+ * зі старого PWA другого не чути.
+ */
+const TEST_PHRASE = "Schedule. Water. Tomato.";
+
+const ACCENTS: { value: Accent; label: string; full: string }[] = [
+  { value: "auto", label: "Авто", full: "Англійського" },
+  { value: "us", label: "US", full: "Американського" },
+  { value: "gb", label: "UK", full: "Британського" },
+];
 
 const messageOf = (problem: unknown, fallback: string) =>
   problem instanceof ApiError || problem instanceof Error
@@ -53,7 +70,7 @@ export default function ProfileScreen() {
   }, [refreshUser]);
 
   return (
-    <Screen eyebrow="налаштування" title={user?.first_name || "Профіль"}>
+    <Screen title={fullName(user)}>
       <AvatarBlock />
       <NameBlock key={user?.id ?? 0} />
 
@@ -68,6 +85,9 @@ export default function ProfileScreen() {
       ) : (
         <div className="hint">Завантаження…</div>
       )}
+
+      <div className="ed-label">Озвучення</div>
+      <VoiceBlock />
 
       <div className="ed-label">Обліковий запис</div>
       <div className="p-row">
@@ -226,23 +246,20 @@ function NameBlock() {
             }}
           />
         </div>
+        {/* Збереження стоїть у тому ж рядку, що й поля: окремим рядком під ними
+            кнопка читалась як дія всього екрана, хоча вона стосується рівно
+            цих двох полів. */}
+        <SaveButton
+          onClick={save}
+          disabled={!online || saving || !changed || problem !== null}
+          state={saving ? "saving" : saved && !changed ? "saved" : "idle"}
+        />
       </div>
 
       {/* Правило бекенду, а не наша примха: `validate_name` приймає лише
           українські літери. Кажемо про це до збереження, а не після 422. */}
       {problem ? <div className="msg msg-error">{problem}</div> : null}
       {error ? <div className="msg msg-error">{error}</div> : null}
-
-      <div className="p-actions">
-        <button
-          className="btn-save"
-          type="button"
-          disabled={!online || saving || !changed || problem !== null}
-          onClick={save}
-        >
-          {saving ? "Збереження…" : saved && !changed ? "Збережено" : "Зберегти"}
-        </button>
-      </div>
     </>
   );
 }
@@ -309,6 +326,11 @@ function GoalsBlock({
             }}
           />
         </div>
+        <SaveButton
+          onClick={save}
+          disabled={disabled || !valid || !changed}
+          state={saved && !changed ? "saved" : "idle"}
+        />
       </div>
 
       {/* Ціль — орієнтир, а не обмеження: застосунок ніколи не ховає картки,
@@ -322,18 +344,195 @@ function GoalsBlock({
         <div className="msg msg-error">Ціль — ціле число від 0 до 1000.</div>
       ) : null}
       {error ? <div className="msg msg-error">{error}</div> : null}
-
-      <div className="p-actions">
-        <button
-          className="btn-save"
-          type="button"
-          disabled={disabled || !valid || !changed}
-          onClick={save}
-        >
-          {saved && !changed ? "Збережено" : "Зберегти"}
-        </button>
-      </div>
     </>
+  );
+}
+
+/**
+ * Озвучення.
+ *
+ * Це єдине місце, де ним керують: вимикача в навчанні свідомо немає, щоб стан
+ * не мав двох різних джерел. Плата видима — прибрати звук посеред сесії коштує
+ * виходу з навчання.
+ *
+ * Три стани пристрою розрізняються навмисно, і плутати їх не можна:
+ *
+ *   немає API      — озвучення неможливе, показуємо, що робити;
+ *   голоси невідомі — `getVoices()` ще порожній, і стверджувати про акценти
+ *                     нема підстав, тож нічого не гасимо;
+ *   голоси відомі   — акцент без голосу гасне, бо три кнопки, з яких дві дають
+ *                     один і той самий голос, — інтерфейс, що бреше.
+ */
+function VoiceBlock() {
+  const online = useOnline();
+  const settings = useSettings();
+  const update = useUpdateSettings();
+  const { voices, ready } = useVoices();
+
+  if (!speechAvailable) {
+    return (
+      <div className="hint">
+        Цей браузер не вміє озвучувати. На Android голос дає застосунок «Google
+        Синтез мовлення» з англомовним пакетом; на iPhone він уже вбудований.
+      </div>
+    );
+  }
+
+  const data = settings.data;
+  if (!data) return <div className="hint">Завантаження…</div>;
+
+  const locked = !online || update.isPending;
+  const noEnglish = ready && !accentAvailable(voices, "auto");
+  const missing = (accent: Accent) => ready && !accentAvailable(voices, accent);
+
+  return (
+    <>
+      <div className="tts">
+        {/* Мікрорубрики над цим рядком немає навмисно: «Озвучення» стоїть
+            секційною міткою одразу над блоком, і другий підпис поспіль
+            читається як помилка верстки. */}
+        <div className="tts-group">
+          <div className="tts-opts">
+            <Opt
+              on={data.tts_enabled}
+              disabled={locked}
+              onClick={() => update.mutate({ tts_enabled: true })}
+            >
+              Увімкнено
+            </Opt>
+            <Opt
+              on={!data.tts_enabled}
+              disabled={locked}
+              onClick={() => update.mutate({ tts_enabled: false })}
+            >
+              Вимкнено
+            </Opt>
+          </div>
+        </div>
+
+        {/* Вимкнене озвучення ховає решту цілком: темп і акцент голосу, якого
+            не буде, — це органи керування нічим. */}
+        {data.tts_enabled ? (
+          <>
+            <div className="tts-group">
+              <div className="tts-key">у навчанні</div>
+              <div className="tts-opts">
+                <Opt
+                  on={data.tts_autoplay}
+                  disabled={locked}
+                  onClick={() => update.mutate({ tts_autoplay: true })}
+                >
+                  Автоматично
+                </Opt>
+                <Opt
+                  on={!data.tts_autoplay}
+                  disabled={locked}
+                  onClick={() => update.mutate({ tts_autoplay: false })}
+                >
+                  Лише вручну
+                </Opt>
+              </div>
+            </div>
+
+            <div className="tts-group">
+              <div className="tts-key">акцент</div>
+              <div className="tts-opts">
+                {ACCENTS.map((accent) => (
+                  <Opt
+                    key={accent.value}
+                    on={data.tts_accent === accent.value}
+                    disabled={locked || missing(accent.value)}
+                    title={
+                      missing(accent.value)
+                        ? `${accent.full} голосу на цьому пристрої немає`
+                        : undefined
+                    }
+                    onClick={() => update.mutate({ tts_accent: accent.value })}
+                  >
+                    {accent.label}
+                  </Opt>
+                ))}
+              </div>
+            </div>
+
+            <div className="tts-group">
+              <div className="tts-key">темп</div>
+              <div className="tts-opts">
+                <Opt
+                  on={!data.tts_slow}
+                  disabled={locked}
+                  onClick={() => update.mutate({ tts_slow: false })}
+                >
+                  Звичайний
+                </Opt>
+                <Opt
+                  on={data.tts_slow}
+                  disabled={locked}
+                  onClick={() => update.mutate({ tts_slow: true })}
+                >
+                  Повільний
+                </Opt>
+              </div>
+            </div>
+          </>
+        ) : null}
+      </div>
+
+      {data.tts_enabled ? (
+        <>
+          <button
+            className="btn-quiet"
+            type="button"
+            onClick={() =>
+              void speak(TEST_PHRASE, { accent: data.tts_accent, slow: data.tts_slow })
+            }
+          >
+            Перевірити голос
+          </button>
+          {/* Не випадкові слова: саме на них чути різницю між US і UK, тож
+              перевірка заразом показує, чи справді змінився акцент. */}
+          <div className="hint">Прозвучить: «{TEST_PHRASE}»</div>
+        </>
+      ) : null}
+
+      {noEnglish ? (
+        <div className="hint">
+          Англійських голосів на цьому пристрої не знайшлось. Слова
+          озвучуватимуться тим, що є, а голос доставляється в налаштуваннях
+          системи.
+        </div>
+      ) : null}
+
+      {!online ? <div className="hint">Змінити озвучення можна лише зі звʼязком.</div> : null}
+    </>
+  );
+}
+
+/** Кнопка вибору. Той самий чип, що й у виборі напрямку на «Сьогодні». */
+function Opt({
+  on,
+  disabled,
+  title,
+  onClick,
+  children,
+}: {
+  on: boolean;
+  disabled?: boolean;
+  title?: string;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      className={on ? "chip chip-on" : "chip"}
+      type="button"
+      disabled={disabled}
+      title={title}
+      aria-pressed={on}
+      onClick={onClick}
+    >
+      {children}
+    </button>
   );
 }
 

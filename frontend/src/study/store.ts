@@ -13,9 +13,15 @@
  */
 
 import { ApiError, OfflineError } from "../api/client";
-import { fetchQueue, postReview, type TodayResponse, type DaysResponse } from "../api/study";
+import {
+  fetchQueue,
+  postReview,
+  type TodayResponse,
+  type DaysResponse,
+  type StudySettings,
+} from "../api/study";
 import * as db from "./db";
-import { localDay, type DayKey } from "./day";
+import { localDay, resolveTimeZone, type DayKey } from "./day";
 import {
   applyRating,
   countAnswer,
@@ -45,6 +51,14 @@ export type StudyState = {
   /** Останнє відоме «Сьогодні» — щоб офлайн-відкриття не показувало порожнечу. */
   snapshotToday: TodayResponse | null;
   snapshotDays: DaysResponse | null;
+  /**
+   * Останні відомі налаштування.
+   *
+   * Не кеш заради швидкості, а захист від брехні: без них офлайн діяли б
+   * дефолти коду замість вибору користувача (ADR-0014). Читає їх `useSettings`,
+   * тому знати про це поле екранам не треба.
+   */
+  snapshotSettings: StudySettings | null;
   refilling: boolean;
   /** Зерно розкладу боків при напрямку «змішано». Нове на кожну сесію. */
   seed: number;
@@ -69,6 +83,7 @@ let state: StudyState = {
   listFilter: [],
   snapshotToday: null,
   snapshotDays: null,
+  snapshotSettings: null,
   refilling: false,
   seed: 1,
   lastReview: null,
@@ -118,15 +133,23 @@ export function init(): Promise<void> {
   initPromise ??= (async () => {
     void db.requestPersistence();
 
-    const [listFilter, buffer, progress, snapshotToday, snapshotDays, pending] =
-      await Promise.all([
-        db.readListFilter(),
-        db.readBuffer(),
-        db.readProgress(),
-        db.readToday(),
-        db.readDays(),
-        db.outboxSize(),
-      ]);
+    const [
+      listFilter,
+      buffer,
+      progress,
+      snapshotToday,
+      snapshotDays,
+      snapshotSettings,
+      pending,
+    ] = await Promise.all([
+      db.readListFilter(),
+      db.readBuffer(),
+      db.readProgress(),
+      db.readToday(),
+      db.readDays(),
+      db.readSettings(),
+      db.outboxSize(),
+    ]);
 
     const day = today();
     const usable = buffer && buffer.filterKey === filterKeyOf(listFilter);
@@ -141,8 +164,14 @@ export function init(): Promise<void> {
       progress: progress && progress.day === day ? progress : emptyProgress(day),
       snapshotToday: snapshotToday ?? null,
       snapshotDays: snapshotDays ?? null,
+      snapshotSettings: snapshotSettings ?? null,
       pending,
     });
+
+    // Пояс із дзеркала потрібен ще до першої вдалої відповіді сервера: без
+    // нього доба рахувалась би в UTC, і нічне повторення потрапило б не в той
+    // день. Мережа уточнить це пізніше тим самим значенням.
+    if (snapshotSettings) setTimeZone(resolveTimeZone(snapshotSettings.timezone));
 
     if (!usable) await db.clearBuffer();
     void flush();
@@ -326,6 +355,20 @@ export async function acceptToday(value: TodayResponse): Promise<void> {
 export async function acceptDays(value: DaysResponse): Promise<void> {
   set({ snapshotDays: value });
   await db.writeDays(value);
+}
+
+/**
+ * Прийняти налаштування — і від сервера, і від власної мутації.
+ *
+ * Викликати треба в обох випадках, інакше дзеркало тихо застаріє: користувач
+ * вимкнув озвучення, `PATCH` пройшов, а в сховищі лишилось «увімкнено» — і
+ * рівно до наступного вдалого читання застосунок офлайн говорив би всупереч
+ * щойно зробленому вибору.
+ */
+export async function acceptSettings(value: StudySettings): Promise<void> {
+  set({ snapshotSettings: value });
+  setTimeZone(resolveTimeZone(value.timezone));
+  await db.writeSettings(value);
 }
 
 // --- поява звʼязку ---

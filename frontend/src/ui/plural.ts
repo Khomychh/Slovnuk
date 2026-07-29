@@ -26,3 +26,8 @@ export function words(count: number): string {
 export function lists(count: number): string {
   return `${count} ${plural(count, "список", "списки", "списків")}`;
 }
+
+/** «9 нотаток», «2 нотатки», «1 нотатка». */
+export function notes(count: number): string {
+  return `${count} ${plural(count, "нотатка", "нотатки", "нотаток")}`;
+}

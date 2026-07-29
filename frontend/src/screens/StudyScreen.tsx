@@ -14,6 +14,9 @@
  *    записав би «Добре», не відкотити нічим.
  * 3. Колір оцінок — зупинки рампи сяйва, а не семафор (ADR-0012). «Не згадав»
  *    крижаний, а не червоний: забути слово не є провиною.
+ * 4. Озвучення звучить саме рівно тоді, коли англійське слово вперше видно, —
+ *    правило живе в `autoplayText` і накрите тестами. Форми самі не звучать
+ *    ніколи: кожна має власний динамік на своєму рядку.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -24,6 +27,8 @@ import { nextShowLabel, secondsUntil } from "../study/format";
 import { cardSide, progressValue, type QueueItem, type Rating } from "../study/session";
 import { useSettings, useStudy, useToday } from "../study/queries";
 import { answer, beginSession, init } from "../study/store";
+import { SpeakButton, useTts } from "../tts/SpeakButton";
+import { autoplayText, stopSpeaking } from "../tts/speech";
 
 const RATINGS: { value: Rating; label: string }[] = [
   { value: 1, label: "Не згадав" },
@@ -77,6 +82,16 @@ function distinctTranscriptions(card: QueueItem["card"]): string[] {
   return seen;
 }
 
+/** Слово з динаміком поруч. Кнопка стоїть там, де стоїть слово, — і тільки там. */
+function Headword({ word, className }: { word: string; className: string }) {
+  return (
+    <div className="head-line">
+      <div className={className}>{word}</div>
+      <SpeakButton text={word} size="md" />
+    </div>
+  );
+}
+
 function Examples({ examples }: { examples: QueueItem["card"]["senses"][number]["examples"] }) {
   if (examples.length === 0) return null;
   return (
@@ -84,6 +99,7 @@ function Examples({ examples }: { examples: QueueItem["card"]["senses"][number][
       {examples.map((example) => (
         <p key={example.id}>
           {example.text_en}
+          <SpeakButton text={example.text_en} />
           {example.text_uk ? <span className="ex-tr">{example.text_uk}</span> : null}
         </p>
       ))}
@@ -101,6 +117,7 @@ function Forms({ forms }: { forms: QueueItem["card"]["forms"] }) {
           <span className="flbl">{form.label ?? "форма"}</span>
           <span>{form.value}</span>
           {form.transcription ? <span className="fipa">{form.transcription}</span> : null}
+          <SpeakButton text={form.value} className="spk-end" />
         </div>
       ))}
     </div>
@@ -148,7 +165,7 @@ function buildFaces({ item, side }: { item: QueueItem; side: "en_uk" | "uk_en" }
       front: (
         <>
           <div className="fd-hint">{hint}</div>
-          <div className={headwordClass(card.word)}>{card.word}</div>
+          <Headword word={card.word} className={headwordClass(card.word)} />
         </>
       ),
       back: (
@@ -161,6 +178,10 @@ function buildFaces({ item, side }: { item: QueueItem; side: "en_uk" | "uk_en" }
                 {form.transcription ? (
                   <span className="fd-ipa">{form.transcription}</span>
                 ) : null}
+                {/* Вправа тут — саме вимова форми, тож динамік на кожному
+                    рядку. Автоматично вони не звучать: три висловлювання
+                    поспіль відстають від пальця, що вже тягнеться до оцінки. */}
+                <SpeakButton text={form.value} className="spk-end" />
               </div>
             ))}
           </div>
@@ -195,7 +216,10 @@ function buildFaces({ item, side }: { item: QueueItem; side: "en_uk" | "uk_en" }
       ),
       back: (
         <>
-          <div className="ans">{card.word}</div>
+          <div className="head-line">
+            <div className="ans">{card.word}</div>
+            <SpeakButton text={card.word} size="md" />
+          </div>
           {transcriptions.length > 0 ? (
             <div className="ipa">{transcriptions.join("   ·   ")}</div>
           ) : null}
@@ -211,7 +235,7 @@ function buildFaces({ item, side }: { item: QueueItem; side: "en_uk" | "uk_en" }
     front: (
       <>
         <div className="dirhint">англ → укр</div>
-        <div className={headwordClass(card.word)}>{card.word}</div>
+        <Headword word={card.word} className={headwordClass(card.word)} />
         {transcriptions.length === 1 ? <div className="ipa">{transcriptions[0]}</div> : null}
       </>
     ),
@@ -231,6 +255,7 @@ export default function StudyScreen() {
   const study = useStudy();
   const settings = useSettings();
   const today = useToday();
+  const tts = useTts();
 
   const [revealed, setRevealed] = useState(false);
   const [label, setLabel] = useState<{ trackId: number; seconds: number } | null>(null);
@@ -273,7 +298,34 @@ export default function StudyScreen() {
     [item, settings.data?.study_direction, study.seed],
   );
 
-  const faces = useMemo(() => (item ? buildFaces({ item, side }) : null), [item, side]);
+  // `tts.enabled` у залежностях не зайвий: обличчя картки містять динаміки, а
+  // React не перемальовує підтримерево, елементи якого не змінились. Без цього
+  // динаміки не з'явились би на вже показаній картці, коли налаштування
+  // приїхали пізніше за неї — тобто при холодному старті одразу в навчання.
+  const faces = useMemo(
+    () => (item ? buildFaces({ item, side }) : null),
+    [item, side, tts.enabled],
+  );
+
+  /**
+   * Автоозвучення.
+   *
+   * Що саме сказати, вирішує `autoplayText`; тут лише момент. Спрацьовує на
+   * зміні картки й на розкритті — двох подіях, у які англійське слово може
+   * вперше з'явитись на екрані.
+   */
+  useEffect(() => {
+    if (!tts.autoplay || !item) return;
+    const text = autoplayText(item, side, revealed);
+    if (text) void tts.say(text);
+    // `tts.say` навмисно поза залежностями: він міняється разом з акцентом і
+    // темпом, і тоді картка озвучувалась би повторно на зміну налаштувань.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trackId, revealed, side, tts.autoplay]);
+
+  // Вихід із навчання обриває голос на півслові — і правильно: продовжувати
+  // говорити на екрані, якого вже немає, застосунок не має права.
+  useEffect(() => stopSpeaking, []);
 
   const rate = (rating: Rating) => {
     if (!item) return;

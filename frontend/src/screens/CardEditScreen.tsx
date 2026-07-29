@@ -21,6 +21,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { findByWord } from "../api/vocabulary";
 import { useOnline } from "../app/useOnline";
+import { SaveButton } from "../ui/parts";
 import {
   blankExample,
   blankForm,
@@ -37,6 +38,7 @@ import {
 } from "../vocabulary/card";
 import { useCard, useCreateCard, useLists, useUpdateCard } from "../vocabulary/queries";
 import { useSettings } from "../study/queries";
+import { SpeakButton } from "../tts/SpeakButton";
 
 const POS_ORDER: PartOfSpeech[] = [
   "n",
@@ -205,15 +207,12 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
             />
           </svg>
         </button>
-        <button
-          className="btn-save"
-          type="button"
-          disabled={!online || saving}
-          title={online ? undefined : "Потрібен звʼязок"}
+        <SaveButton
           onClick={save}
-        >
-          {saving ? "Збереження…" : "Зберегти"}
-        </button>
+          disabled={!online || saving}
+          state={saving ? "saving" : "idle"}
+          title={online ? undefined : "Потрібен звʼязок"}
+        />
       </div>
 
       {/* Слово набирається дисплейною гарнітурою на письмовій лінійці, а не в
@@ -233,6 +232,9 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
           onChange={(event) => patch({ word: event.target.value })}
           onBlur={checkDuplicate}
         />
+        {/* Динамік стоїть НА письмовій лінійці, а не окремим рядком під нею:
+            він перевіряє щойно набране слово, а не є ще одним полем. */}
+        <SpeakButton text={draft.word} size="md" className="spk-on-rule" />
       </div>
 
       {duplicate ? (
@@ -418,17 +420,23 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
             </div>
           ) : null}
 
-          <input
-            className="ed-ipa"
-            placeholder="транскрипція, не обовʼязково"
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
-            value={form.transcription}
-            onChange={(event) =>
-              patchForm(index, { transcription: event.target.value })
-            }
-          />
+          {/* Динамік озвучує саме форму, але стоїть у рядку транскрипції, а не
+              поруч із «×»: сусідство з видаленням форми — це промах пальця, що
+              коштує набраного, заради того, щоб послухати слово. */}
+          <div className="ed-ipa-row">
+            <input
+              className="ed-ipa"
+              placeholder="транскрипція, не обовʼязково"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              value={form.transcription}
+              onChange={(event) =>
+                patchForm(index, { transcription: event.target.value })
+              }
+            />
+            <SpeakButton text={form.value} />
+          </div>
         </div>
       ))}
       <button

@@ -8,7 +8,7 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { apiFetch, OfflineError } from "../api/client";
-import { Field, Message, Screen } from "../ui/parts";
+import { Field, Message, SaveIcon, Screen } from "../ui/parts";
 
 function describe(caught: unknown, fallback: string): string {
   if (caught instanceof OfflineError) return "Немає звʼязку. Спробуй пізніше.";
@@ -149,11 +149,14 @@ export function ResetPasswordScreen() {
           required
         />
         {mismatch ? <Message kind="error">Паролі не збігаються.</Message> : null}
+        {/* Тут кнопка лишається на всю ширину з підписом: це головна дія цілого
+            екрана, а не куток панелі. Іконка та сама, що й у решті збережень. */}
         <button
-          className="btn"
+          className="btn btn-with-icon"
           type="submit"
           disabled={busy || !password || mismatch}
         >
+          <SaveIcon />
           {busy ? "Зберігаємо…" : "Зберегти пароль"}
         </button>
       </form>

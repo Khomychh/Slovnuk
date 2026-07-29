@@ -19,12 +19,33 @@ export class ApiError extends Error {
   readonly status: number;
   /** Машинний код із бекенду, коли він є: "account_not_activated" тощо. */
   readonly code: string | null;
+  /**
+   * Решта полів обʼєкта `detail`, коли бекенд поклав туди більше за код і текст.
+   *
+   * Потрібно там, де відповідь на помилку містить дані для дії: 409 `own_share`
+   * і 409 `list_exists` віддають `list_id` того списку, на який треба
+   * запропонувати перейти. Без цього екран міг би лише сказати «так не можна»,
+   * не показавши, куди йти.
+   */
+  readonly details: Record<string, unknown> | null;
 
-  constructor(status: number, message: string, code: string | null) {
+  constructor(
+    status: number,
+    message: string,
+    code: string | null,
+    details: Record<string, unknown> | null = null,
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
+    this.details = details;
+  }
+
+  /** Числове поле з `detail` — саме число або null, без «майже числа». */
+  number(field: string): number | null {
+    const value = this.details?.[field];
+    return typeof value === "number" ? value : null;
   }
 }
 
@@ -69,6 +90,7 @@ async function describeError(response: Response): Promise<ApiError> {
       response.status,
       object.message ?? "Щось пішло не так",
       object.code ?? null,
+      detail as Record<string, unknown>,
     );
   }
   if (Array.isArray(detail) && detail.length > 0) {

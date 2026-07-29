@@ -7,6 +7,8 @@ import {
   deletionLosesHistory,
   distinctTranscriptions,
   draftIsDirty,
+  listFraction,
+  listStateLine,
   newDraft,
   senseSummary,
   toCardPayload,
@@ -256,5 +258,56 @@ describe("draftIsDirty", () => {
 
   it("зміна списків — теж зміна", () => {
     expect(draftIsDirty(base, newDraft([2]))).toBe(true);
+  });
+});
+
+describe("смуга-частка в рядку списку", () => {
+  it("540 із 608 — майже повна смуга", () => {
+    // Живі дані: 540 карток лежать в одному списку з 608.
+    expect(listFraction(540, 608)).toBeCloseTo(88.8, 1);
+  });
+
+  it("порожній словник не дає діління на нуль", () => {
+    expect(listFraction(0, 0)).toBe(0);
+  });
+
+  it("порожній список — нуль", () => {
+    expect(listFraction(0, 608)).toBe(0);
+  });
+
+  it("дуже малий список усе одно видно", () => {
+    // 1 із 608 — це 0.16%, тобто смуга шириною менше пікселя: рядок читався б
+    // як зламаний. Мінімум лишає видиму позначку.
+    expect(listFraction(1, 608)).toBe(1.5);
+  });
+
+  it("більше карток, ніж у словнику, не дає понад 100%", () => {
+    // Так буває на мить після видалення картки, доки не перезапитано зведення.
+    expect(listFraction(700, 608)).toBe(100);
+  });
+});
+
+describe("монорядок стану списку", () => {
+  it("тільки кількість", () => {
+    expect(listStateLine({ card_count: 54, share_token: null }, false)).toBe("54 слова");
+  });
+
+  it("за замовчуванням", () => {
+    expect(listStateLine({ card_count: 1, share_token: null }, true)).toBe(
+      "1 слово · за замовчуванням",
+    );
+  });
+
+  it("поділено", () => {
+    expect(listStateLine({ card_count: 12, share_token: "AbC" }, false)).toBe(
+      "12 слів · поділено",
+    );
+  });
+
+  it("усі три факти разом", () => {
+    // «Поділено» сказано словом, тому іконці шеру не потрібно другого стану.
+    expect(listStateLine({ card_count: 5, share_token: "AbC" }, true)).toBe(
+      "5 слів · за замовчуванням · поділено",
+    );
   });
 });

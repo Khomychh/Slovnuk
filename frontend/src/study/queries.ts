@@ -31,9 +31,9 @@ import {
 } from "./day";
 import {
   acceptDays,
+  acceptSettings,
   acceptToday,
   getState,
-  setTimeZone,
   subscribe,
   type StudyState,
 } from "./store";
@@ -43,6 +43,15 @@ export function useStudy(): StudyState {
   return useSyncExternalStore(subscribe, getState, getState);
 }
 
+/**
+ * Налаштування навчання: напрямок, цілі, озвучення, пояс.
+ *
+ * `data` тут — мережа **або** дзеркало з IndexedDB, і саме тому злиття живе в
+ * одному місці, а не в кожному екрані (ADR-0014). Запасний шлях, про який
+ * треба памʼятати, рано чи пізно забувають в одному з пʼяти викликів — і саме
+ * там застосунок почне тихо підставляти дефолт коду замість вибору
+ * користувача.
+ */
 export function useSettings() {
   const query = useQuery({
     queryKey: ["study", "settings"],
@@ -51,12 +60,15 @@ export function useSettings() {
     staleTime: 5 * 60_000,
   });
 
+  const mirrored = useStudy().snapshotSettings;
+
   // Пояс потрібен сховищу, щоб рахувати добу так само, як її рахує сервер.
+  // Разом із ним свіже значення лягає в дзеркало.
   useEffect(() => {
-    if (query.data) setTimeZone(resolveTimeZone(query.data.timezone));
+    if (query.data) void acceptSettings(query.data);
   }, [query.data]);
 
-  return query;
+  return { ...query, data: query.data ?? mirrored ?? undefined };
 }
 
 export function useUpdateSettings() {
@@ -65,6 +77,9 @@ export function useUpdateSettings() {
     mutationFn: (payload: StudySettingsUpdate) => patchSettings(payload),
     onSuccess: (settings) => {
       client.setQueryData(["study", "settings"], settings);
+      // Дзеркало оновлюється й тут: інакше вибір, зроблений щойно, зник би при
+      // першому ж офлайн-відкритті, бо читання з мережі не було.
+      void acceptSettings(settings);
     },
   });
 }

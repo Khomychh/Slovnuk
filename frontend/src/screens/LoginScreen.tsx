@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ApiError, OfflineError } from "../api/client";
 import { useAuth } from "../auth/AuthProvider";
+import { peekShare, pendingSharePath } from "../sharing/pending";
 import { Field, Message, Screen } from "../ui/parts";
 
 export default function LoginScreen() {
@@ -12,13 +13,22 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  /*
+   * Людина могла прийти за посиланням на список. Тоді причину, чому в неї просять
+   * пароль, треба назвати: сам список ми показати не можемо (перегляд шеру
+   * вимагає логіну), тож текст безіменний — але він відповідає на питання «а це
+   * взагалі те, що я відкрив?».
+   */
+  const awaitingShare = peekShare() !== null;
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
     setError(null);
     try {
       await login(email.trim(), password);
-      navigate("/", { replace: true });
+      // Тільки читаємо: забере токен той екран, який доїхав (див. pending.ts).
+      navigate(pendingSharePath() ?? "/", { replace: true });
     } catch (caught) {
       // Повідомлення називає, що робити далі, а не переказує код відповіді.
       if (caught instanceof OfflineError) {
@@ -38,7 +48,9 @@ export default function LoginScreen() {
   return (
     <Screen eyebrow="slovnuk" title="Вхід">
       <p className="hint" style={{ marginTop: 10 }}>
-        Слова й прогрес зберігаються на сервері, тож для входу потрібен звʼязок.
+        {awaitingShare
+          ? "Щоб узяти список слів, увійдіть або створіть акаунт — після цього ми відкриємо його самі."
+          : "Слова й прогрес зберігаються на сервері, тож для входу потрібен звʼязок."}
       </p>
 
       {error ? <Message kind="error">{error}</Message> : null}
@@ -70,7 +82,10 @@ export default function LoginScreen() {
         </button>
       </form>
 
-      <div style={{ marginTop: 18, textAlign: "center" }}>
+      <div className="login-links">
+        <Link className="btn-link" to="/accounts/register">
+          Створити акаунт
+        </Link>
         <Link className="btn-link" to="/accounts/forgot-password">
           Забув пароль
         </Link>

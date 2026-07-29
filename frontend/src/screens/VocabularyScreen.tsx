@@ -24,6 +24,7 @@ import {
   type Browse,
 } from "../vocabulary/queries";
 import ListFilterSheet from "../vocabulary/ListFilterSheet";
+import { SpeakButton } from "../tts/SpeakButton";
 import { lists as listsLabel, words } from "../ui/plural";
 
 function CardRow({ card, onOpen }: { card: Card; onOpen: () => void }) {
@@ -33,17 +34,23 @@ function CardRow({ card, onOpen }: { card: Card; onOpen: () => void }) {
   // транскрипція поруч не поміститься, і показувати її не варто.
   const longWord = card.word.length > 24;
 
+  // Рядок — не кнопка, а смуга з кнопкою всередині: динамік поруч мусить бути
+  // окремим органом, а кнопка в кнопці недопустима в розмітці й непередбачувана
+  // в поведінці.
   return (
-    <button className="v-row" type="button" onClick={onOpen}>
-      <span className="v-word-line">
-        <span className="v-word">{card.word}</span>
-        {!longWord && transcriptions.length > 0 ? (
-          <span className="v-ipa">{transcriptions.join(" · ")}</span>
-        ) : null}
-        {card.forms.length > 0 ? <span className="v-tag">форми</span> : null}
-      </span>
-      {summary ? <span className="v-tr">{summary}</span> : null}
-    </button>
+    <div className="v-row">
+      <button className="v-row-main" type="button" onClick={onOpen}>
+        <span className="v-word-line">
+          <span className="v-word">{card.word}</span>
+          {!longWord && transcriptions.length > 0 ? (
+            <span className="v-ipa">{transcriptions.join(" · ")}</span>
+          ) : null}
+          {card.forms.length > 0 ? <span className="v-tag">форми</span> : null}
+        </span>
+        {summary ? <span className="v-tr">{summary}</span> : null}
+      </button>
+      <SpeakButton text={card.word} className="spk-row" />
+    </div>
   );
 }
 
@@ -52,7 +59,18 @@ export default function VocabularyScreen() {
   const location = useLocation();
   const online = useOnline();
 
-  const [browse, setBrowse] = useState<Browse>(EMPTY_BROWSE);
+  /*
+   * Фільтр списку не адресується посиланням навмисно (позиція скролу й набраний
+   * пошук не повинні гинути від зміни URL), тож прийти «у конкретний список»
+   * можна лише станом навігації. Це робить звіт після імпорту чужого списку:
+   * інакше людина шукала б свіжозабраний список руками в аркуші фільтра.
+   */
+  const [browse, setBrowse] = useState<Browse>(() => {
+    const incoming = (location.state as { listId?: number } | null)?.listId;
+    return typeof incoming === "number"
+      ? { ...EMPTY_BROWSE, listId: incoming }
+      : EMPTY_BROWSE;
+  });
   const [draftQuery, setDraftQuery] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -102,7 +120,7 @@ export default function VocabularyScreen() {
   };
 
   return (
-    <Screen eyebrow="словник" title="Мої слова" aside={<ProfileAvatar />}>
+    <Screen title="Словник" aside={<ProfileAvatar />}>
       <div className="v-summary">
         {words(total)} · {listsLabel(listCount)}
       </div>

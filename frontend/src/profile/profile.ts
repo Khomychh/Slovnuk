@@ -56,6 +56,22 @@ export function nameChanged(
 }
 
 /**
+ * Заголовок екрана профілю — імʼя й прізвище одним рядком.
+ *
+ * Порожні частини відкидаються, а не дають подвійний пробіл: прізвище на
+ * бекенді необовʼязкове. Коли не заповнено нічого, лишається слово «Профіль» —
+ * порожня шапка виглядала б як недовантажений екран.
+ */
+export function fullName(
+  user: { first_name?: string | null; last_name?: string | null } | null,
+): string {
+  const parts = [user?.first_name, user?.last_name]
+    .map((part) => (part ?? "").trim())
+    .filter((part) => part !== "");
+  return parts.length > 0 ? parts.join(" ") : "Профіль";
+}
+
+/**
  * Адреса аватара з міткою версії.
  *
  * Ключ у сховищі детермінований (`avatars/{user_id}_avatar.jpg`), а посилання

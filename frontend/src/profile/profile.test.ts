@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { avatarSrc, nameChanged, nameProblem, parseGoal } from "./profile";
+import {
+  avatarSrc,
+  fullName,
+  nameChanged,
+  nameProblem,
+  parseGoal,
+} from "./profile";
 
 describe("parseGoal", () => {
   it("бере нуль як справжнє значення, а не як порожнечу", () => {
@@ -106,6 +112,35 @@ describe("avatarSrc", () => {
   it("не ламає адресу, у якій уже є параметри", () => {
     expect(avatarSrc("https://s3/a.jpg?X-Amz=1", "1700")).toBe(
       "https://s3/a.jpg?X-Amz=1&v=1700",
+    );
+  });
+});
+
+describe("заголовок профілю", () => {
+  it("імʼя й прізвище одним рядком", () => {
+    expect(fullName({ first_name: "Іван", last_name: "Хомич" })).toBe(
+      "Іван Хомич",
+    );
+  });
+
+  it("саме імʼя, коли прізвища немає", () => {
+    expect(fullName({ first_name: "Іван", last_name: null })).toBe("Іван");
+    expect(fullName({ first_name: "Іван", last_name: "  " })).toBe("Іван");
+  });
+
+  it("саме прізвище, коли імені немає", () => {
+    expect(fullName({ first_name: null, last_name: "Хомич" })).toBe("Хомич");
+  });
+
+  /* Порожня шапка читалась би як недовантажений екран, а не як «імені немає». */
+  it("без жодного імені лишається «Профіль»", () => {
+    expect(fullName({ first_name: null, last_name: null })).toBe("Профіль");
+    expect(fullName(null)).toBe("Профіль");
+  });
+
+  it("зайві пробіли не дають подвійного розділювача", () => {
+    expect(fullName({ first_name: "  Іван ", last_name: " Хомич " })).toBe(
+      "Іван Хомич",
     );
   });
 });

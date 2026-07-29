@@ -13,6 +13,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useOnline } from "../app/useOnline";
 import { POS_LABELS, deletionLosesHistory } from "../vocabulary/card";
 import { useCard, useDeleteCard, useLists } from "../vocabulary/queries";
+import { SpeakButton } from "../tts/SpeakButton";
 
 export default function CardScreen() {
   const navigate = useNavigate();
@@ -78,7 +79,10 @@ export default function CardScreen() {
         </button>
       </div>
 
-      <h1 className="card-word">{item.word}</h1>
+      <div className="card-head-word">
+        <h1 className="card-word">{item.word}</h1>
+        <SpeakButton text={item.word} size="md" />
+      </div>
 
       {names.length > 0 ? (
         <div className="v-lists-line">{names.join(" · ")}</div>
@@ -106,7 +110,10 @@ export default function CardScreen() {
             ) : null}
             {sense.examples.map((example) => (
               <div className="card-ex" key={example.id}>
-                <div>{example.text_en}</div>
+                <div>
+                  {example.text_en}
+                  <SpeakButton text={example.text_en} />
+                </div>
                 {example.text_uk ? (
                   <div className="card-ex-uk">{example.text_uk}</div>
                 ) : null}
@@ -128,6 +135,7 @@ export default function CardScreen() {
               {form.transcription ? (
                 <span className="card-ipa">{form.transcription}</span>
               ) : null}
+              <SpeakButton text={form.value} className="spk-end" />
             </div>
           ))}
         </div>

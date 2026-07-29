@@ -18,7 +18,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ProfileAvatar } from "../profile/ProfileAvatar";
 import { Screen } from "../ui/parts";
-import { fetchStats } from "../api/vocabulary";
+import { useVocabularyStats } from "../vocabulary/queries";
 import { fetchDays, type StudyDay } from "../api/study";
 import { localDay, resolveTimeZone, startOfWeek, type DayKey } from "../study/day";
 import { useSettings } from "../study/queries";
@@ -95,11 +95,7 @@ export default function ProgressScreen() {
   const timeZone = resolveTimeZone(settings.data?.timezone);
   const today = localDay(new Date(), timeZone);
 
-  const stats = useQuery({
-    queryKey: ["vocabulary", "stats"],
-    queryFn: fetchStats,
-    staleTime: 60_000,
-  });
+  const stats = useVocabularyStats();
 
   // Без from/to — уся історія. Вона починається з дня імпорту і за рік
   // залишиться сотнями рядків, а не тисячами: рядок за добу, не за відповідь.
@@ -153,7 +149,7 @@ export default function ProgressScreen() {
   const learned = stats.data?.learned ?? 0;
 
   return (
-    <Screen eyebrow="прогрес" title="Наскільки міцно" aside={<ProfileAvatar />}>
+    <Screen title="Прогрес" aside={<ProfileAvatar />}>
       <div className="band" aria-label="Слова за міцністю">
         {BANDS.map((band) => (
           <i

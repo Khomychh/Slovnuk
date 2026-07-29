@@ -9,9 +9,11 @@
  * ховається, щоб палець не вилітав із навчання повз кнопку оцінки.
  */
 
+import { useEffect } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useOnline } from "../app/useOnline";
 import { useTimeZoneSync } from "../study/queries";
+import { init } from "../study/store";
 
 const TABS = [
   {
@@ -61,6 +63,17 @@ const TABS = [
 
 export default function TabsLayout() {
   const online = useOnline();
+
+  /*
+   * Сховище відкривається тут, а не лише на «Сьогодні» й у навчанні, як було
+   * раніше. Причина — дзеркало налаштувань: без відкритої бази `useSettings`
+   * офлайн віддавав би `undefined` на «Словнику» й у «Профілі», тобто динаміки
+   * зникали б саме там, де озвучення й потрібне. Виклик ідемпотентний.
+   */
+  useEffect(() => {
+    void init();
+  }, []);
+
   // Пояс переписується сам, коли телефон переїхав: органу керування ним немає.
   useTimeZoneSync();
 

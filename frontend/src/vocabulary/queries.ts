@@ -23,6 +23,7 @@ import {
   fetchCard,
   fetchCards,
   fetchLists,
+  fetchStats,
   renameList,
   updateCard,
   type CardPage,
@@ -125,6 +126,19 @@ export function useCard(id: number | null) {
         .flatMap(([, data]) => data?.pages ?? []);
       return flatten(pages).find((card) => card.id === id);
     },
+    staleTime: 60_000,
+  });
+}
+
+/**
+ * Зведення словника: скільки карток, доріжок на повторення, вивчених і теплова
+ * смуга. Живе тут, а не в екрані, бо потрібне двом: «Прогресу» (усе) і
+ * «Спискам» (лише `cards` — знаменник смуги-частки).
+ */
+export function useVocabularyStats() {
+  return useQuery({
+    queryKey: ["vocabulary", "stats"],
+    queryFn: fetchStats,
     staleTime: 60_000,
   });
 }
