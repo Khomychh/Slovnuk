@@ -312,7 +312,6 @@ frontend/.vite/
 backend/openapi.json
 
 README.md
-docs
 CONTEXT.md
 
 frontend/tsconfig.tsbuildinfo
