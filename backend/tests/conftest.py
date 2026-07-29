@@ -21,6 +21,12 @@ if not os.environ["POSTGRES_DB"].endswith("_test"):
         "назва мусить закінчуватись на '_test'."
     )
 
+# Ключі підпису не мають дефолтів у Settings, тож без них не підніметься навіть
+# тестовий застосунок. Значення тут навмисно очевидно несправжні: якщо вони
+# колись спливуть у продакшені, це буде видно з першого погляду.
+os.environ.setdefault("SECRET_KEY_ACCESS", "test-only-access-key")
+os.environ.setdefault("SECRET_KEY_REFRESH", "test-only-refresh-key")
+
 import subprocess  # noqa: E402
 import sys  # noqa: E402
 from functools import lru_cache  # noqa: E402

@@ -172,6 +172,14 @@ class UserModel(Base):
     def password(self, raw_password: str) -> None:
         """
         Set the user's password after validating its strength and hashing it.
+
+        УВАГА: хешування тут синхронне і коштує ~835 мс, тобто виклик із
+        `async def` морозить увесь цикл подій. `verify_password` цю ваду вже не
+        має — роути виносять його в `run_in_threadpool`, — але з присвоєнням
+        так не вийде: `await` присвоєнню не поставиш, а обійти сетер означає
+        обійти й `validate_password_strength`. Свідомо лишено як є: сюди
+        потрапляють реєстрація (раз на людину) і зміна пароля (одиниці разів
+        на рік), тоді як перевірка йде на кожному вході.
         """
         validators.validate_password_strength(raw_password)
         self._hashed_password = hash_password(raw_password)

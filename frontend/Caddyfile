@@ -1,0 +1,57 @@
+# Caddy усередині образу фронтенду. Слухає ГОЛИЙ :80 без імені домену — саме
+# тому не просить сертифіката: ACME вмикається від доменного імені в блоці.
+# TLS і домен — справа спільного Caddy на сервері (deploy/Caddyfile).
+#
+# Цей файл — уся мережева поведінка Slovnuk в одному місці. Спільний Caddy про
+# неї не знає нічого, крім імені цього контейнера (ADR-0015).
+{
+	# Спільний Caddy стоїть попереду, тож справжній IP клієнта приходить у
+	# заголовку. Без цього в логах був би IP проксі.
+	servers {
+		trusted_proxies static private_ranges
+	}
+	# Адмін-API нікому тут не потрібен, а порт 2019 він займає.
+	admin off
+}
+
+:80 {
+	encode zstd gzip
+
+	# API. Префікс НЕ зрізається: роути бекенда самі починаються з /api/v1
+	# (`client.ts` тримає `const BASE = "/api/v1"`).
+	handle /api/* {
+		reverse_proxy slovnuk-backend:8000
+	}
+
+	# Аватари з публічного бакета MinIO. `handle_path` зрізає /media, тож до
+	# MinIO їде /{bucket}/{key} — саме те, чого він чекає.
+	#
+	# Це проксі існує, щоб адреса аватара була HTTPS із того самого домену:
+	# `s3.py` будує її з S3_STORAGE_PUBLIC_ENDPOINT, і http-адреса на
+	# https-сторінці була б заблокована браузером як mixed content — мовчки,
+	# без жодної помилки в мережі. MinIO завдяки цьому не публікує портів.
+	handle_path /media/* {
+		reverse_proxy slovnuk-minio:9000
+	}
+
+	handle {
+		root * /srv/slovnuk
+
+		# Хешовані ассети Vite незмінні за визначенням — ім'я міняється разом
+		# зі вмістом.
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+
+		# Оболонка і service worker — навпаки. Якщо sw.js застрягне в кеші,
+		# застосунок перестане оновлюватись, і зрозуміти це буде нічим.
+		@shell path /index.html /sw.js /registerSW.js /manifest.webmanifest
+		header @shell Cache-Control "no-cache"
+
+		# Обов'язковий для односторінкового застосунку: посилання з листа
+		# активації веде на /accounts/activate, а такого файлу на диску немає.
+		# Service worker це теж уміє, але тільки після встановлення — перший
+		# перехід за посиланням із листа обслуговує саме цей рядок.
+		try_files {path} /index.html
+		file_server
+	}
+}

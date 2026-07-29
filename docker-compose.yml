@@ -1,13 +1,25 @@
+# Базовий стек. Самодостатній: піднімається однією командою і на машині
+# розробника, і на сервері.
+#
+# УСІ порти публікуються на 127.0.0.1, а не на 0.0.0.0 — і це не про зручність.
+# На публічному сервері `"5432:5432"` означає базу, відкриту в інтернет; тут же
+# порт доступний лише з самої машини або через SSH-тунель. Тунель до Postgres
+# потрібен оптимізатору параметрів (ADR-0002), тож loopback — не компроміс, а
+# рівно та конфігурація, яку ADR і передбачав.
+#
+# Для сервера накладається docker-compose.prod.yml — див. deploy/README.md.
+
 services:
   postgres:
     image: postgres:17-alpine
     container_name: slovnuk-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-slovnuk}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-slovnuk}
       POSTGRES_DB: ${POSTGRES_DB:-slovnuk}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -21,13 +33,14 @@ services:
   minio:
     image: minio/minio:latest
     container_name: slovnuk-minio
+    restart: unless-stopped
     command: server --console-address ":9001" /data
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     ports:
-      - "${MINIO_API_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
     volumes:
       - minio_data:/data
     healthcheck:
@@ -38,6 +51,8 @@ services:
     networks:
       - slovnuk_network
 
+  # Одноразовий: заводить бакети й робить публічний доступним на читання.
+  # `restart` йому не потрібен — він мусить завершитись, а не жити.
   createbuckets:
     image: minio/mc:latest
     depends_on:
@@ -64,6 +79,7 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     container_name: slovnuk-backend
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
@@ -77,7 +93,23 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
     ports:
-      - "${BACKEND_PORT:-8000}:8000"
+      - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
+    networks:
+      - slovnuk_network
+
+  # Статика застосунку плюс власний Caddy, який розводить /api/* і /media/*
+  # (ADR-0015). Порт 8080, а не 5173: 5173 займає `npm run dev`, і два
+  # фронтенди на одному порту — гарантована плутанина «а що я зараз бачу».
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: slovnuk-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-8080}:80"
     networks:
       - slovnuk_network
 

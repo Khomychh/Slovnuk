@@ -17,9 +17,8 @@ class Settings(BaseSettings):
 
     DEBUG: bool = False
 
-    # JWT
-    SECRET_KEY_ACCESS: str = "SECRET_KEY_ACCESS"
-    SECRET_KEY_REFRESH: str = "SECRET_KEY_REFRESH"
+    SECRET_KEY_ACCESS: str
+    SECRET_KEY_REFRESH: str
     JWT_SIGNING_ALGORITHM: str = "HS256"
     LOGIN_TIME_DAYS: int = 7
 

@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from typing import cast
 
 from fastapi import APIRouter, BackgroundTasks, Depends, status, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import select, delete
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -326,8 +327,13 @@ async def login_user(
     result = await db.execute(stmt)
     user = result.scalars().first()
 
-    # перевіряємо чи є користувач і чи вірний пароль
-    if not user or not user.verify_password(login_data.password):
+    # перевіряємо чи є користувач і чи вірний пароль.
+    # bcrypt із rounds=14 коштує ~790 мс, і синхронний виклик тут морозив би
+    # весь API — uvicorn крутить один цикл подій. `or` так само коротко
+    # замикається: без користувача хеш не рахується взагалі.
+    if not user or not await run_in_threadpool(
+        user.verify_password, login_data.password
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={
@@ -715,7 +721,7 @@ async def change_password(
     user: UserModel = Depends(get_current_authenticated_user),
     db: AsyncSession = Depends(get_db),
 ) -> MessageResponseSchema:
-    if not user.verify_password(data.current_password):
+    if not await run_in_threadpool(user.verify_password, data.current_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={

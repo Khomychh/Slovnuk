@@ -301,7 +301,19 @@ node_modules/
 frontend/dist/
 frontend/dev-dist/
 frontend/.vite/
-# Згенеровані типи й схема, з якої вони робляться: єдине джерело правди —
-# Pydantic-схеми в backend/app/schemas/. Див. frontend/README.md.
-frontend/src/api/schema.d.ts
+# `backend/openapi.json` — проміжний артефакт: його роблять із живого
+# застосунку тільки щоб перегенерувати типи. Єдине джерело правди — Pydantic-
+# схеми в backend/app/schemas/. Див. frontend/README.md.
+#
+# А от `frontend/src/api/schema.d.ts` у git ЛЕЖИТЬ, хоч і згенерований, і це
+# свідомо: без нього `npm run build` (тобто `tsc -b`) падає в чистій копії, і
+# образ фронтенду не збирається на сервері взагалі. Ціна — його треба
+# перегенеровувати з кожною зміною Pydantic-схем, зате забудькуватість тепер
+# видно як брудний `git status`, а не як тихе розходження типів із сервером.
 backend/openapi.json
+
+README.md
+docs
+CONTEXT.md
+
+frontend/tsconfig.tsbuildinfo
