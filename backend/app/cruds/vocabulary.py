@@ -100,6 +100,26 @@ async def count_cards(db: AsyncSession, conditions: Sequence) -> int:
     return (await db.execute(stmt)).scalar_one()
 
 
+# Стабільність доріжки перекладу цієї картки — ключ порядку `stability`.
+#
+# Корельований підзапит, а не JOIN: JOIN довелось би тягнути через усі виклики
+# fetch_cards і count_cards, а рахувати він мав би те саме одне значення.
+#
+# Доріжка саме перекладу — той самий вибір, що в `learned`, у теплових смугах і
+# в `cardTemperature` на фронтенді. Тут він обовʼязковий, а не бажаний: цим
+# порядком їде список, у якому кожен рядок пофарбовано температурою тієї ж
+# доріжки (ADR-0017). Візьми іншу — і список поїхав би не за тим кольором, який
+# сам показує.
+_TRANSLATION_STABILITY = (
+    select(ReviewTrackModel.stability)
+    .where(
+        ReviewTrackModel.card_id == CardModel.id,
+        ReviewTrackModel.kind == ReviewKindEnum.TRANSLATION,
+    )
+    .scalar_subquery()
+)
+
+
 def card_order(sort: str):
     """
     Порядок сторінки словника.
@@ -113,12 +133,29 @@ def card_order(sort: str):
     не за сирим `word`: інакше «Apple» стояло б перед «apple» у сортуванні, але
     збігалося б у пошуку.
 
+    `stability` — від найхолоднішого кінця рампи до найтеплішого, нові слова
+    попереду. NULL сортується першим не як «нуль днів», а як «величини ще
+    немає»: назвати нове слово найслабшим означало б стверджувати про його
+    памʼятливість те, чого ніхто не міряв. Між собою нові йдуть як у `created`,
+    новіші зверху, — інакше в голові списку стояла б сотня рівних карток у
+    порядку, який задає база.
+
+    NULL сюди потрапляє двома шляхами, і обидва означають те саме «ще не
+    міряно»: доріжка в стані NEW і картка, у якої доріжки перекладу немає
+    взагалі (створена, але жодного разу не відкрита).
+
     Другий ключ `id` є завжди: без нього рядки з однаковим значенням першого
     ключа можуть мінятись місцями між сторінками, і при зсувній пагінації
     картка або продублюється, або зникне.
     """
     if sort == "word":
         return (CardModel.word_normalized.asc(), CardModel.id.asc())
+    if sort == "stability":
+        return (
+            _TRANSLATION_STABILITY.asc().nulls_first(),
+            CardModel.created_at.desc(),
+            CardModel.id.desc(),
+        )
     return (CardModel.created_at.desc(), CardModel.id.desc())
 
 

@@ -6,7 +6,7 @@
  */
 
 import { apiFetch } from "./client";
-import type { components } from "./schema";
+import type { components, paths } from "./schema";
 import type { Card, CardCreate, CardUpdate, WordList } from "../vocabulary/card";
 
 export type CardPage = components["schemas"]["CardPageSchema"];
@@ -14,8 +14,19 @@ export type WordListPage = components["schemas"]["WordListPageSchema"];
 export type Unlisted = components["schemas"]["UnlistedSchema"];
 export type VocabularyStats = components["schemas"]["VocabularyStatsSchema"];
 
-/** Порядок сторінки. `created` — новіші зверху, `word` — за абеткою. */
-export type CardSort = "created" | "word";
+/**
+ * Порядок сторінки. Береться зі схеми, а не пишеться руками: значення мусить
+ * збігатися з `Literal` у роуті, інакше одруківка обернеться на 422 в рантаймі
+ * замість помилки складання.
+ *
+ * `created` — новіші зверху, `word` — за абеткою, `stability` — спершу холодні
+ * (нові попереду, далі від найменшої стабільності).
+ */
+export type CardSort = NonNullable<
+  NonNullable<
+    paths["/api/v1/vocabulary/cards/"]["get"]["parameters"]["query"]
+  >["sort"]
+>;
 
 export type CardQuery = {
   listId?: number | null;

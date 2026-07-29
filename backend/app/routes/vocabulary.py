@@ -305,8 +305,12 @@ async def get_cards(
         None, description="Пошук по слову, перекладу, уточненню і формах"
     ),
     word: str | None = Query(None, description="Точний збіг — перевірка дубліката"),
-    sort: Literal["created", "word"] = Query(
-        "created", description="created — новіші зверху, word — за абеткою"
+    sort: Literal["created", "word", "stability"] = Query(
+        "created",
+        description=(
+            "created — новіші зверху, word — за абеткою, "
+            "stability — спершу холодні, нові попереду"
+        ),
     ),
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),

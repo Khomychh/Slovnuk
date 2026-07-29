@@ -17,6 +17,9 @@
  * 4. Озвучення звучить саме рівно тоді, коли англійське слово вперше видно, —
  *    правило живе в `autoplayText` і накрите тестами. Форми самі не звучать
  *    ніколи: кожна має власний динамік на своєму рядку.
+ * 5. «Розкрито» тримається як id доріжки, а не як прапорець. Прапорець мусив би
+ *    скидатись ефектом і тому на одну мить брехав би про нову картку — див.
+ *    коментар біля `revealedFor`.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -54,10 +57,11 @@ function buildFaces({ item, side }: { item: QueueItem; side: "en_uk" | "uk_en" }
 
   if (item.kind === "forms") {
     const labels = card.forms.map((form) => form.label).filter(Boolean) as string[];
-    const hint =
-      labels.length > 0 && labels.join(" + ").length <= 26
-        ? `згадай форми · ${labels.join(" + ")}`
-        : "згадай форми слова";
+    // Мітки — окремим рядком під пігулкою, а не в ній: «ФОРМИ · PAST + PP» в
+    // одній пігулці робить її довгою смугою, і знак перестає читатись знаком.
+    const hint = labels.length > 0 && labels.join(" · ").length <= 30
+      ? labels.join(" · ")
+      : null;
     const summary = card.senses
       .map((sense) => sense.translation)
       .filter(Boolean)
@@ -66,7 +70,13 @@ function buildFaces({ item, side }: { item: QueueItem; side: "en_uk" | "uk_en" }
     return {
       front: (
         <>
-          <div className="fd-hint">{hint}</div>
+          {/* Доріжка форм і доріжка перекладу — різні вправи, і на закритій
+              картці це має бути видно до читання. Кольором розрізнити не можна:
+              насичений колір у застосунку означає температуру й тільки її
+              (ADR-0012, ADR-0016), тож знак — обведена пігулка. Та сама, що
+              позначає форми в рядку словника: одне поняття, один знак. */}
+          <div className="fd-badge">форми</div>
+          {hint ? <div className="fd-hint">{hint}</div> : null}
           <Headword word={card.word} className={headwordClass(card.word)} />
         </>
       ),
@@ -151,7 +161,20 @@ export default function StudyScreen() {
   const today = useToday();
   const tts = useTts();
 
-  const [revealed, setRevealed] = useState(false);
+  /**
+   * Розкрита не «якась картка», а конкретна доріжка.
+   *
+   * Прапорцем це бути не може. Прапорець скидається ефектом, тобто вже після
+   * того, як нова картка відмальована, — і між цими двома митями `revealed`
+   * стверджує про неї те, що було правдою про попередню. У «укр → англ» це
+   * означало, що автоозвучення промовляло англійське слово над українською
+   * лицьовою стороною, тобто підказувало відповідь, а back нової картки встигав
+   * промайнути на екрані.
+   *
+   * З id доріжки такого стану не існує: інша картка — інший id — закрита за
+   * визначенням, без жодного ефекту й без вікна, у якому значення застаріле.
+   */
+  const [revealedFor, setRevealedFor] = useState<number | null>(null);
   const [label, setLabel] = useState<{ trackId: number; seconds: number } | null>(null);
 
   /** Момент показу картки. Від нього рахується review_duration. */
@@ -163,10 +186,11 @@ export default function StudyScreen() {
 
   const item = study.buffer[0] as QueueItem | undefined;
   const trackId = item?.track_id;
+  const revealed = trackId !== undefined && revealedFor === trackId;
 
-  // Нова картка — знову закрита відповідь і новий відлік часу на обдумування.
+  // Новий відлік часу на обдумування. Закривати картку тут уже нічого не треба:
+  // вона закрита тим, що її id не збігається з `revealedFor`.
   useEffect(() => {
-    setRevealed(false);
     shownAt.current = Date.now();
   }, [trackId]);
 
@@ -251,9 +275,9 @@ export default function StudyScreen() {
    * розкриття обробник не робить нічого — оцінку ставить лише кнопка оцінки.
    */
   const revealOnTap = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (revealed) return;
+    if (revealed || trackId === undefined) return;
     if ((event.target as HTMLElement).closest("button")) return;
-    setRevealed(true);
+    setRevealedFor(trackId);
   };
 
   const topBar = (
@@ -330,7 +354,7 @@ export default function StudyScreen() {
             role={revealed ? undefined : "button"}
             tabIndex={revealed ? undefined : 0}
             onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") setRevealed(true);
+              if (event.key === "Enter" || event.key === " ") setRevealedFor(item.track_id);
             }}
           >
             {faces?.front}
