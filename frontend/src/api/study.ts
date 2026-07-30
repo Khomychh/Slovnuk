@@ -39,12 +39,15 @@ export function fetchQueue(
 export function postReview(
   trackId: number,
   rating: number,
-  reviewDuration: number,
+  reviewDuration: number | null,
 ): Promise<TrackReviewResponse> {
   return apiFetch<TrackReviewResponse>(`/study/tracks/${trackId}/review/`, {
     method: "POST",
-    // review_duration шлеться завжди: без нього оптимізатор FSRS не працює, а
-    // заднім числом цих мілісекунд не буде (ADR-0002).
+    // review_duration шлеться завжди, коли його виміряно: без нього оптимізатор
+    // FSRS працює гірше, а заднім числом цих мілісекунд не буде (ADR-0002).
+    // Виняток один — картку правили просто під час показу, і тоді число
+    // вимірювало б набір тексту, а не згадування (ADR-0024). Тоді краще null,
+    // ніж правдоподібна вигадка.
     body: { rating, review_duration: reviewDuration },
   });
 }

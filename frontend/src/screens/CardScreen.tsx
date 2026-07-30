@@ -12,13 +12,18 @@
  *
  * Запиту цей екран не коштує: `CardSchema` не має полегшеного варіанта, тож
  * картка вже цілком лежить у кеші сторінки списку — разом зі `stability`.
+ *
+ * Видалення тут немає, і це навмисно. Екран перегляду читають — «Видалити
+ * слово» на всю ширину внизу було найпомітнішою дією екрана, на якому дій
+ * узагалі не мало бути. Тепер сюди ведуть тільки очі й олівець, а видалення
+ * живе в редакторі, за тим самим олівцем.
  */
 
 import { useNavigate, useParams } from "react-router-dom";
 import { useOnline } from "../app/useOnline";
-import { deletionLosesHistory, distinctTranscriptions } from "../vocabulary/card";
+import { distinctTranscriptions } from "../vocabulary/card";
 import { CardBody, Headword, headwordClass } from "../vocabulary/CardFace";
-import { useCard, useDeleteCard, useLists } from "../vocabulary/queries";
+import { useCard, useLists } from "../vocabulary/queries";
 import { cardTemperature } from "../study/temperature";
 import { PencilIcon } from "../ui/parts";
 
@@ -30,7 +35,6 @@ export default function CardScreen() {
 
   const card = useCard(Number.isFinite(id) ? id : null);
   const lists = useLists();
-  const remove = useDeleteCard();
 
   if (card.isPending) {
     return <div className="sheet-page">Завантаження…</div>;
@@ -51,18 +55,6 @@ export default function CardScreen() {
     .filter((list) => item.list_ids.includes(list.id))
     .map((list) => list.name);
   const transcriptions = distinctTranscriptions(item);
-
-  const onDelete = async () => {
-    // Діалог мусить називати справжній наслідок. Стан доріжок уже в payload,
-    // тож окремий запит за кількістю відповідей не потрібен (ADR-0003).
-    const message = deletionLosesHistory(item)
-      ? `Видалити «${item.word}»? Разом зі словом зникне історія повторень — відновити її буде нічим.`
-      : `Видалити «${item.word}»? Слово зникне зі словника.`;
-    if (!window.confirm(message)) return;
-
-    await remove.mutateAsync(item.id);
-    navigate("/vocabulary", { replace: true });
-  };
 
   return (
     <div className="sheet-frame">
@@ -89,7 +81,11 @@ export default function CardScreen() {
         </button>
       </div>
 
-      <div className="sheet-scroll">
+      {/* `card-mid` центрує картку по вертикалі, поки вона в екран уміщається, і
+          віддає їй прокрутку, щойно перестала. Це те саме правило, що в
+          навчанні: слово в словнику мусить стояти там само, де стояло на
+          картці, — інакше два екрани показують ту саму річ по-різному. */}
+      <div className="sheet-scroll card-mid">
         {/* Списки стоять НАД панеллю, а не в ній: у навчанні їх немає, і панель
             мусить лишатись описом слова, а не його місця в словнику. */}
         {names.length > 0 ? (
@@ -119,20 +115,6 @@ export default function CardScreen() {
             />
           </div>
         </div>
-      </div>
-
-      {/* Видалення прибите, але тихе: до нього не треба догортати, і водночас
-          воно не претендує на роль головної дії екрана. */}
-      <div className="sheet-foot">
-        <button
-          className="btn-quiet"
-          type="button"
-          disabled={!online || remove.isPending}
-          title={online ? undefined : "Потрібен звʼязок"}
-          onClick={onDelete}
-        >
-          Видалити слово
-        </button>
       </div>
     </div>
   );

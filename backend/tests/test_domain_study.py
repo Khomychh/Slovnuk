@@ -201,16 +201,18 @@ async def test_new_word_counts_on_the_day_it_was_created(client: AsyncClient, au
 
 
 # --------------------------------------------------------------------------
-# «День навчання зберігає знімок цілей»
+# «День навчання зберігає знімок цілей, але сьогоднішній живий до півночі»
 # --------------------------------------------------------------------------
 
 
-async def test_raising_the_goal_does_not_rewrite_an_existing_day(
+async def test_raising_the_goal_reopens_today(
     client: AsyncClient, auth_headers, db_session
 ):
     """
-    Якби виконання перераховувалось за поточними цілями, підвищення планки з 5
-    до 20 миттєво «скасувало б» усі раніше закриті дні.
+    Ціль діє з миті зміни, поки день не скінчився (ADR-0023).
+
+    Підняв планку, дійшовши до старої, — день перестає бути виконаним, бо нової
+    ти ще не дійшов. Це видно й у смужці на «Сьогодні», і крапкою в календарі.
     """
     await client.patch(
         f"{STUDY}/settings/",
@@ -220,6 +222,79 @@ async def test_raising_the_goal_does_not_rewrite_an_existing_day(
     await _new_card(client, auth_headers, "run")
     await _review(client, auth_headers, await _first_track(client, auth_headers))
 
+    closed = (await client.get(f"{STUDY}/today/", headers=auth_headers)).json()
+    assert closed["is_goal_met"] is True, "передумова тесту не виконалась"
+
+    await client.patch(
+        f"{STUDY}/settings/",
+        json={"daily_new_goal": 50, "daily_review_goal": 50},
+        headers=auth_headers,
+    )
+
+    body = (await client.get(f"{STUDY}/today/", headers=auth_headers)).json()
+    assert body["new_goal"] == 50, "сьогоднішній день лишився зі старою ціллю"
+    assert body["review_goal"] == 50
+    assert body["is_goal_met"] is False
+
+    # Календар мусить казати те саме: два джерела однієї доби не мають права
+    # розходитись — саме через це «Сьогодні» й показувало не те, що профіль.
+    days = (await client.get(f"{STUDY}/days/", headers=auth_headers)).json()["items"]
+    assert days[-1]["review_goal"] == 50
+    assert days[-1]["is_goal_met"] is False
+
+
+async def test_lowering_the_goal_closes_today(client: AsyncClient, auth_headers):
+    """Дзеркальний бік того самого правила: знизив планку до зробленого — день закрито."""
+    await client.patch(
+        f"{STUDY}/settings/",
+        json={"daily_new_goal": 50, "daily_review_goal": 50},
+        headers=auth_headers,
+    )
+    await _new_card(client, auth_headers, "run")
+    await _review(client, auth_headers, await _first_track(client, auth_headers))
+
+    assert (await client.get(f"{STUDY}/today/", headers=auth_headers)).json()[
+        "is_goal_met"
+    ] is False
+
+    await client.patch(
+        f"{STUDY}/settings/",
+        json={"daily_new_goal": 1, "daily_review_goal": 1},
+        headers=auth_headers,
+    )
+
+    body = (await client.get(f"{STUDY}/today/", headers=auth_headers)).json()
+    assert body["is_goal_met"] is True
+
+
+async def test_changing_the_goal_does_not_rewrite_a_past_day(
+    client: AsyncClient, auth_headers, db_session
+):
+    """
+    Ось межа, за яку правило не заходить.
+
+    Учорашній день зберігає ті цілі, що діяли тоді, і своє «виконано». Інакше
+    підняття планки заднім числом скасувало б закриті дні й обірвало серію —
+    те саме, від чого захищає `ON CONFLICT DO NOTHING` в `ensure_study_day`.
+    """
+    await client.patch(
+        f"{STUDY}/settings/",
+        json={"daily_new_goal": 1, "daily_review_goal": 1},
+        headers=auth_headers,
+    )
+    await _new_card(client, auth_headers, "run")
+    await _review(client, auth_headers, await _first_track(client, auth_headers))
+
+    # Видамо сьогоднішній день за вчорашній: чекати добу тест не може.
+    row = (await db_session.execute(select(StudyDayModel))).scalars().one()
+    yesterday = row.day - timedelta(days=1)
+    await db_session.execute(
+        update(StudyDayModel)
+        .where(StudyDayModel.id == row.id)
+        .values(day=yesterday, is_goal_met=True)
+    )
+    await db_session.commit()
+
     await client.patch(
         f"{STUDY}/settings/",
         json={"daily_new_goal": 50, "daily_review_goal": 50},
@@ -227,10 +302,11 @@ async def test_raising_the_goal_does_not_rewrite_an_existing_day(
     )
 
     days = (await client.get(f"{STUDY}/days/", headers=auth_headers)).json()["items"]
-    assert len(days) == 1
-    assert days[0]["new_goal"] == 1, "знімок дня переписався поточною ціллю"
-    assert days[0]["review_goal"] == 1
-    assert days[0]["is_goal_met"] is True
+    past = [day for day in days if day["day"] == yesterday.isoformat()]
+    assert len(past) == 1
+    assert past[0]["new_goal"] == 1, "минулий день переписався поточною ціллю"
+    assert past[0]["review_goal"] == 1
+    assert past[0]["is_goal_met"] is True
 
 
 async def test_study_day_snapshot_is_written_on_the_first_action_of_the_day(

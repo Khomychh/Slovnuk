@@ -9,7 +9,7 @@ app/services/scheduler.py.
 from datetime import date, datetime
 from typing import Sequence
 
-from sqlalchemy import and_, distinct, exists, func, or_, select
+from sqlalchemy import and_, distinct, exists, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -169,6 +169,37 @@ async def ensure_study_day(
             is_goal_met=False,
         )
         .on_conflict_do_nothing(constraint="uq_study_days_user_day")
+    )
+    await db.execute(stmt)
+
+
+async def retarget_study_day(
+    db: AsyncSession,
+    user_id: int,
+    day: date,
+    new_goal: int,
+    review_goal: int,
+) -> None:
+    """
+    Переписати цілі ОДНОГО дня — того, який ще триває (ADR-0023).
+
+    Пара до `ensure_study_day`, і разом вони й дають правило: минулий день
+    зберігає цілі, що діяли тоді, а сьогоднішній живе до півночі й іде за
+    поточними. Викликається лише зі зміни налаштувань і лише на сьогодні —
+    сусіднього дня ця функція торкнутись не вміє за побудовою.
+
+    `is_goal_met` скидається навмисно, а не лишається як є. Виконання рахують
+    /today/ і /days/, і рахують вони тільки НЕзакриті дні; лишити прапорець
+    True означало б, що піднята ціль ніколи не перерахується. Скинутий
+    прапорець наступне ж читання поверне на місце, якщо ціль усе ще виконана.
+
+    Рядка може й не бути — тоді нічого не робимо: його створить перша дія доби,
+    і вже з новими цілями.
+    """
+    stmt = (
+        update(StudyDayModel)
+        .where(StudyDayModel.user_id == user_id, StudyDayModel.day == day)
+        .values(new_goal=new_goal, review_goal=review_goal, is_goal_met=False)
     )
     await db.execute(stmt)
 

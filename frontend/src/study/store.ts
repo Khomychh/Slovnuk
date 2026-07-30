@@ -23,8 +23,10 @@ import {
 import * as db from "./db";
 import { localDay, resolveTimeZone, type DayKey } from "./day";
 import {
+  applyCardEdit,
   applyRating,
   countAnswer,
+  dropCard,
   emptyProgress,
   mergeIncoming,
   syncProgress,
@@ -62,15 +64,6 @@ export type StudyState = {
   refilling: boolean;
   /** Зерно розкладу боків при напрямку «змішано». Нове на кожну сесію. */
   seed: number;
-  /**
-   * Останній факт від сервера: коли доріжку справді призначено показати.
-   *
-   * Потрібен підпису під карткою. Прогноз із `preview` зʼявляється миттєво на
-   * натисканні, але він рахується без фазі й від моменту видачі черги, тож із
-   * фактом не збігається (ADR-0009). Щойно відповідь доїхала — підпис
-   * уточнюється справжнім `due_at`.
-   */
-  lastReview: { trackId: number; dueAt: string } | null;
 };
 
 let state: StudyState = {
@@ -86,7 +79,6 @@ let state: StudyState = {
   snapshotSettings: null,
   refilling: false,
   seed: 1,
-  lastReview: null,
 };
 
 let timeZone = "UTC";
@@ -234,6 +226,29 @@ async function refillIfLow(): Promise<void> {
   });
 }
 
+/**
+ * Картку виправили просто під час показу — вкласти новий вміст у буфер.
+ *
+ * Лічильники черги (`dueCount`, `newCount`) свідомо не чіпаються: правка тексту
+ * не міняє того, скільки доріжок настав час показати. Виняток — зникла доріжка
+ * форм, але брехати про це на одиницю до наступної вибірки дешевше, ніж вести
+ * тут власну арифметику поруч із серверною.
+ */
+export async function cardEdited(
+  card: QueueItem["card"] & { forms_drill_enabled: boolean },
+): Promise<void> {
+  set({ buffer: applyCardEdit(state.buffer, card) });
+  await persistBuffer();
+}
+
+/** Картку видалили з навчання — прибрати обидві її доріжки з буфера. */
+export async function cardDeleted(cardId: number): Promise<void> {
+  set({ buffer: dropCard(state.buffer, cardId) });
+  await persistBuffer();
+  // Буфер міг спорожніти на цьому — доллємо, поки людина ще в навчанні.
+  await refillIfLow();
+}
+
 /** Нова сесія: інше зерно розкладу боків і свіжа вибірка. */
 export async function beginSession(): Promise<void> {
   set({ seed: Math.floor(Math.random() * 2 ** 31) });
@@ -253,7 +268,8 @@ export async function beginSession(): Promise<void> {
 export async function answer(
   trackId: number,
   rating: Rating,
-  reviewDuration: number,
+  /** `null` — час не виміряно, бо картку правили під час показу (ADR-0024). */
+  reviewDuration: number | null,
 ): Promise<void> {
   const day = today();
 
@@ -294,13 +310,11 @@ export function flush(): Promise<void> {
     try {
       for (const { key, entry } of await db.readOutbox()) {
         try {
-          const result = await postReview(
-            entry.trackId,
-            entry.rating,
-            entry.reviewDuration,
-          );
+          // Відповідь сервера свідомо не читається: усе, що з неї бралось, —
+          // це `due_at` для підпису інтервалу, а підпису більше немає
+          // (ADR-0009). Значення має сам факт, що запис доїхав.
+          await postReview(entry.trackId, entry.rating, entry.reviewDuration);
           await db.dropFromOutbox(key);
-          set({ lastReview: { trackId: entry.trackId, dueAt: result.due_at } });
         } catch (error) {
           if (isPermanent(error)) {
             // Ця відповідь не доїде ніколи: доріжки вже немає. Тримати її в
