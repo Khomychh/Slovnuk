@@ -164,7 +164,9 @@ export default function ListsScreen() {
               type="button"
               disabled={!online}
               aria-label={`Поділитись списком «${list.name}»`}
-              title="Спільне посилання"
+              // Не «Спільне посилання»: за цією іконкою тепер обидва способи
+              // віддати список — посилання й Бібліотека.
+              title="Поділитись"
               onClick={() => navigate(`/vocabulary/lists/${list.id}/share`)}
             >
               <ShareIcon />

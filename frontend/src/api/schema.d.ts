@@ -1253,6 +1253,8 @@ export interface components {
             description: string | null;
             /** Author */
             author: string | null;
+            /** Sample Words */
+            sample_words: string[];
             /** Cards Count */
             cards_count: number;
             /** Takes Count */
@@ -1371,6 +1373,8 @@ export interface components {
             description: string | null;
             /** Author */
             author: string | null;
+            /** Sample Words */
+            sample_words: string[];
             /** Cards Count */
             cards_count: number;
             /** Takes Count */
@@ -2093,6 +2097,11 @@ export interface components {
          *     Токен їде разом зі списком навмисно: інакше акордеон словника не міг би
          *     показати іконку «поділено», не смикнувши окремий запит на кожен список.
          *     Бачить його лише власник — це його ж списки.
+         *
+         *     `in_library` — те саме для Бібліотеки, і саме `bool`, а не id публікації:
+         *     рядок списку показує СТАН, а перейти до публікації однаково можна лише через
+         *     `list_id`, який у нього вже є. Знята публікація дає `false` — у рядку
+         *     показується «на витрині», а не «колись публікував».
          */
         WordListSchema: {
             /** Id */
@@ -2107,6 +2116,11 @@ export interface components {
             due_count: number;
             /** Share Token */
             share_token?: string | null;
+            /**
+             * In Library
+             * @default false
+             */
+            in_library: boolean;
         };
         /** WordListUpdateSchema */
         WordListUpdateSchema: {

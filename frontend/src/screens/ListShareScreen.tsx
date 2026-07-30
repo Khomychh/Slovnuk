@@ -1,20 +1,30 @@
 /**
- * Спільне посилання на список — половина власника.
+ * Віддати список іншим — половина власника.
+ *
+ * Способів два, і вони різні майже в усьому: **посилання** конкретним людям
+ * (`Шер`) і **публікація** на загал (`Бібліотека`). Обидва входи живуть тут, а
+ * не в рядку «Списків»: п'ятої іконки там не вміщається — при 36px на кнопку
+ * вона з'їла б назву до одинадцяти символів.
+ *
+ * Це заодно правильне місце, щоб різницю пояснити: людина приходить сюди з
+ * питанням «як віддати цей список», і саме тут мусить дізнатись, що адресне
+ * посилання й витрина — не одне й те саме.
  *
  * Стан посилання не питається окремим запитом: `share_token` уже їде в
- * `GET /vocabulary/lists/`, і саме тому іконка в рядку «Списків» може малювати
- * «поділено» без запиту на кожен список.
+ * `GET /vocabulary/lists/`, і саме тому рядок «Списків» може сказати «поділено»
+ * без запиту на кожен список. Так само працює `in_library`.
  *
- * Екран мусить казати три речі, які інакше здивують: шер — це копія, а не
- * підписка; посилання безадресне, тож ним скористається будь-хто, кому воно
+ * Екран мусить казати три речі про шер, які інакше здивують: шер — це копія, а
+ * не підписка; посилання безадресне, тож ним скористається будь-хто, кому воно
  * потрапило до рук; вимкнене посилання не воскресає — увімкнути знову означає
- * нове.
+ * нове. Для публікації останнє правило ІНВЕРТУЄТЬСЯ, і про це сказано на її
+ * власному екрані.
  */
 
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useOnline } from "../app/useOnline";
-import { Message, Screen, ShareIcon } from "../ui/parts";
+import { LibraryIcon, Message, Screen, ShareIcon } from "../ui/parts";
 import { useLists } from "../vocabulary/queries";
 import { useShareList, useUnshareList } from "../sharing/queries";
 import { buildShareUrl } from "../sharing/share";
@@ -135,6 +145,31 @@ export default function ListShareScreen() {
       <p className="hint" style={{ marginTop: 10 }}>
         {words(list.card_count)} у цьому списку.
       </p>
+
+      {/* Другий спосіб віддати список — і він тут, а не в рядку «Списків», бо
+          п'ятої іконки в рядок не вміщається. Стоїть ПЕРЕД посиланням: людина,
+          яка хоче виставити список на загал, не мусить спершу прочитати все про
+          токени. */}
+      <button
+        className="lib-entry"
+        type="button"
+        onClick={() => navigate(`/vocabulary/lists/${listId}/publish`)}
+      >
+        <span className="lib-entry-main">
+          <span className="lib-entry-title">
+            <LibraryIcon />
+            {list.in_library ? "У Бібліотеці" : "Виставити в Бібліотеці"}
+          </span>
+          <span className="lib-entry-sub">
+            {list.in_library
+              ? "видно всім · оцінки й лічильник взять"
+              : "видно всім, безкоштовно, з рейтингом"}
+          </span>
+        </span>
+        <span className="lib-entry-chevron">›</span>
+      </button>
+
+      <div className="ed-label">Посилання конкретним людям</div>
 
       {error ? <Message kind="error">{error}</Message> : null}
       {note ? <Message>{note}</Message> : null}

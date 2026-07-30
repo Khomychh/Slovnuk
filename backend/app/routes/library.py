@@ -104,12 +104,18 @@ def _author_label(publication: PublicationModel) -> str | None:
     return " ".join(parts) or None
 
 
-def _summary(row: Row) -> PublicationSummarySchema:
+def _summary(
+    row: Row, sample_words: list[str] | None = None
+) -> PublicationSummarySchema:
     """
     Рядок витрини з рядка запиту.
 
     Лічильники приходять агрегатами (`cruds/library`), а не колонками моделі, —
     саме тому тут ручне складання, а не `model_validate`.
+
+    `sample_words` віддається окремим пакетним запитом на всю сторінку, тож сюди
+    приходить готовим списком. Порожній він законно: у публікації з видаленим
+    знімком слів немає.
     """
     publication: PublicationModel = row[0]
     return PublicationSummarySchema(
@@ -117,6 +123,7 @@ def _summary(row: Row) -> PublicationSummarySchema:
         title=publication.title,
         description=publication.description,
         author=_author_label(publication),
+        sample_words=sample_words or [],
         cards_count=row.cards_count,
         takes_count=row.takes_count,
         rating=float(row.rating) if row.rating is not None else None,
@@ -425,11 +432,15 @@ async def browse_library(
         sort=sort,
     )
 
+    sample = await library_crud.sample_words_by_publication(
+        db, [row[0].id for row in rows]
+    )
+
     return LibraryPageSchema(
         total=total,
         page=page,
         per_page=per_page,
-        items=[_summary(row) for row in rows],
+        items=[_summary(row, sample.get(row[0].id)) for row in rows],
     )
 
 
@@ -452,7 +463,8 @@ async def get_publication(
     натискання.
     """
     row = await _visible_publication(db, publication_id, current_user.id)
-    summary = _summary(row)
+    sample = await library_crud.sample_words_by_publication(db, [publication_id])
+    summary = _summary(row, sample.get(publication_id))
 
     take = await library_crud.get_take(db, publication_id, current_user.id)
     rating = await library_crud.get_rating(db, publication_id, current_user.id)

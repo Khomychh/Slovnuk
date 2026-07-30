@@ -103,6 +103,13 @@ class PublicationSummarySchema(BaseModel):
     description: str | None
     author: str | None
 
+    #: Перші кілька слів списку — те, що читач насправді вибирає.
+    #:
+    #: Витрина показує їх замість опису: чотири справжні слова кажуть про рівень і
+    #: тему більше, ніж будь-яке речення автора, а місця займають один рядок.
+    #: Опис лишається в схемі, бо його читають на сторінці публікації.
+    sample_words: list[str]
+
     cards_count: int
     takes_count: int
     rating: float | None

@@ -58,7 +58,11 @@ export class OfflineError extends Error {
 }
 
 type RequestOptions = {
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  /**
+   * PUT потрібен зірками Бібліотеки: одна людина — одна оцінка, тож повторний
+   * виклик її замінює, а не додає другу. POST тут збрехав би про природу дії.
+   */
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   /** `FormData` їде як є — це аватар; усе інше серіалізується в JSON. */
   body?: unknown;
   /** Запит без токена: логін, активація, скидання пароля. */

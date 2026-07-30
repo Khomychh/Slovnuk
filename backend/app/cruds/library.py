@@ -231,6 +231,45 @@ async def get_publication_summary(
     return (await db.execute(stmt)).first()
 
 
+#: Скільки слів показувати в рядку витрини. Чотири — стільки, скільки вміщається
+#: в один рядок на телефоні 375px і достатньо, щоб зрозуміти рівень і тему.
+SAMPLE_WORDS = 4
+
+
+async def sample_words_by_publication(
+    db: AsyncSession, publication_ids: Sequence[int]
+) -> dict[int, list[str]]:
+    """
+    Перші кілька слів кожної публікації — те, що читач бачить у рядку витрини.
+
+    Одним запитом на всю сторінку, а не по публікації: інакше витрина на 20
+    рядків смикала б базу 20 разів.
+
+    Порядок — `position`, тобто той самий, у якому слова лежать у знімку. Не
+    випадкові й не «найкращі»: випадкові змінювались би при кожному оновленні
+    сторінки, а «найкращих» серед слів не буває.
+
+    `position < SAMPLE_WORDS` замість LIMIT на публікацію: так це один плоский
+    запит по індексу (publication_id, position), без LATERAL і без вікна.
+    """
+    if not publication_ids:
+        return {}
+
+    stmt = (
+        select(PublicationCardModel.publication_id, PublicationCardModel.word)
+        .where(
+            PublicationCardModel.publication_id.in_(publication_ids),
+            PublicationCardModel.position < SAMPLE_WORDS,
+        )
+        .order_by(PublicationCardModel.publication_id, PublicationCardModel.position)
+    )
+
+    sample: dict[int, list[str]] = {}
+    for publication_id, word in (await db.execute(stmt)).all():
+        sample.setdefault(publication_id, []).append(word)
+    return sample
+
+
 async def rating_aggregate(
     db: AsyncSession, publication_id: int
 ) -> tuple[float | None, int]:
@@ -434,6 +473,25 @@ async def get_report(
         PublicationReportModel.user_id == user_id,
     )
     return (await db.execute(stmt)).scalars().first()
+
+
+async def listed_list_ids(db: AsyncSession, user_id: int) -> set[int]:
+    """
+    Списки цього користувача, які зараз на витрині Бібліотеки.
+
+    Пакетно, а не запитом на кожен список, — рівно як `active_tokens_by_list` у
+    шерингу: інакше екран «Списки» смикав би базу вісім разів, щоб намалювати
+    вісім позначок.
+
+    Зняті публікації сюди НЕ входять: у рядку списку показується стан «на
+    витрині», а не «колись публікував».
+    """
+    stmt = select(PublicationModel.list_id).where(
+        PublicationModel.owner_id == user_id,
+        PublicationModel.is_listed.is_(True),
+        PublicationModel.list_id.isnot(None),
+    )
+    return {row for row in (await db.execute(stmt)).scalars().all() if row is not None}
 
 
 # Назви зайнятих списків і підказку вільної Бібліотека бере з шерингу

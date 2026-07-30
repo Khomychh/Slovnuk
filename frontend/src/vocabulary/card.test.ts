@@ -289,25 +289,42 @@ describe("смуга-частка в рядку списку", () => {
 
 describe("монорядок стану списку", () => {
   it("тільки кількість", () => {
-    expect(listStateLine({ card_count: 54, share_token: null }, false)).toBe("54 слова");
+    expect(
+      listStateLine({ card_count: 54, share_token: null, in_library: false }, false),
+    ).toBe("54 слова");
   });
 
   it("за замовчуванням", () => {
-    expect(listStateLine({ card_count: 1, share_token: null }, true)).toBe(
-      "1 слово · за замовчуванням",
-    );
+    expect(
+      listStateLine({ card_count: 1, share_token: null, in_library: false }, true),
+    ).toBe("1 слово · за замовчуванням");
   });
 
   it("поділено", () => {
-    expect(listStateLine({ card_count: 12, share_token: "AbC" }, false)).toBe(
-      "12 слів · поділено",
-    );
+    expect(
+      listStateLine({ card_count: 12, share_token: "AbC", in_library: false }, false),
+    ).toBe("12 слів · поділено");
   });
 
-  it("усі три факти разом", () => {
-    // «Поділено» сказано словом, тому іконці шеру не потрібно другого стану.
-    expect(listStateLine({ card_count: 5, share_token: "AbC" }, true)).toBe(
-      "5 слів · за замовчуванням · поділено",
-    );
+  it("у бібліотеці", () => {
+    expect(
+      listStateLine({ card_count: 12, share_token: null, in_library: true }, false),
+    ).toBe("12 слів · в бібліотеці");
+  });
+
+  it("поділено й у бібліотеці — різні стани, можуть стояти разом", () => {
+    // Посилання адресне, публікація — на загал, і одне не заміняє інше. Якби
+    // рядок показував лише щось одне, власник не знав би, що список публічний.
+    expect(
+      listStateLine({ card_count: 12, share_token: "AbC", in_library: true }, false),
+    ).toBe("12 слів · поділено · в бібліотеці");
+  });
+
+  it("усі факти разом", () => {
+    // Стани сказані словами, тому іконці «поділитись» не потрібно другого
+    // стану — і п'ятої іконки в рядку не потрібно взагалі.
+    expect(
+      listStateLine({ card_count: 5, share_token: "AbC", in_library: true }, true),
+    ).toBe("5 слів · за замовчуванням · поділено · в бібліотеці");
   });
 });

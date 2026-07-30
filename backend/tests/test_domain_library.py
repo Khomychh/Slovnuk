@@ -163,6 +163,49 @@ async def test_author_label_is_name_and_surname_never_email(
 
 
 # --------------------------------------------------------------------------
+# Стан списку очима власника
+# --------------------------------------------------------------------------
+
+
+async def test_list_row_shows_whether_it_is_in_the_library(
+    client: AsyncClient, db_session: AsyncSession, user, auth_headers
+):
+    """
+    `in_library` у `GET /lists/` — щоб рядок «Списків» сказав стан без запиту на
+    кожен список.
+
+    Найважливіше тут: ЗНЯТА публікація дає `false`. Рядок показує «на витрині», а
+    не «колись публікував», інакше власник вважав би список публічним тоді, коли
+    його вже ніхто не бачить.
+
+    Поділено й у бібліотеці — незалежні стани: посилання адресне, публікація на
+    загал, і одне не заміняє інше.
+    """
+    await _name_the_author(db_session, user)
+    list_id = await _list_with_words(client, auth_headers, ["run"])
+
+    async def row() -> dict:
+        body = (await client.get(f"{VOCAB}/lists/", headers=auth_headers)).json()
+        return next(item for item in body["items"] if item["id"] == list_id)
+
+    assert (await row())["in_library"] is False
+
+    await _publish(client, auth_headers, list_id)
+    assert (await row())["in_library"] is True
+
+    # Шер вмикається окремо й на публікацію не впливає.
+    await client.post(f"{VOCAB}/lists/{list_id}/share/", headers=auth_headers)
+    fresh = await row()
+    assert fresh["in_library"] is True
+    assert fresh["share_token"], "шер і публікація — незалежні стани"
+
+    await client.delete(f"{VOCAB}/lists/{list_id}/publication/", headers=auth_headers)
+    after = await row()
+    assert after["in_library"] is False, "знята публікація читається як публічна"
+    assert after["share_token"], "зняття публікації не мусило гасити посилання"
+
+
+# --------------------------------------------------------------------------
 # Знімок (ADR-0019)
 # --------------------------------------------------------------------------
 
@@ -531,6 +574,73 @@ async def test_taken_list_remembers_where_it_came_from(
         item for item in listing["items"] if item["id"] == original_id
     )
     assert original_row["derived_from_title"] is None
+
+
+# --------------------------------------------------------------------------
+# Витрина: слова замість опису
+# --------------------------------------------------------------------------
+
+
+async def test_row_carries_real_words_in_snapshot_order(
+    client: AsyncClient, db_session: AsyncSession, user, auth_headers
+):
+    """
+    У рядку витрини стоять справжні слова зі списку — це підпис Бібліотеки.
+
+    Чотири слова кажуть про рівень і тему більше, ніж будь-яке речення автора,
+    тому опису на витрині немає. Порядок — той самий `position`, що в знімку: не
+    випадковий (він змінювався б при кожному оновленні сторінки) і не
+    «найкращий» (найкращих серед слів не буває).
+    """
+    await _name_the_author(db_session, user)
+    list_id = await _list_with_words(
+        client, auth_headers, ["run", "go", "take", "make", "give", "keep"]
+    )
+    await _publish(client, auth_headers, list_id)
+
+    row = (await client.get(f"{LIBRARY}/", headers=auth_headers)).json()["items"][0]
+
+    assert len(row["sample_words"]) == 4, "у рядок їде рівно чотири слова"
+    assert row["cards_count"] == 6, "лічильник рахує весь список, а не зразок"
+
+    # Порядок знімка = порядок, у якому картки віддає список. Головне тут — що він
+    # СТАБІЛЬНИЙ: два запити дають те саме.
+    again = (await client.get(f"{LIBRARY}/", headers=auth_headers)).json()["items"][0]
+    assert again["sample_words"] == row["sample_words"]
+
+    words_in_snapshot = [
+        item["word"]
+        for item in (
+            await client.get(
+                f"{LIBRARY}/publications/{row['id']}/cards/", headers=auth_headers
+            )
+        ).json()["items"]
+    ]
+    assert row["sample_words"] == words_in_snapshot[:4], (
+        "зразок мусить бути початком знімка, а не окремою вибіркою"
+    )
+
+
+async def test_short_list_gives_all_its_words(
+    client: AsyncClient, db_session: AsyncSession, user, auth_headers
+):
+    """
+    Список коротший за зразок віддає всі свої слова, а не падає й не добиває
+    порожніми.
+
+    Порядок тут НЕ порівнюється з порядком створення: знімок успадковує
+    «новіші зверху» від `fetch_list_cards` — той самий порядок, у якому список
+    бачить і власник, і отримувач шеру. Прибивати тут конкретну послідовність
+    означало б прибити цвяхом сортування словника, яке до Бібліотеки не
+    належить.
+    """
+    await _name_the_author(db_session, user)
+    list_id = await _list_with_words(client, auth_headers, ["run", "go"])
+    await _publish(client, auth_headers, list_id)
+
+    row = (await client.get(f"{LIBRARY}/", headers=auth_headers)).json()["items"][0]
+    assert sorted(row["sample_words"]) == ["go", "run"]
+    assert row["cards_count"] == 2
 
 
 # --------------------------------------------------------------------------
