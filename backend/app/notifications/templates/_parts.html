@@ -1,0 +1,50 @@
+{#
+  Частини листа. Живуть окремо від base.html, бо base — це оболонка, а це
+  вміст: інакше кожен лист доводиться складати з однакових простирадл
+  інлайнових стилів, і рано чи пізно вони розʼїжджаються між собою.
+#}
+
+{# Абзац тексту. #}
+{% macro p(text) -%}
+<p style="margin: 0 0 20px; font-family: 'Onest', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 1.6; color: #4d5876;">{{ text }}</p>
+{%- endmacro %}
+
+{# Адреса. Моноширинна, як усі точні значення в застосунку: її звіряють
+   посимвольно, а не читають. #}
+{% macro chip(email) -%}
+<p style="margin: 0 0 22px;">
+  <span id="email" style="display: inline-block; font-family: ui-monospace, 'SF Mono', 'Roboto Mono', Consolas, monospace; font-size: 14px; line-height: 1.4; color: #18203a; background-color: #f1f4fb; border: 1px solid #dfe6f3; border-radius: 10px; padding: 8px 12px; word-break: break-all;">{{ email }}</span>
+</p>
+{%- endmacro %}
+
+{# Головна дія. Та сама пара кольорів, що й .btn у застосунку, перевернута під
+   світлий лист: ніч на фрості замість фросту на ночі. На всю ширину — як там. #}
+{% macro action(href, label) -%}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td align="center" bgcolor="#070a14" style="background-color: #070a14; border-radius: 14px;">
+      <a id="link" href="{{ href }}" style="display: block; padding: 16px 24px; font-family: 'Onest', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 16px; font-weight: 600; line-height: 1.2; color: #eaeffa; text-decoration: none;">{{ label }}</a>
+    </td>
+  </tr>
+</table>
+{%- endmacro %}
+
+{# Запасне посилання. Потрібне не для краси: частина клієнтів ріже кнопки, а
+   частина людей читає пошту там, де посилання доводиться копіювати руками. #}
+{% macro fallback(href) -%}
+<p style="margin: 20px 0 0; font-family: 'Onest', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; line-height: 1.6; color: #6d7896;">
+  Кнопка не працює? Скопіюйте посилання:<br>
+  <a href="{{ href }}" style="color: #2b7fc4; text-decoration: underline; word-break: break-all;">{{ href }}</a>
+</p>
+{%- endmacro %}
+
+{# Тихий рядок під розділювачем: що робити, якщо лист прийшов не за вашим
+   запитом. Стоїть у кожному листі, де є що робити. #}
+{% macro note(text) -%}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 28px 0 0;">
+  <tr>
+    <td bgcolor="#e6ebf5" style="height: 1px; line-height: 1px; font-size: 0;">&nbsp;</td>
+  </tr>
+</table>
+<p style="margin: 18px 0 0; font-family: 'Onest', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; line-height: 1.6; color: #6d7896;">{{ text }}</p>
+{%- endmacro %}
