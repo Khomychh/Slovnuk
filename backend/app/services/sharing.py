@@ -11,7 +11,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Sequence
+from typing import Generic, Protocol, Sequence, TypeVar
 
 from app.database.models import (
     CardModel,
@@ -26,19 +26,44 @@ from app.schemas.sharing import ImportMode
 MAX_LIST_NAME_LENGTH = 100
 
 
+class HasWord(Protocol):
+    """
+    Усе, що звірка вміє про джерело: у нього є слово.
+
+    Протокол, а не CardModel, бо джерел тепер два — картка з чужого списку (Шер)
+    і рядок знімка (Бібліотека). Дублювати заради цього plan_import не можна:
+    саме тут вирішується єдине по-справжньому небезпечне питання, і другий
+    екземпляр цієї логіки розійшовся б із першим тихо.
+    """
+
+    word: str
+
+
+SourceT = TypeVar("SourceT", bound=HasWord)
+
+
 @dataclass(frozen=True)
-class ImportPlan:
+class ImportPlan(Generic[SourceT]):
     """
     Що саме зробить імпорт.
 
-    sources — картки з чужого списку, які треба створити заново.
+    sources — джерела, з яких треба створити картки заново.
     overwrites — пари (чуже, твоє) для режиму OVERWRITE.
-    skipped — скільки слів пропущено, бо вони в отримувача вже є.
+    skipped_words — слова, пропущені бо вони в отримувача вже є, у порядку
+    появи в чужому списку.
+
+    Саме слова, а не лічильник: неповнота, про яку не сказали, читається як
+    загублені слова. Число лишається доступним як `skipped` — воно потрібне
+    звітові й фронтенду, і рахувати його двома способами немає сенсу.
     """
 
-    sources: tuple[CardModel, ...]
-    overwrites: tuple[tuple[CardModel, CardModel], ...]
-    skipped: int
+    sources: tuple[SourceT, ...]
+    overwrites: tuple[tuple[SourceT, CardModel], ...]
+    skipped_words: tuple[str, ...]
+
+    @property
+    def skipped(self) -> int:
+        return len(self.skipped_words)
 
     @property
     def is_empty(self) -> bool:
@@ -52,12 +77,12 @@ class ImportPlan:
 
 
 def plan_import(
-    shared: Sequence[CardModel],
+    shared: Sequence[SourceT],
     existing: dict[str, CardModel],
     mode: ImportMode,
-) -> ImportPlan:
+) -> ImportPlan[SourceT]:
     """
-    Розкласти чужий список на «створити», «перезаписати» і «пропустити».
+    Розкласти чуже на «створити», «перезаписати» і «пропустити».
 
     `existing` — картки отримувача за нормалізованим словом. Ключ саме
     нормалізований: `Get Up` і `get up` — те саме слово, і база тримає це
@@ -65,12 +90,18 @@ def plan_import(
 
     У режимі SKIP наявне слово не потрапляє й у новий список. Це свідома
     розбіжність із тим, як імпорт задумувався спершу: список виходить
-    неповним, зате чужий шер не може ані змінити твою картку, ані навіть
-    домалювати їй мітку. Див. ADR-0005.
+    неповним, зате чуже не може ані змінити твою картку, ані навіть домалювати
+    їй мітку. Див. ADR-0005.
+
+    У пропущені пишеться слово **джерела**, а не твоє. Виглядають вони однаково
+    рівно доти, доки регістр той самий: узявши список, де стоїть `Get Up`, при
+    власному `get up` людина мусить побачити те написання, яке бачила в чужому
+    списку, — інакше рядок «пропущено» не сходиться з тим, що вона щойно
+    гортала.
     """
-    sources: list[CardModel] = []
-    overwrites: list[tuple[CardModel, CardModel]] = []
-    skipped = 0
+    sources: list[SourceT] = []
+    overwrites: list[tuple[SourceT, CardModel]] = []
+    skipped_words: list[str] = []
 
     for card in shared:
         target = existing.get(normalize_word(card.word))
@@ -80,10 +111,12 @@ def plan_import(
         elif mode is ImportMode.OVERWRITE:
             overwrites.append((card, target))
         else:
-            skipped += 1
+            skipped_words.append(card.word)
 
     return ImportPlan(
-        sources=tuple(sources), overwrites=tuple(overwrites), skipped=skipped
+        sources=tuple(sources),
+        overwrites=tuple(overwrites),
+        skipped_words=tuple(skipped_words),
     )
 
 

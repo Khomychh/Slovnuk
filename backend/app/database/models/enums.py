@@ -62,6 +62,22 @@ class ReviewStateEnum(str, enum.Enum):
     RELEARNING = "relearning"
 
 
+class PublicationReportReasonEnum(str, enum.Enum):
+    """
+    Причина скарги на публікацію.
+
+    Набір закритий навмисно: вільний текст у публічному місці сам стає тим, що
+    треба модерувати, а розбирати п'ять причин можна запитом, не читаючи прозу.
+
+    OTHER — не «інше, розкажіть яке», а «щось не так, розберіться». Поля для
+    розповіді немає й не планується.
+    """
+    OBSCENE = "obscene"
+    SPAM = "spam"
+    WRONG = "wrong"
+    OTHER = "other"
+
+
 class ReviewRating(enum.IntEnum):
     """
     Оцінка відповіді. У базі зберігається як SmallInteger 1–4, а не як enum,

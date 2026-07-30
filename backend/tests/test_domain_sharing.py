@@ -76,6 +76,9 @@ async def test_import_skips_words_the_recipient_already_has(
     assert body["created"] == 2
     assert body["skipped"] == 1
     assert body["overwritten"] == 0
+    # Пропущене слово НАЗИВАЄТЬСЯ, а не лише рахується: список неповний за
+    # визначенням, і неповнота, про яку не сказали, читається як загублені слова.
+    assert body["skipped_words"] == ["go"]
 
 
 async def test_skipped_word_does_not_enter_the_new_list(
@@ -189,6 +192,9 @@ async def test_repeated_skip_import_creates_no_list_at_all(
     assert second["created"] == 0
     assert second["skipped"] == 1
     assert second["list_id"] is None, "створився порожній список"
+    # Списку не створили, але сказати ЧОМУ все одно мусимо: інакше друге взяття
+    # виглядає як «нічого не сталося без причини».
+    assert second["skipped_words"] == ["run"]
 
 
 # --------------------------------------------------------------------------

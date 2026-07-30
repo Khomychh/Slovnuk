@@ -632,6 +632,185 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/vocabulary/lists/{list_id}/publication/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The publication of this list
+         * @description Знята публікація тут віддається як є — власник має бачити її стан.
+         */
+        get: operations["get_list_publication_api_v1_vocabulary_lists__list_id__publication__get"];
+        put?: never;
+        /**
+         * Publish a word list to the library
+         * @description Idempotent: returns the existing publication if the list has one.
+         */
+        post: operations["publish_list_api_v1_vocabulary_lists__list_id__publication__post"];
+        /**
+         * Take the publication off the library
+         * @description The row and its ratings stay; publishing again restores them.
+         */
+        delete: operations["unpublish_list_api_v1_vocabulary_lists__list_id__publication__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/vocabulary/lists/{list_id}/publication/refresh/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refresh the published snapshot
+         * @description Replaces the snapshot with the list as it is now. Ratings are kept.
+         */
+        post: operations["refresh_publication_api_v1_vocabulary_lists__list_id__publication_refresh__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Browse the library
+         * @description Витрина. Свої публікації з неї не ховаються: автор має бачити свій список
+         *     там, де його бачать інші.
+         *
+         *     `per_page` за замовчуванням 20, а не 50 як у словнику: рядок витрини несе
+         *     опис і три числа, тобто значно вищий за рядок словника.
+         */
+        get: operations["browse_library_api_v1_library__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library/publications/{publication_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get one publication
+         * @description Сторінка публікації.
+         *
+         *     `new_cards` важливіше за `cards_count`: саме воно описує наслідок кнопки. У
+         *     списку з 540 слів, 45 із яких у тебе вже є, додасться 495 — і це видно ще до
+         *     натискання.
+         */
+        get: operations["get_publication_api_v1_library_publications__publication_id___get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library/publications/{publication_id}/cards/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Browse a publication's words
+         * @description Сторінками, а не цілком: у живому словнику є список на 540 слів.
+         *
+         *     `already_have` рахується лише для слів цієї сторінки — одним запитом по
+         *     нормалізованих словах, а не звіркою всього словника.
+         */
+        get: operations["get_publication_cards_api_v1_library_publications__publication_id__cards__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library/publications/{publication_id}/take/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Take a publication into your vocabulary
+         * @description Copies the words you do not have yet, under a name you choose.
+         */
+        post: operations["take_publication_api_v1_library_publications__publication_id__take__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library/publications/{publication_id}/rating/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Rate a publication
+         * @description Only someone who has taken the publication can rate it.
+         */
+        put: operations["rate_publication_api_v1_library_publications__publication_id__rating__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library/publications/{publication_id}/report/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report a publication
+         * @description One report per person. Repeating it changes the reason.
+         */
+        post: operations["report_publication_api_v1_library_publications__publication_id__report__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/": {
         parameters: {
             query?: never;
@@ -930,6 +1109,17 @@ export interface components {
          * @enum {string}
          */
         ImportMode: "skip" | "overwrite";
+        /** LibraryPageSchema */
+        LibraryPageSchema: {
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+            /** Items */
+            items: components["schemas"]["PublicationSummarySchema"][];
+        };
         /** MessageResponseSchema */
         MessageResponseSchema: {
             /** Message */
@@ -1037,6 +1227,223 @@ export interface components {
             info?: string | null;
         };
         /**
+         * PublicationDetailSchema
+         * @description Сторінка публікації.
+         *
+         *     Понад витрину тут те, що потрібно для трьох кнопок — «Взяти», зірки, скарга.
+         *
+         *     `new_cards` — скільки слів справді з'явиться. Саме воно, а не `cards_count`,
+         *     чесно описує наслідок кнопки: у списку з 540 слів, 45 із яких у тебе вже є,
+         *     додасться 495.
+         *
+         *     `own_stars` порожній, доки ти не оцінював. `can_rate` — це «є рядок у
+         *     publication_takes», тобто право, а не запрошення: воно лишається й після того,
+         *     як ти видалив узятий список, бо ти справді брав.
+         *
+         *     `suggested_name` — вільна назва для списку, підказана заздалегідь. Взяття із
+         *     зайнятою назвою відповідає 409, як і POST /lists/, але впертись у помилку після
+         *     підтвердження неприємно.
+         */
+        PublicationDetailSchema: {
+            /** Id */
+            id: number;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string | null;
+            /** Author */
+            author: string | null;
+            /** Cards Count */
+            cards_count: number;
+            /** Takes Count */
+            takes_count: number;
+            /** Rating */
+            rating: number | null;
+            /** Ratings Count */
+            ratings_count: number;
+            /**
+             * Content Updated At
+             * Format: date-time
+             */
+            content_updated_at: string;
+            /** Derived From Title */
+            derived_from_title: string | null;
+            /** Is Taken */
+            is_taken: boolean;
+            /** New Cards */
+            new_cards: number;
+            /** Suggested Name */
+            suggested_name: string;
+            /** Can Rate */
+            can_rate: boolean;
+            /** Own Stars */
+            own_stars: number | null;
+            own_report: components["schemas"]["PublicationReportReasonEnum"] | null;
+        };
+        /**
+         * PublicationOwnerSchema
+         * @description Публікація очима автора.
+         *
+         *     `is_listed` тут не «видалено чи ні», а «видно на витрині»: рядок живе далі, і
+         *     повернення — це той самий рядок разом із рейтингом (ADR-0020).
+         *
+         *     `hidden_by_moderator` відрізняє «я сам зняв» від «зняли мене». Різниця не
+         *     косметична: зняте модератором автор не має права ввімкнути назад, тож
+         *     `is_listed=false` сам по собі не каже, чи кнопка «Опублікувати» щось зробить.
+         *
+         *     `can_update` дорівнює «джерело ще існує». Після видалення власного списку
+         *     публікація живе, але оновити її вже нема з чого.
+         *
+         *     `list_cards_count` — скільки слів у списку ЗАРАЗ, проти `cards_count` у
+         *     знімку. Різниця чисел — єдиний сигнал застарілості, який ми даємо, і він
+         *     неповний навмисно: виправлений в одному слові переклад кількості не змінює.
+         *     Порівнювати вміст цілком означало б тягти весь знімок на кожне відкриття
+         *     екрана списку.
+         */
+        PublicationOwnerSchema: {
+            /** Id */
+            id: number;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string | null;
+            /** Is Listed */
+            is_listed: boolean;
+            /** Hidden By Moderator */
+            hidden_by_moderator: boolean;
+            /** Can Update */
+            can_update: boolean;
+            /** Cards Count */
+            cards_count: number;
+            /** List Cards Count */
+            list_cards_count: number | null;
+            /** Takes Count */
+            takes_count: number;
+            /** Rating */
+            rating: number | null;
+            /** Ratings Count */
+            ratings_count: number;
+            /**
+             * Content Updated At
+             * Format: date-time
+             */
+            content_updated_at: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * PublicationReportReasonEnum
+         * @description Причина скарги на публікацію.
+         *
+         *     Набір закритий навмисно: вільний текст у публічному місці сам стає тим, що
+         *     треба модерувати, а розбирати п'ять причин можна запитом, не читаючи прозу.
+         *
+         *     OTHER — не «інше, розкажіть яке», а «щось не так, розберіться». Поля для
+         *     розповіді немає й не планується.
+         * @enum {string}
+         */
+        PublicationReportReasonEnum: "obscene" | "spam" | "wrong" | "other";
+        /**
+         * PublicationSummarySchema
+         * @description Рядок витрини.
+         *
+         *     `author` — ім'я та прізвище з профілю, зібрані в один рядок; None означає, що
+         *     автор видалив акаунт (ADR-0020), а не що він не заповнив профіль: без імені й
+         *     прізвища опублікувати не можна взагалі. Пошта не віддається ніколи.
+         *
+         *     `takes_count` і `rating` кажуть різне і навмисно стоять поруч: перше — охоплення,
+         *     друге — якість. Список, який узяли 128 разів і оцінили на 3.2, популярний і
+         *     посередній одночасно, і вибирати має людина.
+         *
+         *     `derived_from_title` не порожній у похідної публікації — списку, який сам
+         *     приїхав із Бібліотеки. Позначка обов'язкова: без неї витрина заповнюється
+         *     копіями, а через пропуск наявних копія ще й неповна проти оригіналу.
+         */
+        PublicationSummarySchema: {
+            /** Id */
+            id: number;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string | null;
+            /** Author */
+            author: string | null;
+            /** Cards Count */
+            cards_count: number;
+            /** Takes Count */
+            takes_count: number;
+            /** Rating */
+            rating: number | null;
+            /** Ratings Count */
+            ratings_count: number;
+            /**
+             * Content Updated At
+             * Format: date-time
+             */
+            content_updated_at: string;
+            /** Derived From Title */
+            derived_from_title: string | null;
+            /** Is Taken */
+            is_taken: boolean;
+        };
+        /**
+         * PublicationTakeResultSchema
+         * @description Звіт про взяття.
+         *
+         *     `overwritten` тут немає — нічого перезаписати не могло. Решта дзеркалить
+         *     ShareImportResultSchema, включно з `skipped_words`: неповнота, про яку не
+         *     сказали, читається як загублені слова.
+         *
+         *     `list_id` порожній, коли списку не створювали, — так буває, якщо всі слова в
+         *     тебе вже є. Порожній іменований список у словнику був би сміттям.
+         */
+        PublicationTakeResultSchema: {
+            /** List Id */
+            list_id: number | null;
+            /** Name */
+            name: string;
+            /** Created */
+            created: number;
+            /** Skipped */
+            skipped: number;
+            /** Skipped Words */
+            skipped_words: string[];
+        };
+        /**
+         * PublicationTakeSchema
+         * @description Назву задає той, хто бере, а не автор: у нього свій словник і свої звички
+         *     називати списки.
+         *
+         *     Поля `mode` тут немає, і це не забуте — режим «перезаписати мої картки» в
+         *     Бібліотеці не існує. У шері він доречний, бо ти знаєш, від кого береш; тут на
+         *     іншому кінці незнайомець, а ціна помилки — роки власних перекладів.
+         */
+        PublicationTakeSchema: {
+            /** Name */
+            name: string;
+        };
+        /**
+         * PublicationWriteSchema
+         * @description Назва й опис — власні, не позичені зі списку.
+         *
+         *     «Загальний» — нормальна назва для себе й нікчемна на витрині, а перейменувати
+         *     свій список автор має право будь-коли. Назва списку підставляється як чернетка
+         *     у формі, але далі живе окремо.
+         *
+         *     Довжину опису тримає лише ця схема — колонка в базі `Text`. Це свідома
+         *     розбіжність із зірками, де межі стоять і в базі: там число з-поза меж тихо
+         *     псує сортування витрини, а задовгий опис лише погано виглядає.
+         */
+        PublicationWriteSchema: {
+            /** Title */
+            title: string;
+            /** Description */
+            description?: string | null;
+        };
+        /**
          * QueueCardSchema
          * @description Картка цілком: форми віддаються завжди, навіть коли зараз показується
          *     доріжка перекладу — у старому додатку вони теж були видні на звороті.
@@ -1104,6 +1511,39 @@ export interface components {
             easy: number;
         };
         /**
+         * RatingSchema
+         * @description Стан рейтингу після твоєї оцінки — щоб екран не перезапитував публікацію.
+         */
+        RatingSchema: {
+            /** Rating */
+            rating: number | null;
+            /** Ratings Count */
+            ratings_count: number;
+            /** Own Stars */
+            own_stars: number;
+        };
+        /**
+         * RatingWriteSchema
+         * @description Зірки. Ставити може лише той, у кого є взяття.
+         *
+         *     Межі стоять і тут, і в базі (`ck_publication_ratings_stars`) — навмисна
+         *     відмова від того, як зроблено desired_retention, де їх тримає лише схема.
+         */
+        RatingWriteSchema: {
+            /** Stars */
+            stars: number;
+        };
+        /**
+         * ReportWriteSchema
+         * @description Скарга: причина з закритого набору й нічого більше.
+         *
+         *     Поля для розповіді немає навмисно — вільний текст у публічному місці сам стає
+         *     тим, що треба модерувати.
+         */
+        ReportWriteSchema: {
+            reason: components["schemas"]["PublicationReportReasonEnum"];
+        };
+        /**
          * ReviewKindEnum
          * @description Що саме тренується.
          *
@@ -1146,6 +1586,14 @@ export interface components {
          *     `list_id` порожній, коли списку не створювали — так буває, якщо в режимі
          *     skip жодного нового слова не знайшлось. Порожній іменований список у
          *     словнику був би сміттям, яке користувач мусив би прибирати руками.
+         *
+         *     `skipped_words` — самі слова, а не лише їхня кількість: імпортований список
+         *     неповний за визначенням (ADR-0005), і неповнота, про яку не сказали, читається
+         *     як загублені слова. `skipped` лишається — фронтенд рахує ним підсумковий
+         *     рядок, і в режимі overwrite список завжди порожній.
+         *
+         *     Слова віддаються в написанні ДЖЕРЕЛА, тобто в тому, яке людина щойно бачила
+         *     в чужому списку, а не у власному.
          */
         ShareImportResultSchema: {
             /** List Id */
@@ -1158,6 +1606,8 @@ export interface components {
             overwritten: number;
             /** Skipped */
             skipped: number;
+            /** Skipped Words */
+            skipped_words: string[];
         };
         /**
          * ShareImportSchema
@@ -1262,6 +1712,38 @@ export interface components {
             transcription: string | null;
             /** Examples */
             examples: components["schemas"]["SharedExampleSchema"][];
+        };
+        /** SnapshotCardPageSchema */
+        SnapshotCardPageSchema: {
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+            /** Items */
+            items: components["schemas"]["SnapshotCardSchema"][];
+        };
+        /**
+         * SnapshotCardSchema
+         * @description Одне слово публікації очима читача.
+         *
+         *     `already_have` рахується проти твого словника за нормалізованим словом і
+         *     означає рівно те, що станеться при взятті: таку картку буде пропущено. Режиму
+         *     «перезаписати» в Бібліотеці немає (CONTEXT: «Перезапис при імпорті»), тож
+         *     інших наслідків у цього прапорця бути не може.
+         */
+        SnapshotCardSchema: {
+            /** Word */
+            word: string;
+            /** Comment */
+            comment: string | null;
+            /** Senses */
+            senses: components["schemas"]["SharedSenseSchema"][];
+            /** Forms */
+            forms: components["schemas"]["SharedFormSchema"][];
+            /** Already Have */
+            already_have: boolean;
         };
         /**
          * StabilityBandsSchema
@@ -3154,6 +3636,336 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ShareImportResultSchema"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_list_publication_api_v1_vocabulary_lists__list_id__publication__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                list_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicationOwnerSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_list_api_v1_vocabulary_lists__list_id__publication__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                list_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicationWriteSchema"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicationOwnerSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unpublish_list_api_v1_vocabulary_lists__list_id__publication__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                list_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    refresh_publication_api_v1_vocabulary_lists__list_id__publication_refresh__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                list_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicationOwnerSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    browse_library_api_v1_library__get: {
+        parameters: {
+            query?: {
+                /** @description Пошук по назві й опису */
+                q?: string | null;
+                /** @description popular — за кількістю взять, fresh — за датою оновлення знімка, rating — за видимим рейтингом, неоцінені в хвіст */
+                sort?: "popular" | "fresh" | "rating";
+                page?: number;
+                per_page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryPageSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_publication_api_v1_library_publications__publication_id___get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                publication_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicationDetailSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_publication_cards_api_v1_library_publications__publication_id__cards__get: {
+        parameters: {
+            query?: {
+                page?: number;
+                per_page?: number;
+            };
+            header?: never;
+            path: {
+                publication_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SnapshotCardPageSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    take_publication_api_v1_library_publications__publication_id__take__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                publication_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicationTakeSchema"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicationTakeResultSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rate_publication_api_v1_library_publications__publication_id__rating__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                publication_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RatingWriteSchema"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatingSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_publication_api_v1_library_publications__publication_id__report__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                publication_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportWriteSchema"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
