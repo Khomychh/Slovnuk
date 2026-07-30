@@ -1,0 +1,91 @@
+<!--
+  Спільна оболонка листів.
+
+  Застосунок темний (ADR-0012), пошта — світла: лист відкривають серед інших
+  листів, і темна картка там читається як банер, а не як службове повідомлення.
+  Щоб це лишалось Slovnuk, а не будь-яким білим листом, палітру не вигадано
+  наново, а перевернуто попарно: --night і --frost помінялись місцями. Нейтралі
+  лишаються холодними, синьо-фіолетовими, як у theme.css; кнопка стала нічною
+  на світлому — та сама пара, що й .btn, тільки навпаки.
+
+  Насичений колір і тут лише з рампи сяйва, без змін.
+
+  Чому таблиці й bgcolor, а не div і CSS: Outlook малює пошту рушієм Word,
+  і `background-color` на блоці там просто зникає. Атрибут bgcolor на td
+  розуміють усі.
+
+  Стрічка сяйва — шість клітинок рампи, а не градієнт: linear-gradient у пошті
+  не працює. Втрати немає, рампа й є шістьма зупинками.
+
+  Усі стилі проставлено інлайном: <style> вирізає Gmail. Блок нижче — лише для
+  гарнітур і мобільного, і його зникнення нічого не ламає.
+-->
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <title>{% block title %}Slovnuk{% endblock %}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Onest:wght@400;600&family=Unbounded:wght@500&display=swap');
+
+    @media (max-width: 520px) {
+      .pad { padding-left: 24px !important; padding-right: 24px !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; width: 100%; background-color: #e7ecf8;">
+
+<!-- Рядок попереднього перегляду у списку листів. Порожні символи після нього
+     не дають клієнту дотягнути туди початок тексту. -->
+<div style="display: none; max-height: 0; overflow: hidden; opacity: 0; color: transparent;">
+  {% block preheader %}{% endblock %}
+  &#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;
+</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#e7ecf8" style="background-color: #e7ecf8;">
+  <tr>
+    <td align="center" style="padding: 40px 16px 48px;">
+
+      <table role="presentation" width="480" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="width: 100%; max-width: 480px; background-color: #ffffff; border: 1px solid #d7dfef; border-radius: 20px;">
+        <tr>
+          <td class="pad" style="padding: 32px 32px 34px;">
+
+            <!-- Рубрика. Моноширинна й розріджена — її впізнають, а не читають. -->
+            <p style="margin: 0 0 14px; font-family: ui-monospace, 'SF Mono', 'Roboto Mono', Consolas, monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: #6d7896;">
+              Slovnuk
+            </p>
+
+            <!-- Стрічка сяйва: холодне нове → тепле давно відоме. -->
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 26px;">
+              <tr>
+                <td width="16.6%" bgcolor="#6d6bff" style="height: 3px; line-height: 3px; font-size: 0;">&nbsp;</td>
+                <td width="16.6%" bgcolor="#3e9be8" style="height: 3px; line-height: 3px; font-size: 0;">&nbsp;</td>
+                <td width="16.6%" bgcolor="#1fc8b4" style="height: 3px; line-height: 3px; font-size: 0;">&nbsp;</td>
+                <td width="16.6%" bgcolor="#58d97c" style="height: 3px; line-height: 3px; font-size: 0;">&nbsp;</td>
+                <td width="16.6%" bgcolor="#f0a73c" style="height: 3px; line-height: 3px; font-size: 0;">&nbsp;</td>
+                <td width="16.6%" bgcolor="#ffd65c" style="height: 3px; line-height: 3px; font-size: 0;">&nbsp;</td>
+              </tr>
+            </table>
+
+            <h1 style="margin: 0 0 18px; font-family: 'Unbounded', 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 25px; font-weight: 500; letter-spacing: -0.03em; line-height: 1.15; color: #070a14;">
+              {% block heading %}{% endblock %}
+            </h1>
+
+            {% block content %}{% endblock %}
+
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin: 22px 0 0; font-family: 'Onest', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12px; line-height: 1.5; color: #6d7896;">
+        Автоматичний лист від Slovnuk. Відповідати на нього не треба.
+      </p>
+
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

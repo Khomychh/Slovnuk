@@ -27,7 +27,9 @@ class EmailSender(EmailSenderInterface):
         self._password_email_template_name = password_email_template_name
         self._password_complete_email_template_name = password_complete_email_template_name
 
-        self._env = Environment(loader=FileSystemLoader(template_dir))
+        # autoescape увімкнено навмисно: у листи підставляються адреса й посилання,
+        # тобто дані ззовні, і без екранування вони потрапляють у розмітку як є.
+        self._env = Environment(loader=FileSystemLoader(template_dir), autoescape=True)
 
     async def _send_email(self, recipient: str, subject: str, html_content: str) -> None:
         """
@@ -64,7 +66,7 @@ class EmailSender(EmailSenderInterface):
         """
         template = self._env.get_template(self._activation_email_template_name)
         html_content = template.render(email=email, activation_link=activation_link)
-        subject = "Account Activation"
+        subject = "Підтвердьте пошту в Slovnuk"
         await self._send_email(email, subject, html_content)
 
     async def send_activation_complete_email(self, email: str, login_link: str) -> None:
@@ -77,7 +79,7 @@ class EmailSender(EmailSenderInterface):
         """
         template = self._env.get_template(self._activation_complete_email_template_name)
         html_content = template.render(email=email, login_link=login_link)
-        subject = "Account Activated Successfully"
+        subject = "Обліковий запис у Slovnuk активовано"
         await self._send_email(email, subject, html_content)
 
     async def send_password_reset_email(self, email: str, reset_link: str) -> None:
@@ -90,7 +92,7 @@ class EmailSender(EmailSenderInterface):
         """
         template = self._env.get_template(self._password_email_template_name)
         html_content = template.render(email=email, reset_link=reset_link)
-        subject = "Password Reset Request"
+        subject = "Новий пароль у Slovnuk"
         await self._send_email(email, subject, html_content)
 
     async def send_password_reset_complete_email(self, email: str, login_link: str) -> None:
@@ -103,5 +105,5 @@ class EmailSender(EmailSenderInterface):
         """
         template = self._env.get_template(self._password_complete_email_template_name)
         html_content = template.render(email=email, login_link=login_link)
-        subject = "Your Password Has Been Successfully Reset"
+        subject = "Пароль у Slovnuk змінено"
         await self._send_email(email, subject, html_content)

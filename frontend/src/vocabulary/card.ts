@@ -343,18 +343,25 @@ export function listFraction(cardCount: number, totalCards: number): number {
 }
 
 /**
- * Монорядок під назвою списку: «54 СЛОВА · ЗА ЗАМОВЧУВАННЯМ · ПОДІЛЕНО».
+ * Монорядок під назвою списку:
+ * «54 СЛОВА · ЗА ЗАМОВЧУВАННЯМ · ПОДІЛЕНО · В БІБЛІОТЕЦІ».
  *
  * Стан кажеться словами, а не кольорами й не другим станом іконок: тоді іконка
  * шеру лишається просто входом, а не носієм інформації, якої на ній не
- * прочитати.
+ * прочитати. Тим самим шляхом іде й Бібліотека — п'ятої іконки в рядку немає
+ * навмисно: при 36px на кнопку вона з'їла б назву до одинадцяти символів, і
+ * «Фразові дієслова» почали б різатись.
+ *
+ * «Поділено» і «в бібліотеці» — різні стани й можуть стояти разом: посилання
+ * адресне, публікація — на загал, і одне не заміняє інше.
  */
 export function listStateLine(
-  list: Pick<WordList, "card_count" | "share_token">,
+  list: Pick<WordList, "card_count" | "share_token" | "in_library">,
   isDefault: boolean,
 ): string {
   const parts = [words(list.card_count)];
   if (isDefault) parts.push("за замовчуванням");
   if (list.share_token) parts.push("поділено");
+  if (list.in_library) parts.push("в бібліотеці");
   return parts.join(" · ");
 }

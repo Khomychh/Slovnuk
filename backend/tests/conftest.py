@@ -317,3 +317,27 @@ def auth_headers(user: UserModel) -> dict[str, str]:
 @pytest.fixture
 def other_auth_headers(other_user: UserModel) -> dict[str, str]:
     return _auth_headers(other_user)
+
+
+@pytest.fixture
+def make_user(db_session: AsyncSession):
+    """
+    Фабрика користувачів — для тестів, яким двох мало.
+
+    Потрібна там, де правило вимірюється КІЛЬКІСТЮ людей, а не просто «свій і
+    чужий»: поріг видимості рейтингу в Бібліотеці спрацьовує на третій оцінці, і
+    перевірити його двома фікстурами неможливо.
+
+    Віддає пару (користувач, заголовки) — окремо вони майже ніколи не потрібні.
+    """
+    created = 0
+
+    async def _make(email: str | None = None) -> tuple[UserModel, dict[str, str]]:
+        nonlocal created
+        created += 1
+        user = await _create_user(
+            db_session, email or f"extra{created}@example.com"
+        )
+        return user, _auth_headers(user)
+
+    return _make

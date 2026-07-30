@@ -30,6 +30,7 @@ import {
   previewHeadline,
   previewNote,
 } from "../sharing/share";
+import { skippedPreview } from "../library/library";
 import { plural, words } from "../ui/plural";
 import type { ImportMode, ImportResult, SharedCard } from "../api/sharing";
 
@@ -162,6 +163,8 @@ function SharedList({ token }: { token: string }) {
 
   if (result) {
     const nothing = importFoundNothing(result);
+    const skipped = skippedPreview(result.skipped_words);
+
     return (
       <Screen back={home} title={nothing ? "Нічого нового" : "Взято"}>
         <p className="hint" style={{ marginTop: 10 }}>
@@ -169,6 +172,31 @@ function SharedList({ token }: { token: string }) {
             ? "Усі слова з цього списку у вас уже були, тож новий список не створювався — порожня мітка у словнику ні до чого."
             : importSummary(result)}
         </p>
+
+        {/* Пропущені слова НАЗИВАЮТЬСЯ. Список неповний за визначенням
+            (ADR-0005), і мовчання про це читається як загублені слова — людина
+            бачить «додано 38» замість 50 і не знає, які дванадцять зникли.
+            У режимі overwrite цей блок не з'являється: там нічого не
+            пропускалось. */}
+        {skipped.shown.length > 0 ? (
+          <>
+            <div className="ed-label">
+              Не додалось — {words(result.skipped_words.length)}, бо{" "}
+              {result.skipped_words.length === 1 ? "воно" : "вони"} у вас уже є
+            </div>
+            <div className="lib-skipped">
+              {skipped.shown.map((word) => (
+                <span className="lib-skipped-word" key={word}>
+                  {word}
+                </span>
+              ))}
+              {skipped.rest > 0 ? (
+                <span className="lib-skipped-rest">і ще {skipped.rest}</span>
+              ) : null}
+            </div>
+            <p className="hint">Ваші картки не змінились — імпорт їх не чіпає.</p>
+          </>
+        ) : null}
 
         {nothing ? null : (
           <button

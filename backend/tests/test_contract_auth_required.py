@@ -36,6 +36,7 @@ PATH_VALUES = {
     "note_id": "1",
     "category_id": "1",
     "track_id": "1",
+    "publication_id": "1",
     "token": "sometoken",
 }
 
@@ -100,7 +101,7 @@ def test_public_list_matches_reality():
 
 def test_endpoint_count_is_sane():
     """Дешевий сторож: роути зникли цілим роутером — помітимо одразу."""
-    assert len(ALL_ENDPOINTS) == 43, (
-        f"Ендпоінтів стало {len(ALL_ENDPOINTS)}, а було 43. Якщо це навмисно — "
+    assert len(ALL_ENDPOINTS) == 53, (
+        f"Ендпоінтів стало {len(ALL_ENDPOINTS)}, а було 53. Якщо це навмисно — "
         "онови число тут."
     )

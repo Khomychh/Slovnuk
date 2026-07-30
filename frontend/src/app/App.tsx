@@ -13,8 +13,11 @@ import CardEditScreen from "../screens/CardEditScreen";
 import CardScreen from "../screens/CardScreen";
 import CategoriesScreen from "../screens/CategoriesScreen";
 import GrammarScreen from "../screens/GrammarScreen";
+import LibraryScreen from "../screens/LibraryScreen";
+import ListPublishScreen from "../screens/ListPublishScreen";
 import ListShareScreen from "../screens/ListShareScreen";
 import ListsScreen from "../screens/ListsScreen";
+import PublicationScreen from "../screens/PublicationScreen";
 import LoginScreen from "../screens/LoginScreen";
 import NoteEditScreen from "../screens/NoteEditScreen";
 import NoteScreen from "../screens/NoteScreen";
@@ -124,6 +127,15 @@ export default function App() {
           <Route path="/vocabulary" element={<VocabularyScreen />} />
           <Route path="/vocabulary/lists" element={<ListsScreen />} />
           <Route path="/vocabulary/lists/:id/share" element={<ListShareScreen />} />
+          <Route
+            path="/vocabulary/lists/:id/publish"
+            element={<ListPublishScreen />}
+          />
+          {/* Бібліотека — вкладка, тож її корінь живе тут, серед вкладок. Сторінка
+              публікації аркушем НЕ малюється: під нею лежить увесь список слів із
+              пагінацією, а аркуш обмежений 80dvh. */}
+          <Route path="/library" element={<LibraryScreen />} />
+          <Route path="/library/:id" element={<PublicationScreen />} />
           <Route path="/vocabulary/cards/new" element={<CardEditScreen mode="create" />} />
           <Route path="/vocabulary/cards/:id" element={<CardScreen />} />
           <Route

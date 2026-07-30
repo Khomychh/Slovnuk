@@ -264,12 +264,7 @@ export default function ProgressScreen() {
           facts={rows.get(openDay)}
           isToday={openDay === today}
         />
-      ) : (
-        <p className="explain">
-          Золото — день, у який виконано обидві цілі. Бірюза — учився, але не
-          добрав. Тапни день, щоб побачити, чого забракло.
-        </p>
-      )}
+      ) : null}
     </Screen>
   );
 }

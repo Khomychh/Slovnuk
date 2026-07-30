@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from app.database.models.accounts import UserModel
     from app.database.models.study import ReviewTrackModel
     from app.database.models.sharing import ListShareModel
+    from app.database.models.library import PublicationModel
 
 
 def normalize_word(word: str) -> str:
@@ -61,9 +62,38 @@ class WordListModel(Base, TimestampMixin):
         DateTime(timezone=True), nullable=True
     )
 
+    # Заповнюється, коли список узяли з Бібліотеки. На відміну від шеру, тут FK
+    # доречний: публікація не гине ні від зняття, ні від видалення акаунта автора
+    # (ADR-0020), тож посилання лишається живим і після того, як автор пішов.
+    #
+    # Читач у неї один — провенанс похідної публікації: публікуючи цей список,
+    # автор отримує позначку «росте з ‹оригінал›». Значення переписується в
+    # publications.derived_from_id у момент публікації, бо сам список можуть
+    # видалити.
+    #
+    # use_alter=True обов'язковий і не є обходом. Разом із publications.list_id
+    # цей FK утворює цикл word_lists ↔ publications, і без нього SQLAlchemy не
+    # може впорядкувати таблиці: `Base.metadata.sorted_tables` кидає SAWarning
+    # («unresolvable cycles»), який обіцяє стати помилкою. Прапорець описує те,
+    # що вже роблять міграції: констрейнт додається окремим ALTER, коли обидві
+    # таблиці на місці. Ім'я задане явно з тієї ж причини, що в e1c11ae58ed3 —
+    # безіменний констрейнт неможливо прибрати в downgrade.
+    imported_from_publication_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey(
+            "publications.id",
+            ondelete="SET NULL",
+            use_alter=True,
+            name="fk_word_lists_imported_from_publication_id_publications",
+        ),
+        nullable=True,
+    )
+
     user: Mapped["UserModel"] = relationship("UserModel", foreign_keys=[user_id], back_populates="word_lists")
     imported_from_user: Mapped[Optional["UserModel"]] = relationship(
         "UserModel", foreign_keys=[imported_from_user_id]
+    )
+    imported_from_publication: Mapped[Optional["PublicationModel"]] = relationship(
+        "PublicationModel", foreign_keys=[imported_from_publication_id]
     )
 
     card_links: Mapped[List["CardListLinkModel"]] = relationship(

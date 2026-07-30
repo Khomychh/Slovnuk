@@ -307,6 +307,7 @@ async def import_share(
             created=0,
             overwritten=0,
             skipped=plan.skipped,
+            skipped_words=list(plan.skipped_words),
         )
 
     now = datetime.now(timezone.utc)
@@ -350,4 +351,5 @@ async def import_share(
         created=len(plan.sources),
         overwritten=len(plan.overwrites),
         skipped=plan.skipped,
+        skipped_words=list(plan.skipped_words),
     )
