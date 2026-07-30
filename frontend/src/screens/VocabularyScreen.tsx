@@ -18,7 +18,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useOnline } from "../app/useOnline";
 import { ProfileAvatar } from "../profile/ProfileAvatar";
-import { Screen } from "../ui/parts";
+import { ListsIcon, Screen } from "../ui/parts";
 import { senseSummary, distinctTranscriptions, type Card } from "../vocabulary/card";
 import {
   EMPTY_BROWSE,
@@ -141,7 +141,30 @@ export default function VocabularyScreen() {
   };
 
   return (
-    <Screen title="Словник" aside={<ProfileAvatar />}>
+    <Screen
+      title="Словник"
+      /* Два органи в правому куті, і це єдина шапка, де їх два.
+         «Списки» стоять саме тут, бо звідси в них і ходять: керувати списками —
+         це робота над словником, а не окрема справа. Аватар лишається на місці
+         на всіх коренях: він єдиний вхід у профіль (ADR-0021).
+
+         Кольором вони не сперечаються: аватар — фото в колі, «Списки» — штрих,
+         залитий стрічкою сяйва. Сплутати їх ніяк. */
+      aside={
+        <div className="head-tools">
+          <button
+            className="icon-btn icon-btn-bare head-lists"
+            type="button"
+            aria-label="Списки"
+            title="Списки й Бібліотека"
+            onClick={() => navigate("/vocabulary/lists")}
+          >
+            <ListsIcon />
+          </button>
+          <ProfileAvatar />
+        </div>
+      }
+    >
       <div className="v-summary">
         {words(total)} · {listsLabel(listCount)}
       </div>

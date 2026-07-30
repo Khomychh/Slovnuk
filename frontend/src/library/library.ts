@@ -36,13 +36,14 @@ export function ratingLine(publication: {
   return `${publication.rating.toFixed(1)} ★ (${publication.ratings_count})`;
 }
 
-/** «540 слів · взяли 128». Друге число — охоплення, і воно завжди чесне. */
-export function reachLine(publication: {
-  cards_count: number;
-  takes_count: number;
-}): string {
-  return `${words(publication.cards_count)} · взяли ${publication.takes_count}`;
-}
+/*
+ * `reachLine` («540 слів · взяли 128») тут був і пішов разом із ADR-0022.
+ *
+ * Він склеював розмір списку з охопленням в один рядок — тобто робив рівно те,
+ * від чого застерігає стаття «Популярність» у CONTEXT.md: два числа кажуть
+ * різне, і зливати їх не можна. Тепер кожне стоїть окремою величиною в рядку
+ * `.pub-figures`, поруч із рейтингом і на однаковій відстані від нього.
+ */
 
 /**
  * Головне речення сторінки публікації — те, що станеться після натискання.
@@ -126,6 +127,31 @@ export function updatedLine(iso: string, now: Date = new Date()): string {
     ...(sameYear ? {} : { year: "numeric" }),
   });
   return `оновлено ${formatted}`;
+}
+
+/**
+ * «станом на 30 липня» — та сама дата, що й `updatedLine`, іншими словами.
+ *
+ * Різниця не косметична. Читачеві важливо, що список **оновлювали**, і
+ * «оновлено» ставить дату в один ряд із рейтингом: свіжий вміст проти старих
+ * зірок. Автору важливо протилежне — що в Бібліотеці лежить копія **на цю
+ * дату**, а не живий список. Саме цю відмінність раніше пояснював абзац про
+ * знімок; тепер її несе прийменник, і абзаца не треба (ADR-0022).
+ *
+ * Слова «знімок» тут немає навмисно: у коді й у CONTEXT.md термін лишається, а
+ * в інтерфейсі його місце займає дата. Так само вже сталось з «імпортом», який
+ * на екрані зветься «Взяти список».
+ */
+export function asOfLine(iso: string, now: Date = new Date()): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const sameYear = date.getFullYear() === now.getFullYear();
+  return `станом на ${date.toLocaleDateString("uk-UA", {
+    day: "numeric",
+    month: "long",
+    ...(sameYear ? {} : { year: "numeric" }),
+  })}`;
 }
 
 /**

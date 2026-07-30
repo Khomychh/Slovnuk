@@ -9,11 +9,11 @@
 import { describe, expect, it } from "vitest";
 import {
   alreadyHave,
+  asOfLine,
   authorLine,
   canPublish,
   derivedLine,
   ratingLine,
-  reachLine,
   skippedPreview,
   stalenessLine,
   takeFoundNothing,
@@ -37,15 +37,6 @@ describe("ratingLine", () => {
     // «4.6» і «5», що читається як різна точність.
     expect(ratingLine({ rating: 5, ratings_count: 3 })).toBe("5.0 ★ (3)");
     expect(ratingLine({ rating: 4.6, ratings_count: 31 })).toBe("4.6 ★ (31)");
-  });
-});
-
-describe("reachLine", () => {
-  it("відмінює слова й не відмінює лічильник взять", () => {
-    expect(reachLine({ cards_count: 1, takes_count: 0 })).toBe("1 слово · взяли 0");
-    expect(reachLine({ cards_count: 540, takes_count: 128 })).toBe(
-      "540 слів · взяли 128",
-    );
   });
 });
 
@@ -141,6 +132,30 @@ describe("updatedLine", () => {
   it("сміттєву дату не показує зовсім", () => {
     // Порожній рядок краще за «оновлено Invalid Date» у витрині.
     expect(updatedLine("не дата")).toBe("");
+  });
+});
+
+describe("asOfLine", () => {
+  it("каже «станом на», а не «оновлено» — це та сама дата про інше", () => {
+    // Читачеві важливо, що список ОНОВЛЮВАЛИ: свіжий вміст проти старих зірок.
+    // Автору важливо протилежне — що в Бібліотеці лежить копія НА ЦЮ ДАТУ, а не
+    // живий список. Раніше цю відмінність пояснював цілий абзац про знімок.
+    const iso = "2026-07-30T10:00:00Z";
+    const now = new Date("2026-08-15T00:00:00Z");
+    expect(asOfLine(iso, now)).toBe("станом на 30 липня");
+    expect(updatedLine(iso, now)).toBe("оновлено 30 липня");
+  });
+
+  it("інший рік дописує, як і сусідка", () => {
+    expect(asOfLine("2025-03-04T10:00:00Z", new Date("2026-08-15T00:00:00Z"))).toContain(
+      "2025",
+    );
+  });
+
+  it("сміттєву дату не показує зовсім", () => {
+    // «станом на Invalid Date» на екрані власника гірше за мовчання: воно
+    // читалось би як зламана публікація.
+    expect(asOfLine("не дата")).toBe("");
   });
 });
 

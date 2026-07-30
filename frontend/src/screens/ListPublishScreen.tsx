@@ -1,20 +1,22 @@
 /**
- * Публікація списку в Бібліотеці — половина власника.
+ * Публікація списку в Бібліотеці — налаштування, які робить власник.
  *
- * Сестра `ListShareScreen`, і навмисно окремий екран: посилання й публікація —
- * дві різні дії з різними наслідками, і одна кнопка з перемикачем змусила б
- * людину вирішувати обидві разом.
+ * Сюди приходять із «Віддати список», уже побачивши обидва способи поруч. Тому
+ * пояснювати різницю між посиланням і витриною тут більше не треба — її сказав
+ * попередній екран самою будовою.
  *
- * Екран мусить сказати три речі, які інакше здивують:
+ * Екран раніше ніс чотири абзаци про знімок, оновлення й зняття. Тепер їх
+ * немає, і жодне правило при цьому не загубилось — вони просто переїхали туди,
+ * де від них є користь (ADR-0022):
  *
- * 1. Публікація — це **знімок**. Нове слово, кинуте в опублікований список,
- *    публічним не стає, доки не натиснути «Оновити». Це не недогляд, а захист:
- *    інакше все, що ти потім кинеш у цю мітку, ставало б публічним само.
- * 2. «Оновити» **не скидає** рейтинг. Без цього автор, який виправив одну
- *    друкарську помилку, втратив би 4.6★ і більше ніколи цю кнопку не натиснув.
- * 3. Зняття — це **не видалення**. Рядок і рейтинг лишаються, і повернення
- *    відновлює їх. Тут правило шеру інвертується, і про це варто сказати вголос,
- *    бо на сусідньому екрані сказано протилежне.
+ * 1. Публікація — це копія на дату. Про це каже рядок «54 слова · станом на
+ *    30 липня» і попередження, коли список відтоді розрісся. Абзац про це
+ *    людина читала до того, як розбіжність узагалі виникала, тобто ні про що.
+ * 2. «Оновити» **не скидає** рейтинг. Сказано в підтвердженні оновлення — у
+ *    мить, коли автор боїться саме цього.
+ * 3. Зняття — це **не видалення**, рядок і рейтинг лишаються. Сказано в
+ *    підтвердженні зняття, там же, де на сусідньому екрані сказано протилежне
+ *    про посилання.
  */
 
 import { useEffect, useState } from "react";
@@ -29,12 +31,7 @@ import {
   useRefreshPublication,
   useUnpublishList,
 } from "../library/queries";
-import {
-  canPublish,
-  ratingLine,
-  stalenessLine,
-  updatedLine,
-} from "../library/library";
+import { asOfLine, canPublish, stalenessLine } from "../library/library";
 import { words } from "../ui/plural";
 import { MAX_TITLE, MAX_DESCRIPTION } from "../library/limits";
 
@@ -158,11 +155,10 @@ export default function ListPublishScreen() {
 
   const doRefresh = async () => {
     const message =
-      `Вміст публікації буде замінено списком у його теперішньому стані. ` +
-      `Оцінки й лічильник взять залишаться, а на витрині зʼявиться нова дата ` +
-      `оновлення.`;
+      `У Бібліотеці зʼявиться список у його теперішньому стані. ` +
+      `Оцінки й лічильник взять залишаться — вони не скидаються.`;
     if (!window.confirm(message)) return;
-    await run(() => refresh.mutateAsync(), "Публікацію оновлено.");
+    await run(() => refresh.mutateAsync(), "Оновлено.");
   };
 
   const staleness = current ? stalenessLine(current) : null;
@@ -195,18 +191,8 @@ export default function ListPublishScreen() {
         </button>
       }
     >
-      <p className="hint" style={{ marginTop: 10 }}>
-        {words(list.card_count)} у цьому списку.
-      </p>
-
       {error ? <Message kind="error">{error}</Message> : null}
       {note ? <Message>{note}</Message> : null}
-
-      {!canPublish(list.card_count) ? (
-        <div className="hint">
-          Порожній список публікувати нема сенсу — його знімок вийшов би порожнім.
-        </div>
-      ) : null}
 
       {hiddenByModerator ? (
         <Message kind="error">
@@ -214,49 +200,63 @@ export default function ListPublishScreen() {
         </Message>
       ) : null}
 
+      {!canPublish(list.card_count) ? (
+        <div className="hint">
+          У списку немає слів — виставляти нічого.
+        </div>
+      ) : null}
+
       {current ? (
         <>
-          <div className="ed-label">Стан у Бібліотеці</div>
-          <div className="lib-own-state">
-            <div className="lib-meta">
-              {current.is_listed ? "на витрині" : "знято з витрини"} ·{" "}
-              {words(current.cards_count)} у знімку · взяли {current.takes_count}
-            </div>
-            <div className="lib-meta lib-meta-quiet">
-              {ratingLine(current) ? <span>{ratingLine(current)}</span> : null}
-              <span>{updatedLine(current.content_updated_at)}</span>
-            </div>
+          <div className="ed-label">У Бібліотеці</div>
+          {/* Уся правда про копію-на-дату — цей рядок. Прийменник «станом на»
+              каже те, що раніше пояснював абзац про знімок. */}
+          <div className="state-line">
+            {words(current.cards_count)} · {asOfLine(current.content_updated_at)}
+          </div>
+          <div className="state-figures">
+            {current.is_listed ? null : (
+              <span className="pill">знято з витрини</span>
+            )}
+            {current.rating !== null ? (
+              <span className="state-figure">
+                <span className="pub-star">★</span>
+                {current.rating.toFixed(1)}
+                <span className="pub-of">({current.ratings_count})</span>
+              </span>
+            ) : null}
+            <span className="state-figure">взяли {current.takes_count}</span>
           </div>
 
-          {/* Знімок — головне, чого не вгадаєш. Тому про нього сказано тут, а не
-              в кінці екрана. */}
-          <p className="hint">
-            У Бібліотеці лежить <strong>знімок</strong> цього списку, а не сам
-            список. Слова, які ви додасте пізніше, публічними не стануть, доки ви
-            не натиснете «Оновити публікацію».
-          </p>
-
-          {staleness ? <Message>{staleness}</Message> : null}
-
-          {current.can_update ? (
+          {/* Розбіжність показується тільки коли вона є — і тоді ж поруч стоїть
+              кнопка, яка її прибирає. Мовчати про це не можна: слова, кинуті в
+              опублікований список, публічними не стають самі. */}
+          {staleness ? (
+            <div className="state-stale">
+              <span>{staleness}</span>
+              {current.can_update ? (
+                <button
+                  className="btn-quiet btn-sm"
+                  type="button"
+                  disabled={!online || busy}
+                  onClick={doRefresh}
+                >
+                  Оновити
+                </button>
+              ) : null}
+            </div>
+          ) : current.can_update ? (
             <button
-              className="btn-quiet"
+              className="btn-quiet btn-sm state-update"
               type="button"
               disabled={!online || busy}
               onClick={doRefresh}
             >
-              Оновити публікацію
+              Оновити в Бібліотеці
             </button>
           ) : null}
         </>
-      ) : (
-        <p className="hint">
-          Поки список не опубліковано, його бачите тільки ви. Опублікувавши,
-          ви віддаєте в Бібліотеку <strong>знімок</strong> — копію слів на цю
-          мить. Кожен, хто його візьме, отримає власні картки з чистим графіком
-          повторень, а не доступ до ваших.
-        </p>
-      )}
+      ) : null}
 
       <div className="ed-label">Назва в Бібліотеці</div>
       <div className="ed-inline">
@@ -271,10 +271,6 @@ export default function ListPublishScreen() {
           }}
         />
       </div>
-      <p className="hint">
-        Окрема від назви у вашому словнику: перейменувавши список у себе, ви не
-        зміните нічого в Бібліотеці.
-      </p>
 
       <div className="ed-label">Опис</div>
       <textarea

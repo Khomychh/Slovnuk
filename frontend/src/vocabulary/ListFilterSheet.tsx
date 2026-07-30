@@ -7,9 +7,12 @@
  *
  * «Без списку» стоїть окремим рядком під списками, бо це не список, а
  * відсутність міток (CONTEXT.md).
+ *
+ * Керування списками звідси прибрано (ADR-0021): аркуш робить одну справу —
+ * вибирає фільтр. Другі двері в те саме місце тут були б глибші за перші, бо
+ * «Списки» тепер лежать кнопкою в шапці цього ж екрана.
  */
 
-import { useNavigate } from "react-router-dom";
 import type { Browse } from "./queries";
 import { useLists } from "./queries";
 import { useSettings } from "../study/queries";
@@ -25,7 +28,6 @@ export default function ListFilterSheet({
   onPick: (next: FilterPick) => void;
   onClose: () => void;
 }) {
-  const navigate = useNavigate();
   const lists = useLists();
   const settings = useSettings();
 
@@ -84,16 +86,6 @@ export default function ListFilterSheet({
           </span>
         </button>
 
-        <button
-          className="sheet-row sheet-manage"
-          type="button"
-          onClick={() => {
-            onClose();
-            navigate("/vocabulary/lists");
-          }}
-        >
-          Керувати списками
-        </button>
       </div>
     </div>
   );

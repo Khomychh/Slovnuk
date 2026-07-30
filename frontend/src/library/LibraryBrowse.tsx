@@ -1,9 +1,9 @@
 /**
- * «Бібліотека» — корінь вкладки.
+ * Витрина — половина «Бібліотека» на екрані «Списки».
  *
- * Витрина списків, виставлених на загал. Тут **тільки чуже** в тому сенсі, що
- * власного словника тут немає, — але свої публікації з витрини НЕ ховаються:
- * автор має бачити свій список там, де його бачать інші.
+ * Тут **тільки чуже** в тому сенсі, що власного словника тут немає, — але свої
+ * публікації з витрини НЕ ховаються: автор має бачити свій список там, де його
+ * бачать інші.
  *
  * Рядок несе два числа, і вони кажуть різне навмисно: рейтинг — про якість,
  * «взяли» — про охоплення. Список, який узяли 128 разів і оцінили на 3.2,
@@ -18,36 +18,40 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { OfflineError } from "../api/client";
 import { useOnline } from "../app/useOnline";
-import { ProfileAvatar } from "../profile/ProfileAvatar";
-import { Message, Screen } from "../ui/parts";
-import { useLibrary } from "../library/queries";
+import { Message } from "../ui/parts";
+import { useLibrary } from "./queries";
 import {
   authorLine,
   derivedLine,
-  ratingLine,
-  reachLine,
   SORT_LABELS,
   updatedLine,
-} from "../library/library";
+} from "./library";
+import { words } from "../ui/plural";
 import type { LibrarySort, PublicationSummary } from "../api/library";
 
 const SORTS: LibrarySort[] = ["popular", "fresh", "rating"];
 
 /**
- * Рядок витрини.
+ * Картка витрини.
  *
- * Другий рядок — це справжні слова зі списку, а НЕ опис автора. Чотири слова
- * кажуть про рівень і тему більше, ніж будь-яке речення: «get up · put off ·
- * run into» одразу видно, що це фразові дієслова й що це B1. Опис читається на
- * сторінці публікації, де для нього є місце.
+ * Слова — герой картки, а не опис автора. Чотири слова кажуть про рівень і тему
+ * більше, ніж будь-яке речення: «get up · put off · run into» одразу видно, що
+ * це фразові дієслова й що це B1. Опис читається на сторінці публікації, де для
+ * нього є місце.
  *
- * Насиченого кольору тут немає жодного, і це не забутість. У цьому застосунку
- * колір означає рівно одне — наскільки ти знаєш слово (ADR-0012, ADR-0017).
- * Чужий список температури не має: жодне слово в ньому тобі ще не належить.
- * Пофарбувати витрину означало б збрехати рампою. Колір приходить тоді, коли
- * слова стають твоїми й заходять у словник.
+ * Низ картки розділено на два голоси навмисно (ADR-0022): числа — моноширинні,
+ * бо їх звіряють між картками очима по вертикалі; людина й дата — звичайним
+ * шрифтом, бо це не дані, а підпис. Доки обидва рядки були однією моноширинною
+ * стрічкою капсом, «ІВАН ХОМИЧ 128 30 ЛИПНЯ» читалось як одне сіре місиво.
+ *
+ * Кольору тут рівно два джерела, і жодне з них не бреше рампою (ADR-0012,
+ * ADR-0022). Золото на зірці — оцінка, і це та сама золота зірка, якою в
+ * «Моїх» позначено список за замовчуванням. Стрічка сяйва по верхньому краю
+ * з'являється лише на **взятих** публікаціях: їхні слова справді приїхали в
+ * твій словник, тож підпис застосунку тут доречний. Температури в чужого списку
+ * немає й бути не може — жодне слово в ньому тобі ще не належить.
  */
-function Row({
+function Card({
   publication,
   onOpen,
 }: {
@@ -65,52 +69,59 @@ function Row({
    * старим кодом.
    */
   const sample = publication.sample_words ?? [];
-  const rating = ratingLine(publication);
 
   return (
-    <button className="lib-row" type="button" onClick={onOpen}>
-      <div className="lib-row-head">
-        <span className="lib-title">{publication.title}</span>
-        {/* Неоцінена публікація не пише про це нічого: порожнє місце праворуч
-            читається швидше за «поки без оцінок». */}
-        {rating ? <span className="lib-rating">{rating}</span> : null}
-      </div>
+    <button
+      className={publication.is_taken ? "pub pub-taken" : "pub"}
+      type="button"
+      onClick={onOpen}
+    >
+      <span className="pub-title">{publication.title}</span>
 
       {sample.length > 0 ? (
-        <div className="lib-words">
+        <span className="pub-words">
           {sample.map((word, index) => (
             <span key={`${word}#${index}`}>
-              {index > 0 ? <span className="lib-words-sep">·</span> : null}
+              {index > 0 ? <span className="pub-sep">·</span> : null}
               {word}
             </span>
           ))}
           {publication.cards_count > sample.length ? (
-            <span className="lib-words-sep">…</span>
+            <span className="pub-sep">…</span>
           ) : null}
-        </div>
+        </span>
       ) : null}
 
-      {/* Один метарядок, не два: «оновлено 30 липня» окремим рядком важило
-          більше, ніж вартує.
+      {/* Числа в один рядок і моноширинні: їх звіряють між картками поглядом
+          згори вниз, а пропорційний шрифт зсуває стовпчик на кожній цифрі.
+          Рейтинг стоїть посередині — між розміром списку й охопленням, тобто
+          між тим, «скільки» і «скільком». */}
+      <span className="pub-figures">
+        <span className="pub-figure">{words(publication.cards_count)}</span>
+        {/* Неоцінена публікація не пише про це нічого: порожнє місце читається
+            швидше за «поки без оцінок». */}
+        {publication.rating !== null ? (
+          <span className="pub-figure pub-rating">
+            <span className="pub-star">★</span>
+            {publication.rating.toFixed(1)}
+            <span className="pub-of">({publication.ratings_count})</span>
+          </span>
+        ) : null}
+        <span className="pub-figure">взяли {publication.takes_count}</span>
+      </span>
 
-          Роздільники малює CSS через `span + span::before`, а не розмітка. На
-          самому `gap` рядок злипався в «Іван Хомич 14 слів»; окремими ж
-          `<span>·</span>` роздільник міг зостатись самотнім у кінці рядка при
-          переносі на вузькому екрані. Приліплений до наступного шматка, він
-          відірватись не може. */}
-      <div className="lib-meta">
-        <span>{authorLine(publication.author)}</span>
-        <span>{reachLine(publication)}</span>
-        <span>{updatedLine(publication.content_updated_at)}</span>
-        {publication.is_taken ? <span className="lib-taken">взято ✓</span> : null}
-      </div>
+      <span className="pub-by">
+        {authorLine(publication.author)}
+        <span className="pub-sep">·</span>
+        {updatedLine(publication.content_updated_at)}
+      </span>
 
-      {derived ? <div className="lib-derived">↳ {derived}</div> : null}
+      {derived ? <span className="pub-derived">↳ {derived}</span> : null}
     </button>
   );
 }
 
-export default function LibraryScreen() {
+export default function LibraryBrowse() {
   const navigate = useNavigate();
   const online = useOnline();
 
@@ -150,22 +161,9 @@ export default function LibraryScreen() {
   const items = library.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
-    /*
-     * Заголовок один і дорівнює назві вкладки — як на «Словнику», «Граматиці» й
-     * «Прогресі». Рубрика над ним була б повтором того самого слова: на
-     * «Сьогодні» вона є лише тому, що несе дату, тобто справжню інформацію.
-     *
-     * Лічильника в шапці теж немає: голе «1» у правому куті не значить нічого, а
-     * скільки публікацій у Бібліотеці — не те, за чим сюди приходять. Приходять
-     * за словами.
-     */
-    <Screen title="Бібліотека" aside={<ProfileAvatar />}>
-      {/* `.v-search`, а не `.ed-inline`: другий — це «поле плюс кнопка» (як
-          «Новий список» у «Списках»), а тут самотній пошук, тобто рівно те, що
-          вже є у «Словнику». Разом із класом приходять і налаштування мобільної
-          клавіатури, яких я був не поставив. */}
+    <>
       <input
-        className="v-search lib-search"
+        className="v-search"
         type="search"
         inputMode="search"
         autoCapitalize="none"
@@ -215,16 +213,18 @@ export default function LibraryScreen() {
         </div>
       ) : null}
 
-      {items.map((publication) => (
-        <Row
-          key={publication.id}
-          publication={publication}
-          onOpen={() => navigate(`/library/${publication.id}`)}
-        />
-      ))}
+      <div className="pub-list">
+        {items.map((publication) => (
+          <Card
+            key={publication.id}
+            publication={publication}
+            onOpen={() => navigate(`/library/${publication.id}`)}
+          />
+        ))}
+      </div>
 
       <div ref={sentinel} />
       {library.isFetchingNextPage ? <div className="hint">Ще…</div> : null}
-    </Screen>
+    </>
   );
 }
