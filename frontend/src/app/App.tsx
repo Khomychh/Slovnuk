@@ -13,7 +13,6 @@ import CardEditScreen from "../screens/CardEditScreen";
 import CardScreen from "../screens/CardScreen";
 import CategoriesScreen from "../screens/CategoriesScreen";
 import GrammarScreen from "../screens/GrammarScreen";
-import LibraryScreen from "../screens/LibraryScreen";
 import ListPublishScreen from "../screens/ListPublishScreen";
 import ListShareScreen from "../screens/ListShareScreen";
 import ListsScreen from "../screens/ListsScreen";
@@ -131,10 +130,19 @@ export default function App() {
             path="/vocabulary/lists/:id/publish"
             element={<ListPublishScreen />}
           />
-          {/* Бібліотека — вкладка, тож її корінь живе тут, серед вкладок. Сторінка
-              публікації аркушем НЕ малюється: під нею лежить увесь список слів із
-              пагінацією, а аркуш обмежений 80dvh. */}
-          <Route path="/library" element={<LibraryScreen />} />
+          {/* Витрина власного кореня більше не має — вона половина «Списків»
+              (ADR-0021). Стара адреса лишається робочою й веде саме в ту
+              половину: на неї є посилання з екранів публікації, і мовчазне
+              перекидання «в нікуди» читалось би як загублена сторінка.
+
+              Сторінка публікації аркушем НЕ малюється: під нею лежить увесь
+              список слів із пагінацією, а аркуш обмежений 80dvh. */}
+          <Route
+            path="/library"
+            element={
+              <Navigate to="/vocabulary/lists" state={{ half: "library" }} replace />
+            }
+          />
           <Route path="/library/:id" element={<PublicationScreen />} />
           <Route path="/vocabulary/cards/new" element={<CardEditScreen mode="create" />} />
           <Route path="/vocabulary/cards/:id" element={<CardScreen />} />

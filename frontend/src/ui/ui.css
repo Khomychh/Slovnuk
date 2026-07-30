@@ -58,6 +58,27 @@
   margin-left: -8px;
 }
 
+/* Два органи в правому куті шапки — це тільки «Словник»: «Списки» й аватар.
+   Скрізь інде там стоїть щось одне. */
+.head-tools {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Єдина кольорова іконка застосунку: штрих залито стрічкою сяйва (див.
+   `ListsIcon`).
+
+   24px, а не 18px типових для `.icon-btn`: поруч стоїть аватар — коло 38px із
+   фотографією, — і штрихова іконка при однаковій із ним дотиковій цілі
+   виглядала поруч удвічі меншою. Полотно кнопки лишається 38px, росте тільки
+   малюнок. */
+.head-lists svg {
+  width: 24px;
+  height: 24px;
+}
+
 /* Число в правому куті шапки — моноширинне, як усі лічильники. Стоїть там, де
    на «Сьогодні» аватар, і зайняло місце, що звільнила рубрика. */
 .head-count {
@@ -1451,6 +1472,19 @@
   padding: 16px var(--pad) 40px;
 }
 
+/* Заголовок аркуша дії. Дисплейною гарнітурою, бо в аркуші він єдиний
+   заголовок і мусить одразу сказати, що станеться: «Додасться 12 із 54 слів». */
+.sheet-title {
+  font-family: var(--display);
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--frost);
+  margin-bottom: 12px;
+  text-wrap: balance;
+}
+
 .sheet-bar {
   display: flex;
   align-items: center;
@@ -1852,14 +1886,19 @@
   font-weight: 500;
 }
 
+/* Стан списку словами: «54 слова · за замовчуванням · поділено». Через це
+   іконці шеру не потрібно двох станів — «поділено» вже сказано.
+
+   Капсу тут більше немає (ADR-0022). Верхній регістр лишився за рубрикою й
+   підписом поля, тобто за структурою; підрядок, що несе число й два стани, —
+   це вміст, і кричати йому нічого. Доки капсом було все, п'ять різних ролей
+   виглядали однією сірою стрічкою, і «не розбереш що до чого» стосувалось саме
+   цього. */
 .list-row-sub {
   color: var(--haze-2);
   font-family: var(--mono);
-  font-size: 11px;
-  /* Стан списку словами: «54 СЛОВА · ЗА ЗАМОВЧУВАННЯМ · ПОДІЛЕНО». Через це
-     іконці шеру не потрібно двох станів — «поділено» вже сказано. */
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
 }
 
 /* Смуга-частка: ширина = частка словника, що лежить у цьому списку. П'ятий
@@ -2725,16 +2764,10 @@ button.cal-c {
   user-select: all;
 }
 
-.share-actions {
-  display: flex;
-  gap: 8px;
-  margin: 14px 0 4px;
-}
-
-.share-actions > .btn,
-.share-actions > .btn-quiet {
-  width: auto;
-  flex: 1;
+/* Посилання лежить усередині блоку «Посиланням», тож дихає тісніше, ніж коли
+   було самотнім вмістом екрана. */
+.give > .share-url {
+  margin-top: 12px;
 }
 
 /* --- чужий список ------------------------------------------------------- */
@@ -2832,86 +2865,155 @@ button.cal-c {
 }
 
 /* ==========================================================================
-   Бібліотека
+   «Списки»: половина «Мої» і половина «Бібліотека»
 
-   Витрина чужих списків — ЄДИНИЙ екран застосунку без насиченого кольору, і це
-   позиція, а не недогляд.
+   Половини поводяться з кольором протилежно, і це зміст, а не недогляд.
 
-   Колір тут означає рівно одне: наскільки ти знаєш слово (ADR-0012, ADR-0017).
-   Чужий список температури не має — жодне слово в ньому тобі ще не належить, і
-   пофарбувати витрину означало б збрехати рампою. Колір приходить у ту мить,
-   коли слова стають твоїми й заходять у словник.
+   У «Моїх» під кожним рядком лежить смуга-частка сяйва: слова там твої, і
+   рампа має право говорити. У «Бібліотеці» насиченого кольору майже немає —
+   чужий список температури не має, жодне слово в ньому тобі ще не належить, і
+   пофарбувати витрину означало б збрехати рампою (ADR-0012, ADR-0017). Колір
+   приходить у ту мить, коли слова стають твоїми. Перемикання половин тому
+   читається як перехід із теплого в холодне — і це правда про те, що бачиш.
 
-   Виняток один — активна зірка оцінки: це вже твоя дія, а не чужий вміст. Вона
-   бере той самий `--a4`, що зірка «списку за замовчуванням» у «Списках»: двох
-   різних активних зірок у застосунку бути не мусить.
+   Винятків із цього рівно два, обидва — не про чужий вміст (ADR-0022):
+
+   1. Золото на зірці. Це оцінка — твоя дія або зведена чужа, а не властивість
+      слова. Береться той самий `--a4`, що й у зірки «за замовчуванням» у
+      «Моїх»: двох різних золотих зірок у застосунку бути не мусить.
+   2. Стрічка сяйва на активній половині перемикача й по верхньому краю ВЗЯТОЇ
+      публікації. Стрічка ЦІЛКОМ — підпис застосунку (риска активної вкладки,
+      «Вчити», герой «Прогресу»), і температури вона не заявляє. А слова взятої
+      публікації справді приїхали в твій словник, тож підпис тут доречний.
 
    Рейтинг і охоплення стоять поруч і кажуть різне навмисно: перше про якість,
-   друге про поширеність. Тому вони НЕ зливаються в один рядок.
+   друге про поширеність. Тому вони НЕ зливаються в одне число.
    ========================================================================== */
 
-/* Пошук іде першим після шапки, і власного відступу в поля немає — на інших
-   екранах його дає те, що стоїть між заголовком і полем: `.ed-label` у
-   «Списках», монорядок `.v-summary` у «Словнику». У Бібліотеці між ними немає
-   нічого (лічильник публікацій нічого не значить), тож відступ треба задати
-   тут — інакше поле липне просто до заголовка.
+/* --- перемикач половин --------------------------------------------------- */
 
-   24px — той самий крок, яким `.ed-label` відкриває новий блок по всьому
-   застосунку. */
-.lib-search {
-  margin-top: 24px;
+/* Липне до верху області прокрутки: під ним лежать і вісім списків, і
+   нескінченна витрина, а повертатись угору, щоб перемкнути половину, — це та
+   сама кнопка, до якої треба догортати.
+
+   Від'ємні поля з рівним відступом розтягують тло на всю ширину колонки:
+   інакше вміст проїжджав би у смугах відступу обабіч перемикача. */
+.halves {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  gap: 8px;
+  margin: 18px calc(-1 * var(--pad)) 4px;
+  padding: 6px var(--pad) 0;
+  background: var(--night);
+}
+
+.half {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: none;
+  border-bottom: 1px solid var(--edge);
+  background: none;
+  color: var(--haze-2);
+  font-family: var(--sans);
+  font-size: 14.5px;
+  padding: 8px 4px 11px;
+  cursor: pointer;
+}
+
+.half-on {
+  color: var(--frost);
+}
+
+/* Активну половину підкреслює та сама стрічка, що й активну вкладку. Лягає
+   поверх межі (-1px), а не під нею, — інакше під сяйвом видно сіру лінію. */
+.half-on::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -1px;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--aurora);
+}
+
+.half-count {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--haze-2);
+}
+
+/* Пошук іде першим у половині «Бібліотека»: власного відступу в поля немає, і
+   тут його треба задати — інакше воно липне просто до перемикача. */
+.halves + .v-search {
+  margin-top: 16px;
 }
 
 .lib-sorts {
   margin-top: 12px;
 }
 
-/* Рядок витрини — кнопка на всю ширину, а не div із onClick: у нього мусить
-   бути фокус, роль і Enter. Вирівнювання тексту скидається явно, бо кнопка
-   центрує його за замовчуванням. */
-.lib-row {
-  display: block;
+/* --- картка публікації --------------------------------------------------- */
+
+/* Публікації розділяє проміжок і поверхня, а не волосяна лінія. Плоский
+   перелік із чотирьох рядків тексту на кожну позицію не давав оку за що
+   зачепитись: назва, слова, числа й підпис важили однаково, і витрина
+   читалась як суцільне сіре полотно. Поверхня робить із кожної публікації
+   предмет, який можна взяти в руки.
+
+   Кнопка, а не div із onClick: у неї мусить бути фокус, роль і Enter.
+   Вирівнювання тексту скидається явно, бо кнопка центрує його сама. */
+.pub-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.pub {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   text-align: left;
-  border: none;
-  border-bottom: 1px solid var(--edge-soft);
-  background: none;
-  padding: 14px 0;
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  background: var(--sheet);
+  box-shadow: var(--lift);
+  padding: 14px 15px;
   color: inherit;
   font-family: inherit;
   cursor: pointer;
+  /* Стрічка взятої публікації малюється по краю — без цього її кінці вилазять
+     за скруглення. */
+  overflow: hidden;
 }
 
-.lib-row:active {
-  background: var(--edge-soft);
+.pub:active {
+  background: var(--sheet-2);
 }
 
-.lib-row-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
+/* Взято. Стрічка замінила текстову позначку «ВЗЯТО ✓», яка стояла в одному
+   рядку з автором і охопленням і сперечалась із ними за увагу. Тут вона
+   впізнається до читання — і не займає жодного рядка. */
+.pub-taken::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: var(--aurora);
 }
 
-/* min-width: 0 обов'язковий: без нього flex не дає елементу стиснутись нижче
-   вмісту, і довга назва наїжджає на рейтинг замість обрізатись. */
-.lib-title {
-  min-width: 0;
-  font-size: 15px;
+.pub-title {
+  font-size: 15.5px;
   font-weight: 500;
   color: var(--frost);
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Рейтинг моноширинним і не переноситься: у стовпчик чисел праворуч око
-   потрапляє одразу, і «4.6 ★ (31)» не має ламатись на дужці. */
-.lib-rating {
-  flex: none;
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--frost);
   white-space: nowrap;
 }
 
@@ -2922,19 +3024,83 @@ button.cal-c {
    nowrap із обрізанням, а не перенос: рядок мусить лишатись одним рядком, бо на
    ньому тримається ритм списку — інакше картки стрибали б у висоті залежно від
    довжини слів. Обрізане слово читається як «і далі», що правда й є. */
-.lib-words {
+.pub-words {
   font-size: 13.5px;
   color: var(--haze);
-  margin-top: 4px;
+  margin-top: 5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* Роздільник тихіший за слова: він структура, а не вміст. */
-.lib-words-sep {
+/* Роздільник тихіший за те, що розділяє: він структура, а не вміст. */
+.pub-sep {
   color: var(--haze-2);
   margin: 0 5px;
+}
+
+/* Числа — свій голос: моноширинний, без капсу (ADR-0022). Їх звіряють між
+   картками поглядом згори вниз, і пропорційний шрифт зсував би стовпчик на
+   кожній цифрі. Капс тут був би криком: «54 СЛОВА ВЗЯЛИ 128» читається голосно
+   й повільно, а це підрядок. */
+.pub-figures {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 14px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--haze);
+  margin-top: 12px;
+}
+
+.pub-figure {
+  white-space: nowrap;
+}
+
+.pub-rating {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--frost);
+}
+
+/* Єдине золото у витрині. Той самий `--a4`, що в зірки «за замовчуванням». */
+.pub-star {
+  color: var(--a4);
+}
+
+.pub-of {
+  color: var(--haze-2);
+}
+
+/* Люди й дати — звичайним шрифтом і окремим рядком (ADR-0022). Це не дані, а
+   підпис, і читають його зліва направо один раз, а не звіряють між картками.
+   Доки автор стояв у тій самій моноширинній стрічці, що й числа, «Іван Хомич»
+   виглядав як ще одне поле таблиці. */
+.pub-by {
+  font-size: 12.5px;
+  color: var(--haze-2);
+  margin-top: 5px;
+}
+
+/* Походження похідної публікації. Мусить бути видно, але не сперечатись за
+   увагу з назвою: це виноска, а не заголовок. */
+.pub-derived {
+  font-size: 12px;
+  color: var(--haze-2);
+  margin-top: 6px;
+}
+
+/* На сторінці публікації ті самі два голоси стоять під заголовком, тож дихають
+   вільніше: тут вони шапка екрана, а не низ картки. */
+.pub-figures-page {
+  font-size: 13px;
+  margin-top: 16px;
+}
+
+.pub-by-page {
+  margin-top: 4px;
 }
 
 .lib-desc-full {
@@ -2943,49 +3109,6 @@ button.cal-c {
   line-height: 1.55;
   margin: 14px 0 0;
   overflow-wrap: anywhere;
-}
-
-/* Роздільники стоять у розмітці, тож gap тут тісний — він лише не дає словам
-   злипнутись із «·». Регістр не змінюється: «ІВАН ХОМИЧ» моноширинним читається
-   як крик, а не як підпис. */
-.lib-meta {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 5px;
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  color: var(--haze-2);
-  margin-top: 5px;
-}
-
-.lib-meta > span + span::before {
-  content: "·";
-  color: var(--edge);
-  margin-right: 5px;
-}
-
-.lib-meta-quiet {
-  font-size: 10.5px;
-}
-
-.lib-taken {
-  color: var(--haze);
-  border: 1px solid var(--edge);
-  border-radius: 6px;
-  padding: 1px 5px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-size: 10px;
-}
-
-/* Походження похідної публікації. Мусить бути видно, але не сперечатись за
-   увагу з назвою: це виноска, а не заголовок. */
-.lib-derived {
-  color: var(--haze-2);
-  font-size: 11.5px;
-  margin-top: 4px;
 }
 
 /* --- зірки -------------------------------------------------------------- */
@@ -3055,79 +3178,209 @@ button.cal-c {
   margin-top: 22px;
 }
 
-/* --- вхід у публікацію зі списку --------------------------------------- */
+/* ==========================================================================
+   «Віддати список»
 
-/* Плитка, а не кнопка `.btn`: це навігація, і виглядати як головна дія екрана
-   вона не мусить — головна там «Створити посилання». */
-.lib-entry {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+   Два способи віддати список — посиланням і в Бібліотеку — стоять тут двома
+   блоками ОДНАКОВОЇ будови: назва, стан-таблетка, одне речення про наслідок,
+   дія. Однакова будова і є поясненням: різницю видно з першого погляду, без
+   трьох абзаців, які раніше стояли між ними (ADR-0022).
+
+   Раніше публікація ховалась за рядком-входом на наступному екрані, тобто
+   вибір між двома способами робили, побачивши лише один.
+   ========================================================================== */
+
+.give {
+  display: block;
   width: 100%;
   text-align: left;
   border: 1px solid var(--edge);
   border-radius: var(--r-sm);
   background: var(--sheet);
-  padding: 13px 15px;
-  margin: 14px 0 4px;
+  box-shadow: var(--lift);
+  padding: 15px;
+  margin-top: 12px;
   color: inherit;
   font-family: inherit;
+}
+
+/* Другий блок веде на екран налаштувань, тож він кнопка. Перший лишається
+   div'ом: усередині нього свої кнопки, а кнопка в кнопці недопустима. */
+.give-link {
   cursor: pointer;
 }
 
-.lib-entry:active {
+.give-link:active {
   background: var(--sheet-2);
 }
 
-.lib-entry-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.lib-entry-title {
+.give-head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14.5px;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.give-title {
+  font-size: 15.5px;
   font-weight: 500;
   color: var(--frost);
 }
 
-.lib-entry-title svg {
+/* Одне речення про наслідок замість абзаца про механіку. «Кому даси посилання —
+   той візьме собі копію» каже рівно те, що людині треба вирішити; усе інше
+   (безадресність, незворотність вимкнення) переїхало в підтвердження, де від
+   нього є користь. */
+.give-what {
+  display: block;
+  font-size: 13.5px;
+  color: var(--haze);
+  line-height: 1.5;
+  margin: 6px 0 0;
+}
+
+.give-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.give-figures {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 14px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--haze);
+  margin-top: 12px;
+}
+
+.give-figure {
+  white-space: nowrap;
+}
+
+.give-rating {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--frost);
+}
+
+.give-by {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--haze-2);
+  margin-top: 8px;
+}
+
+/* Шеврон світліший за рядок, у якому стоїть: він єдиний знак того, що цей блок
+   кудись веде, а сусідній — ні. У кольорі рядка він губився, і обидва блоки
+   читались як однаково німі. */
+.give-chevron {
   flex: none;
-  width: 18px;
-  height: 18px;
+  font-size: 18px;
+  line-height: 1;
   color: var(--haze);
 }
 
-.lib-entry-sub {
-  display: block;
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.04em;
+/* Вимкнення посилання незворотне, тож воно не кнопка в смузі дій, а посилання
+   під нею: щоб натиснути його, треба свідомо цілитись. */
+.give-off {
+  margin-top: 10px;
   color: var(--haze-2);
-  margin-top: 3px;
 }
 
-.lib-entry-chevron {
+/* Стан однією таблеткою замість рядка прози. «увімкнено» / «на витрині» —
+   це те, що людина приходить перевірити, і воно мусить читатись, не читаючись. */
+.pill {
   flex: none;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--haze-2);
-  font-size: 18px;
-  line-height: 1;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+
+.pill-on {
+  color: var(--frost);
+  border-color: var(--haze-2);
+}
+
+/* Дія всередині блоку, а не головна дія екрана: тут їх дві поруч, і на всю
+   ширину кожна не йде. */
+.btn-sm {
+  width: auto;
+  flex: 1;
+  padding: 11px 16px;
+  font-size: 14.5px;
 }
 
 /* --- публікація очима власника ----------------------------------------- */
 
-.lib-own-state {
-  border: 1px solid var(--edge);
-  border-radius: var(--r-sm);
-  background: var(--sheet);
-  padding: 12px 14px;
+/* Уся правда про копію-на-дату — цей рядок. Він набирається як речення, а не
+   як підрядок: «54 слова · станом на 30 липня» замінило абзац про знімок, тож
+   і важити мусить як абзац (ADR-0022). */
+.state-line {
+  font-size: 15px;
+  color: var(--frost);
   margin-top: 2px;
 }
 
-.lib-own-state > .lib-meta:first-child {
-  margin-top: 0;
+.state-figures {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--haze);
+  margin-top: 10px;
+}
+
+.state-figure {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+/* Розбіжність між списком і Бібліотекою — єдине попередження цього екрана, і
+   кнопка, що її прибирає, стоїть у ньому ж. Золота риска ліворуч, а не червона
+   смуга: це не помилка, а факт, який автор мусить побачити (ADR-0012 забороняє
+   семафор). */
+.state-stale {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-left: 2px solid var(--a4);
+  background: var(--sheet);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  padding: 12px 14px;
+  margin-top: 16px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--frost);
+}
+
+.state-stale > span {
+  flex: 1;
+}
+
+.state-stale > .btn-sm {
+  flex: none;
+}
+
+.state-update {
+  width: auto;
+  margin-top: 16px;
 }
 
 /* Опис — багаторядкове поле, але не на пів екрана: три рядки вистачає на те,

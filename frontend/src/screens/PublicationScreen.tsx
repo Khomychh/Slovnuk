@@ -7,6 +7,11 @@
  * виглядає зламаною, а не вибірковою. І після натискання пропущені слова
  * НАЗИВАЮТЬСЯ: неповнота, про яку не сказали, читається як загублені слова.
  *
+ * Сам екран — чистий перегляд: що це за список і які в ньому слова. Поле «назва
+ * у вашому словнику» звідси прибрано в аркуш, що підіймається після натискання
+ * (ADR-0022): доти воно змушувало заповнювати форму списку, який людина ще не
+ * вирішила брати, і стояло посеред екрана, розриваючи слова навпіл.
+ *
  * Перемикача «замінити мої картки» тут немає й не буде: у шері він доречний, бо
  * ти знаєш, від кого береш, а тут на іншому кінці незнайомець.
  *
@@ -30,8 +35,6 @@ import {
 import {
   authorLine,
   derivedLine,
-  ratingLine,
-  reachLine,
   REPORT_REASONS,
   skippedPreview,
   takeFoundNothing,
@@ -114,6 +117,7 @@ export default function PublicationScreen() {
 
   const [name, setName] = useState("");
   const [nameTouched, setNameTouched] = useState(false);
+  const [taking, setTaking] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [nameProblem, setNameProblem] = useState<string | null>(null);
   const [existingListId, setExistingListId] = useState<number | null>(null);
@@ -140,7 +144,8 @@ export default function PublicationScreen() {
     return () => observer.disconnect();
   }, [cards.hasNextPage, cards.isFetchingNextPage, cards.fetchNextPage, cards]);
 
-  const back = () => navigate("/library");
+  // Витрина власного кореня не має — це половина «Списків» (ADR-0021).
+  const back = () => navigate("/vocabulary/lists", { state: { half: "library" } });
 
   /* --- публікація недоступна ---------------------------------------------- */
 
@@ -243,7 +248,7 @@ export default function PublicationScreen() {
    * друга каже правду. Причину вже сказав заголовок «Усі ці слова у вас уже є»,
    * тож підписувати її вдруге не треба.
    */
-  const canTake = online && summary.new_cards > 0 && Boolean(name.trim());
+  const canOpenTake = online && summary.new_cards > 0;
 
   const run = async () => {
     setProblem(null);
@@ -251,7 +256,9 @@ export default function PublicationScreen() {
     setExistingListId(null);
 
     try {
-      setResult(await take.mutateAsync(name.trim()));
+      const done = await take.mutateAsync(name.trim());
+      setTaking(false);
+      setResult(done);
     } catch (caught) {
       if (caught instanceof OfflineError) {
         setProblem("Немає звʼязку. Спробуйте, коли зʼявиться мережа.");
@@ -267,17 +274,6 @@ export default function PublicationScreen() {
     }
   };
 
-  const sendReport = async (reason: ReportReason) => {
-    setReporting(false);
-    try {
-      await report.mutateAsync(reason);
-    } catch (caught) {
-      setProblem(
-        caught instanceof Error ? caught.message : "Не вдалось надіслати скаргу",
-      );
-    }
-  };
-
   return (
     <Screen
       back={back}
@@ -288,47 +284,43 @@ export default function PublicationScreen() {
         <button
           className="btn"
           type="button"
-          disabled={!canTake || take.isPending}
-          onClick={run}
+          disabled={!canOpenTake}
+          onClick={() => {
+            setProblem(null);
+            setNameProblem(null);
+            setTaking(true);
+          }}
         >
-          {take.isPending ? "Беремо…" : "Взяти список"}
+          Взяти список
         </button>
       }
     >
-      <div className="sh-author">
-        {authorLine(summary.author)} · {reachLine(summary)}
+      {/* Числа окремо від людей — два голоси, як на картці витрини (ADR-0022). */}
+      <div className="pub-figures pub-figures-page">
+        <span className="pub-figure">{words(summary.cards_count)}</span>
+        {summary.rating !== null ? (
+          <span className="pub-figure pub-rating">
+            <span className="pub-star">★</span>
+            {summary.rating.toFixed(1)}
+            <span className="pub-of">({summary.ratings_count})</span>
+          </span>
+        ) : null}
+        <span className="pub-figure">взяли {summary.takes_count}</span>
       </div>
-      <div className="lib-meta lib-meta-quiet">
-        {/* Рейтинг з'являється лише коли є що показати. Про його відсутність
-            нижче однаково скаже блок зірок. */}
-        {ratingLine(summary) ? <span>{ratingLine(summary)}</span> : null}
-        <span>{updatedLine(summary.content_updated_at)}</span>
+      <div className="pub-by pub-by-page">
+        {authorLine(summary.author)}
+        <span className="pub-sep">·</span>
+        {updatedLine(summary.content_updated_at)}
       </div>
-      {derived ? <div className="lib-derived">↳ {derived}</div> : null}
+      {derived ? <div className="pub-derived">↳ {derived}</div> : null}
 
       {summary.description ? (
         <p className="lib-desc-full">{summary.description}</p>
       ) : null}
 
       <div className="sh-headline">{takeHeadline(summary)}</div>
-      {takeNote(summary) ? <p className="hint">{takeNote(summary)}</p> : null}
 
       {problem ? <Message kind="error">{problem}</Message> : null}
-
-      <div className="ed-label">Назва у вашому словнику</div>
-      <div className="ed-inline">
-        <input
-          value={name}
-          placeholder="назва списку"
-          disabled={!online}
-          onChange={(event) => {
-            setNameTouched(true);
-            setName(event.target.value);
-            setNameProblem(null);
-          }}
-        />
-      </div>
-      {nameProblem ? <div className="msg msg-error">{nameProblem}</div> : null}
 
       {existingListId !== null ? (
         <button
@@ -355,11 +347,7 @@ export default function PublicationScreen() {
             onPick={(stars) => void rate.mutateAsync(stars).catch(() => {})}
           />
         </>
-      ) : (
-        <p className="hint">
-          Оцінити список можна після того, як ви його візьмете.
-        </p>
-      )}
+      ) : null}
 
       <div className="ed-label">Слова у списку</div>
       {items.map((card, index) => (
@@ -382,7 +370,18 @@ export default function PublicationScreen() {
                 className="chip"
                 type="button"
                 disabled={!online}
-                onClick={() => void sendReport(reason.value)}
+                onClick={() => {
+                  setReporting(false);
+                  void report
+                    .mutateAsync(reason.value as ReportReason)
+                    .catch((caught) =>
+                      setProblem(
+                        caught instanceof Error
+                          ? caught.message
+                          : "Не вдалось надіслати скаргу",
+                      ),
+                    );
+                }}
               >
                 {reason.label}
               </button>
@@ -406,6 +405,57 @@ export default function PublicationScreen() {
           </button>
         )}
       </div>
+
+      {/* --- аркуш взяття -------------------------------------------------- */}
+
+      {/* Назва питається саме тут, а не на екрані: доти вона була формою списку,
+          який людина ще не вирішила брати. В аркуші ж усе, що впливає на
+          рішення, стоїть поруч — скільки додасться, скільки пропустимо і як це
+          назветься. */}
+      {taking ? (
+        <div className="sheet-scrim" onClick={() => setTaking(false)}>
+          <div
+            className="sheet"
+            role="dialog"
+            aria-label="Взяти список"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="sheet-page">
+              <div className="sheet-title">{takeHeadline(summary)}</div>
+              {takeNote(summary) ? (
+                <p className="hint">{takeNote(summary)}</p>
+              ) : null}
+
+              <div className="ed-label">Назва у вашому словнику</div>
+              <div className="ed-inline">
+                <input
+                  value={name}
+                  placeholder="назва списку"
+                  autoFocus
+                  disabled={!online}
+                  onChange={(event) => {
+                    setNameTouched(true);
+                    setName(event.target.value);
+                    setNameProblem(null);
+                  }}
+                />
+              </div>
+              {nameProblem ? (
+                <div className="msg msg-error">{nameProblem}</div>
+              ) : null}
+
+              <button
+                className="btn"
+                type="button"
+                disabled={!online || !name.trim() || take.isPending}
+                onClick={run}
+              >
+                {take.isPending ? "Беремо…" : "Взяти"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </Screen>
   );
 }
