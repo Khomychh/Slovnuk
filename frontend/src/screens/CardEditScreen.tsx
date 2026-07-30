@@ -1,6 +1,12 @@
 /**
  * Редактор картки — створення і правка одним екраном.
  *
+ * Живе у двох рамах: як екран за маршрутом і як аркуш поверх навчання
+ * (`CardEditSheet`). Через це виходи параметризовані — `onSaved`, `onDeleted`,
+ * `onClose`. Другого редактора для «швидкої правки» немає навмисно: помилка в
+ * картці буває в будь-якому полі, і скорочена форма ловила б рівно ті, які
+ * встиг передбачити автор скорочення.
+ *
  * Приклади вводяться парою полів, а не рядком «English | переклад»: половина
  * прикладів словника має український переклад, і в текстовому варіанті кожен
  * такий приклад означав би лізти по «|» у третій рівень мобільної клавіатури.
@@ -10,6 +16,11 @@
  * у нижній третині довгого екрана, тобто список під полем відкривався б рівно
  * туди, де стоїть клавіатура. Чипи ж живуть у потоці й нічого не затуляють, а
  * стану «поле в режимі вибору / поле в режимі вводу» не існує взагалі.
+ *
+ * Про підписи полів. Їх тут менше, ніж полів: підпис лишається там, де без
+ * нього не зрозуміти, що вписувати, і зникає там, де це видно з самого поля.
+ * «Приклад англійською» над полем, у якому вже стоїть «приклад», — це не
+ * пояснення, а другий рядок висоти.
  *
  * Перетворення стану форми в тіло запиту тут НЕ живе — воно в `card.ts` під
  * тестами. Причина в тому, що помилка там не падає, а тихо зносить значення
@@ -21,24 +32,28 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { findByWord } from "../api/vocabulary";
 import { useOnline } from "../app/useOnline";
-import { BackIcon, SaveButton } from "../ui/parts";
+import { BackIcon, SaveButton, TrashIcon } from "../ui/parts";
+import ConfirmSheet from "../ui/ConfirmSheet";
 import {
   blankExample,
   blankForm,
   blankSense,
   defaultListFor,
+  deletionLosesHistory,
   draftIsDirty,
   newDraft,
   toCardPayload,
   toDraft,
   FORM_LABEL_SUGGESTIONS,
   POS_LABELS,
+  type Card,
   type CardDraft,
   type PartOfSpeech,
 } from "../vocabulary/card";
 import {
   useCard,
   useCreateCard,
+  useDeleteCard,
   useLists,
   useUpdateCard,
 } from "../vocabulary/queries";
@@ -59,18 +74,48 @@ const POS_ORDER: PartOfSpeech[] = [
   "phr",
 ] as PartOfSpeech[];
 
-export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
+/**
+ * Скільки списків видно до того, як натиснути «ще».
+ *
+ * Списків у людини бувають десятки, а міняє вона їх у картці рідко — тож
+ * стіна чипів на пів екрана стоїть у кожній картці заради дії, якої зазвичай
+ * не відбувається. Вибрані видно завжди: вони кажуть, де картка лежить, і це
+ * інформація, а не орган керування.
+ */
+const LISTS_SHOWN = 6;
+
+export default function CardEditScreen({
+  mode,
+  cardId,
+  onSaved,
+  onDeleted,
+  onClose,
+}: {
+  mode: "create" | "edit";
+  /** Коли редактор не за маршрутом, а аркушем: id приходить пропом. */
+  cardId?: number;
+  /**
+   * Збережена картка приходить сюди значенням, а не читається викликачем із
+   * кешу: `onSuccess` мутації встигає покласти її туди, але компонент, що її
+   * читає, на цю мить ще не перемальовано, і його `card.data` — попередня
+   * версія. Тобто буфер навчання оновився б текстом, який щойно виправили.
+   */
+  onSaved?: (card: Card) => void;
+  onDeleted?: (cardId: number) => void;
+  onClose?: () => void;
+}) {
   const navigate = useNavigate();
   const location = useLocation();
   const online = useOnline();
   const params = useParams();
-  const id = mode === "edit" ? Number(params.id) : null;
+  const id = mode === "edit" ? (cardId ?? Number(params.id)) : null;
 
   const card = useCard(id);
   const lists = useLists();
   const settings = useSettings();
   const create = useCreateCard();
   const update = useUpdateCard();
+  const remove = useDeleteCard();
 
   const ownListIds = useMemo(
     () => (lists.data?.items ?? []).map((item) => item.id),
@@ -90,6 +135,8 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
     word: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [allListsOpen, setAllListsOpen] = useState(false);
+  const [asking, setAsking] = useState<"leave" | "delete" | null>(null);
 
   useEffect(() => {
     if (draft) return;
@@ -151,14 +198,14 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
 
   const dirty = draftIsDirty(initial, draft);
 
+  const leave = () => (onClose ? onClose() : navigate(-1));
+
   const close = () => {
-    if (
-      dirty &&
-      !window.confirm("Вийти без збереження? Зміни буде втрачено.")
-    ) {
+    if (dirty) {
+      setAsking("leave");
       return;
     }
-    navigate(-1);
+    leave();
   };
 
   /**
@@ -194,10 +241,12 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
     try {
       if (mode === "create") {
         const created = await create.mutateAsync(payload);
-        navigate(`/vocabulary/cards/${created.id}`, { replace: true });
+        if (onSaved) onSaved(created);
+        else navigate(`/vocabulary/cards/${created.id}`, { replace: true });
       } else {
-        await update.mutateAsync({ id: id as number, payload });
-        navigate(-1);
+        const saved = await update.mutateAsync({ id: id as number, payload });
+        if (onSaved) onSaved(saved);
+        else navigate(-1);
       }
     } catch (problem) {
       if (problem instanceof ApiError && problem.code === "card_exists") {
@@ -212,7 +261,25 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
     }
   };
 
+  const destroy = async () => {
+    await remove.mutateAsync(id as number);
+    setAsking(null);
+    if (onDeleted) onDeleted(id as number);
+    else navigate("/vocabulary", { replace: true });
+  };
+
   const saving = create.isPending || update.isPending;
+
+  const listItems = lists.data?.items ?? [];
+  // Вибрані вперед: у згорнутому стані видно саме те, що вже правда про картку.
+  const orderedLists = [
+    ...listItems.filter((list) => draft.listIds.includes(list.id)),
+    ...listItems.filter((list) => !draft.listIds.includes(list.id)),
+  ];
+  const shownLists = allListsOpen
+    ? orderedLists
+    : orderedLists.slice(0, LISTS_SHOWN);
+  const hiddenLists = orderedLists.length - shownLists.length;
 
   return (
     <div className="sheet-frame">
@@ -235,15 +302,16 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
         />
       </div>
 
-      <div className="sheet-scroll">
+      <div className="sheet-scroll ed">
         {/* Слово набирається дисплейною гарнітурою на письмовій лінійці, а не в
           такому самому полі, як коментар: це головне, заради чого існує вся
-          решта екрана. */}
-        <div className="field ed-word-field">
-          <label htmlFor="word">Слово</label>
+          решта екрана. Підпису над ним немає — порожня лінійка з великим
+          курсором не буває нічим іншим. */}
+        <div className="ed-word-field">
           <input
             id="word"
             className="ed-word"
+            aria-label="Слово"
             value={draft.word}
             placeholder="hold on"
             autoCapitalize="none"
@@ -273,8 +341,14 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
           </div>
         ) : null}
 
-        {/* --- значення --- */}
-        <div className="ed-label">Значення</div>
+        {/* --- значення ---
+            Заголовок лишається: під ним повторювані панелі, і без нього «+
+            значення» нижче не має до чого належати. Волосяна лінія праворуч
+            робить із підпису межу розділу, а не ще один рядок тексту. */}
+        <div className="ed-head">
+          <span>значення</span>
+        </div>
+
         {draft.senses.map((sense, index) => (
           <div className="ed-panel" key={index}>
             <div className="ed-row">
@@ -296,6 +370,21 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
                   </option>
                 ))}
               </select>
+              {/* Транскрипція набирається тим самим стеком, яким показується: у
+                даних вона буває і справжньою IPA, і кирилицею. Стоїть у парі з
+                частиною мови, бо обидві короткі й обидві необовʼязкові. */}
+              <input
+                className="ed-ipa"
+                placeholder="транскрипція"
+                aria-label="Транскрипція"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                value={sense.transcription}
+                onChange={(event) =>
+                  patchSense(index, { transcription: event.target.value })
+                }
+              />
               {draft.senses.length > 1 ? (
                 <button
                   className="ed-drop"
@@ -313,23 +402,12 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
             </div>
 
             <input
+              className="ed-tr"
               placeholder="переклад"
+              aria-label="Переклад"
               value={sense.translation}
               onChange={(event) =>
                 patchSense(index, { translation: event.target.value })
-              }
-            />
-            {/* Транскрипція набирається тим самим стеком, яким показується: у
-              даних вона буває і справжньою IPA, і кирилицею. */}
-            <input
-              className="ed-ipa"
-              placeholder="транскрипція"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              value={sense.transcription}
-              onChange={(event) =>
-                patchSense(index, { transcription: event.target.value })
               }
             />
 
@@ -337,7 +415,8 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
               <div className="ed-example" key={exampleIndex}>
                 <div className="ed-example-fields">
                   <input
-                    placeholder="приклад англійською"
+                    placeholder="приклад"
+                    aria-label="Приклад англійською"
                     value={example.textEn}
                     onChange={(event) => {
                       const examples = [...sense.examples];
@@ -349,7 +428,8 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
                     }}
                   />
                   <input
-                    placeholder="переклад, не обовʼязково"
+                    placeholder="переклад"
+                    aria-label="Переклад прикладу"
                     value={example.textUk}
                     onChange={(event) => {
                       const examples = [...sense.examples];
@@ -401,7 +481,10 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
         </button>
 
         {/* --- форми --- */}
-        <div className="ed-label">Форми</div>
+        <div className="ed-head">
+          <span>форми</span>
+        </div>
+
         {draft.forms.map((form, index) => (
           <div className="ed-panel" key={index}>
             <div className="ed-row">
@@ -460,7 +543,8 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
             <div className="ed-ipa-row">
               <input
                 className="ed-ipa"
-                placeholder="транскрипція, не обовʼязково"
+                placeholder="транскрипція"
+                aria-label="Транскрипція форми"
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
@@ -496,10 +580,22 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
           </label>
         ) : null}
 
-        {/* --- списки --- */}
-        <div className="ed-label">Списки</div>
+        {/* --- коментар --- */}
+        <input
+          id="comment"
+          className="ed-comment"
+          aria-label="Коментар"
+          placeholder="коментар"
+          value={draft.comment}
+          onChange={(event) => patch({ comment: event.target.value })}
+        />
+
+        {/* --- списки: останні, бо міняються найрідше --- */}
+        <div className="ed-head">
+          <span>списки</span>
+        </div>
         <div className="ed-lists">
-          {(lists.data?.items ?? []).map((list) => {
+          {shownLists.map((list) => {
             const on = draft.listIds.includes(list.id);
             return (
               <button
@@ -518,22 +614,68 @@ export default function CardEditScreen({ mode }: { mode: "create" | "edit" }) {
               </button>
             );
           })}
+          {hiddenLists > 0 ? (
+            <button
+              className="chip chip-more"
+              type="button"
+              onClick={() => setAllListsOpen(true)}
+            >
+              ще {hiddenLists}
+            </button>
+          ) : null}
         </div>
         {draft.listIds.length === 0 ? (
           <div className="hint">Картка буде без списку — це нормально.</div>
         ) : null}
 
-        <div className="field">
-          <label htmlFor="comment">Коментар</label>
-          <input
-            id="comment"
-            value={draft.comment}
-            onChange={(event) => patch({ comment: event.target.value })}
-          />
-        </div>
-
         {error ? <div className="msg msg-error">{error}</div> : null}
+
+        {/* Видалення — остання річ у прокрутці, іконкою.
+            Далі від «Зберегти» нікуди: промахнутись пальцем неможливо, а
+            догортати сюди заради незворотної дії — не ціна, а запобіжник. */}
+        {mode === "edit" ? (
+          <div className="ed-destroy">
+            <button
+              className="icon-btn ed-trash"
+              type="button"
+              aria-label="Видалити слово"
+              disabled={!online || remove.isPending}
+              title={online ? "Видалити слово" : "Потрібен звʼязок"}
+              onClick={() => setAsking("delete")}
+            >
+              <TrashIcon />
+            </button>
+          </div>
+        ) : null}
       </div>
+
+      {asking === "leave" ? (
+        <ConfirmSheet
+          title="Вийти без збереження?"
+          note="Усе, що набрано на цьому екрані, зникне."
+          confirmLabel="Вийти"
+          onConfirm={leave}
+          onCancel={() => setAsking(null)}
+        />
+      ) : null}
+
+      {asking === "delete" && card.data ? (
+        <ConfirmSheet
+          title={`Видалити «${card.data.word}»?`}
+          // Діалог мусить називати справжній наслідок. Стан доріжок уже в
+          // payload, тож окремий запит за кількістю відповідей не потрібен
+          // (ADR-0003).
+          note={
+            deletionLosesHistory(card.data)
+              ? "Разом зі словом зникне історія повторень — відновити її буде нічим."
+              : "Слово зникне зі словника."
+          }
+          confirmLabel="Видалити слово"
+          busy={remove.isPending}
+          onConfirm={() => void destroy()}
+          onCancel={() => setAsking(null)}
+        />
+      ) : null}
     </div>
   );
 }

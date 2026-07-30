@@ -22,6 +22,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useOnline } from "../app/useOnline";
 import { PencilIcon, PlusIcon, ShareIcon, TrashIcon } from "../ui/parts";
+import ConfirmSheet from "../ui/ConfirmSheet";
 import {
   useCreateList,
   useDeleteList,
@@ -47,6 +48,12 @@ export default function MyLists() {
 
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  /** Який саме список питають видалити. Рядків багато — прапорця тут мало. */
+  const [asking, setAsking] = useState<{
+    id: number;
+    name: string;
+    cardCount: number;
+  } | null>(null);
 
   const defaultListId = settings.data?.default_list_id ?? null;
   const items = lists.data?.items ?? [];
@@ -76,19 +83,13 @@ export default function MyLists() {
     }
   };
 
-  const onDelete = async (id: number, listName: string, cardCount: number) => {
-    // Діалог мусить казати правду: старий PWA видаляв разом зі списком усі його
-    // слова, і звичка може лишитись саме та.
-    const tail =
-      cardCount === 0
-        ? "Слів у ньому немає."
-        : `${words(cardCount)} ${plural(cardCount, "залишиться", "залишаться", "залишаться")} у вашому словнику — ${plural(cardCount, "воно перейде", "вони перейдуть", "вони перейдуть")} у «Без списку».`;
-    if (!window.confirm(`Список «${listName}» буде видалено. ${tail}`)) return;
-
+  const onDelete = async (id: number) => {
     setError(null);
     try {
       await remove.mutateAsync(id);
+      setAsking(null);
     } catch (problem) {
+      setAsking(null);
       setError(problem instanceof Error ? problem.message : "Не вдалось видалити");
     }
   };
@@ -175,7 +176,13 @@ export default function MyLists() {
               disabled={!online}
               aria-label={`Видалити «${list.name}»`}
               title="Видалити"
-              onClick={() => onDelete(list.id, list.name, list.card_count)}
+              onClick={() =>
+                setAsking({
+                  id: list.id,
+                  name: list.name,
+                  cardCount: list.card_count,
+                })
+              }
             >
               <TrashIcon />
             </button>
@@ -197,6 +204,23 @@ export default function MyLists() {
       ) : null}
 
       {!online ? <div className="hint">Зміни потребують звʼязку.</div> : null}
+
+      {asking ? (
+        <ConfirmSheet
+          title={`Видалити список «${asking.name}»?`}
+          // Наслідок мусить казати правду: старий PWA видаляв разом зі списком
+          // усі його слова, і звичка може лишитись саме та.
+          note={
+            asking.cardCount === 0
+              ? "Слів у ньому немає."
+              : `${words(asking.cardCount)} ${plural(asking.cardCount, "залишиться", "залишаться", "залишаться")} у вашому словнику — ${plural(asking.cardCount, "воно перейде", "вони перейдуть", "вони перейдуть")} у «Без списку».`
+          }
+          confirmLabel="Видалити список"
+          busy={remove.isPending}
+          onConfirm={() => void onDelete(asking.id)}
+          onCancel={() => setAsking(null)}
+        />
+      ) : null}
     </>
   );
 }

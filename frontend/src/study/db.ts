@@ -21,8 +21,14 @@ import type { Progress, QueueItem, Rating } from "./session";
 export type OutboxEntry = {
   trackId: number;
   rating: Rating;
-  /** Мілісекунди від показу картки до натискання оцінки. */
-  reviewDuration: number;
+  /**
+   * Мілісекунди від показу картки до натискання оцінки.
+   *
+   * `null` означає «не виміряно» — так буває, коли картку правили просто під
+   * час показу (ADR-0024). Нулем це підмінити не можна: нуль є числом і поїде
+   * в оптимізатор як миттєве згадування.
+   */
+  reviewDuration: number | null;
   /** Час НАТИСКАННЯ, не доставки: саме він піде в review_logs.reviewed_at. */
   reviewedAt: string;
 };

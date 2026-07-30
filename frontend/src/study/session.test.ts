@@ -9,9 +9,11 @@
 import { describe, expect, it } from "vitest";
 import {
   AGAIN_GAP,
+  applyCardEdit,
   applyRating,
   cardSide,
   countAnswer,
+  dropCard,
   emptyProgress,
   mergeIncoming,
   progressValue,
@@ -208,5 +210,80 @@ describe("денний лічильник", () => {
     progress = syncProgress(12, DAY);
     expect(progressValue(progress)).toBe(12);
     expect(progress.localTracks).toEqual([]);
+  });
+});
+
+// --- правка картки просто в навчанні ---
+
+/** Доріжка форм тієї самої картки, що й `track(id)`: card.id збігається. */
+function formsTrack(id: number, cardId: number): QueueItem {
+  return {
+    ...track(id),
+    kind: "forms",
+    card: { ...track(id).card, id: cardId, forms: [
+      { id: 1, label: "Past", value: "went", transcription: null },
+    ] },
+  };
+}
+
+const edited = (cardId: number, word: string, forms: QueueItem["card"]["forms"] = []) => ({
+  id: cardId,
+  word,
+  comment: null,
+  forms_drill_enabled: true,
+  senses: [],
+  forms,
+});
+
+describe("applyCardEdit", () => {
+  it("підміняє вміст усіх доріжок картки, не чіпаючи чужі", () => {
+    const buffer = [track(1), track(2)];
+    const next = applyCardEdit(buffer, edited(10, "виправлено"));
+
+    expect(next.map((item) => item.card.word)).toEqual(["виправлено", "word-2"]);
+    expect(ids(next)).toEqual([1, 2]);
+  });
+
+  it("не переставляє порядок", () => {
+    const buffer = [track(1), track(2), track(3)];
+    const next = applyCardEdit(buffer, edited(20, "нове"));
+    expect(ids(next)).toEqual([1, 2, 3]);
+  });
+
+  it("прибирає доріжку форм, коли тренування вимкнули", () => {
+    const buffer = [track(1), formsTrack(9, 10)];
+    const next = applyCardEdit(buffer, {
+      ...edited(10, "go", [{ id: 1, label: "Past", value: "went", transcription: null }]),
+      forms_drill_enabled: false,
+    });
+
+    expect(ids(next)).toEqual([1]);
+  });
+
+  it("прибирає доріжку форм, коли форми стерли всі до одної", () => {
+    // Тренування лишилось увімкненим, але тренувати вже нічого.
+    const buffer = [formsTrack(9, 10), track(2)];
+    const next = applyCardEdit(buffer, edited(10, "go", []));
+    expect(ids(next)).toEqual([2]);
+  });
+
+  it("доріжку перекладу не прибирає ніколи", () => {
+    // Картку зберегли зовсім без значень — вона все одно лишається карткою.
+    const buffer = [track(1)];
+    const next = applyCardEdit(buffer, edited(10, "go", []));
+    expect(ids(next)).toEqual([1]);
+  });
+});
+
+describe("dropCard", () => {
+  it("забирає обидві доріжки видаленої картки", () => {
+    const buffer = [track(1), formsTrack(9, 10), track(2)];
+    // track(1).card.id === 10, і доріжка форм має той самий card.id.
+    expect(ids(dropCard(buffer, 10))).toEqual([2]);
+  });
+
+  it("картки, якої в буфері немає, не помічає", () => {
+    const buffer = [track(1), track(2)];
+    expect(ids(dropCard(buffer, 999))).toEqual([1, 2]);
   });
 });

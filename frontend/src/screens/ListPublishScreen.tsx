@@ -24,6 +24,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, OfflineError } from "../api/client";
 import { useOnline } from "../app/useOnline";
 import { Message, Screen } from "../ui/parts";
+import ConfirmSheet from "../ui/ConfirmSheet";
 import { useLists } from "../vocabulary/queries";
 import {
   useListPublication,
@@ -52,6 +53,8 @@ export default function ListPublishScreen() {
   const [touched, setTouched] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Яку з двох незворотних дій питають. Обидві живуть на цьому екрані. */
+  const [asking, setAsking] = useState<"takeOff" | "refresh" | null>(null);
 
   const list = lists.data?.items.find((item) => item.id === listId);
 
@@ -145,19 +148,12 @@ export default function ListPublishScreen() {
     );
 
   const takeOff = async () => {
-    const message =
-      `Список зникне з Бібліотеки. Ті, хто вже взяв його, свої слова залишать — ` +
-      `це копія, а не підписка. Оцінки й лічильник взять НЕ зникають: ` +
-      `опублікувавши знову, ви повернете їх разом із публікацією.`;
-    if (!window.confirm(message)) return;
+    setAsking(null);
     await run(() => unpublish.mutateAsync(), "Знято з Бібліотеки.");
   };
 
   const doRefresh = async () => {
-    const message =
-      `У Бібліотеці зʼявиться список у його теперішньому стані. ` +
-      `Оцінки й лічильник взять залишаться — вони не скидаються.`;
-    if (!window.confirm(message)) return;
+    setAsking(null);
     await run(() => refresh.mutateAsync(), "Оновлено.");
   };
 
@@ -239,7 +235,7 @@ export default function ListPublishScreen() {
                   className="btn-quiet btn-sm"
                   type="button"
                   disabled={!online || busy}
-                  onClick={doRefresh}
+                  onClick={() => setAsking("refresh")}
                 >
                   Оновити
                 </button>
@@ -250,7 +246,7 @@ export default function ListPublishScreen() {
               className="btn-quiet btn-sm state-update"
               type="button"
               disabled={!online || busy}
-              onClick={doRefresh}
+              onClick={() => setAsking("refresh")}
             >
               Оновити в Бібліотеці
             </button>
@@ -290,7 +286,7 @@ export default function ListPublishScreen() {
           className="btn-quiet card-delete"
           type="button"
           disabled={!online || busy}
-          onClick={takeOff}
+          onClick={() => setAsking("takeOff")}
         >
           Зняти з Бібліотеки
         </button>
@@ -298,6 +294,37 @@ export default function ListPublishScreen() {
 
       {!online ? (
         <div className="hint">Дії з публікацією потребують звʼязку.</div>
+      ) : null}
+
+      {asking === "refresh" ? (
+        <ConfirmSheet
+          title="Оновити знімок?"
+          // Правило про рейтинг сказано саме тут — у мить, коли автор боїться
+          // саме цього (ADR-0022).
+          note={
+            "У Бібліотеці зʼявиться список у його теперішньому стані. " +
+            "Оцінки й лічильник взять залишаться — вони не скидаються."
+          }
+          confirmLabel="Оновити"
+          busy={refresh.isPending}
+          onConfirm={() => void doRefresh()}
+          onCancel={() => setAsking(null)}
+        />
+      ) : null}
+
+      {asking === "takeOff" ? (
+        <ConfirmSheet
+          title="Зняти з Бібліотеки?"
+          note={
+            "Список зникне з Бібліотеки. Ті, хто вже взяв його, свої слова залишать — " +
+            "це копія, а не підписка. Оцінки й лічильник взять НЕ зникають: " +
+            "опублікувавши знову, ви повернете їх разом із публікацією."
+          }
+          confirmLabel="Зняти з Бібліотеки"
+          busy={unpublish.isPending}
+          onConfirm={() => void takeOff()}
+          onCancel={() => setAsking(null)}
+        />
       ) : null}
     </Screen>
   );

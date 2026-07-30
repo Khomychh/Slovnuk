@@ -370,9 +370,12 @@ async def update_settings(
     db: AsyncSession = Depends(get_db),
 ) -> StudySettingsResponseSchema:
     """
-    Зміна цілей не переписує історію: дні, які вже мають рядок, зберігають ті
-    цілі, що діяли тоді. Нові значення почнуть діяти з наступного дня — або з
-    сьогоднішнього, якщо жодної дії сьогодні ще не було.
+    Зміна цілей діє з цієї ж миті, але тільки на сьогодні (ADR-0023).
+
+    Історію вона не переписує: закриті й минулі дні зберігають ті цілі, що
+    діяли тоді, — інакше підняття планки заднім числом скасувало б виконані
+    дні й обірвало серію. А от сьогоднішній день ще триває, тож він іде за
+    поточною ціллю: підняв планку — «виконано» може й зникнути, і це чесно.
 
     `default_list_id` — єдине поле, яке можна занулити: null знімає позначку.
     Решта колонок NOT NULL, і явний null для них раніше давав 500 на
@@ -401,6 +404,18 @@ async def update_settings(
         if value is None and field != "default_list_id":
             continue
         setattr(settings, field, value)
+
+    # Цілі беремо з `settings`, а не з payload: у частковому оновленні могло
+    # приїхати лише одне з двох полів, а в рядок дня мусять піти обидва.
+    if {"daily_new_goal", "daily_review_goal"} & fields.keys():
+        tz = resolve_timezone(settings.timezone)
+        await study_crud.retarget_study_day(
+            db,
+            user_id=current_user.id,
+            day=local_day(datetime.now(timezone.utc), tz),
+            new_goal=settings.daily_new_goal,
+            review_goal=settings.daily_review_goal,
+        )
 
     await db.commit()
     await db.refresh(settings)

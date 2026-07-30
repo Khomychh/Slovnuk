@@ -24,6 +24,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useOnline } from "../app/useOnline";
 import { Message, Screen } from "../ui/parts";
+import ConfirmSheet from "../ui/ConfirmSheet";
 import { useLists } from "../vocabulary/queries";
 import { useListPublication } from "../library/queries";
 import { useShareList, useUnshareList } from "../sharing/queries";
@@ -50,6 +51,7 @@ export default function ListShareScreen() {
 
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
 
   const list = lists.data?.items.find((item) => item.id === listId);
   const back = () => navigate(-1);
@@ -129,13 +131,7 @@ export default function ListShareScreen() {
   };
 
   const turnOff = async () => {
-    // Тут і живуть тепер обидва правила шеру. До натискання вони були б
-    // текстом, який ніхто не читає; у цю мить вони — єдине, що має значення.
-    const message =
-      `Посилання перестане працювати. Ті, хто вже взяв список, свої слова ` +
-      `залишать — це копія, а не підписка. Увімкнути це саме посилання знову ` +
-      `не можна: буде нове.`;
-    if (!window.confirm(message)) return;
+    setAsking(false);
     await run(() => unshare.mutateAsync(listId), "Посилання вимкнено.");
   };
 
@@ -184,7 +180,7 @@ export default function ListShareScreen() {
               className="btn-link give-off"
               type="button"
               disabled={!online || busy}
-              onClick={turnOff}
+              onClick={() => setAsking(true)}
             >
               Вимкнути посилання
             </button>
@@ -252,6 +248,23 @@ export default function ListShareScreen() {
 
       {!online ? (
         <div className="hint">Віддати список можна тільки зі звʼязком.</div>
+      ) : null}
+
+      {asking ? (
+        <ConfirmSheet
+          title="Вимкнути посилання?"
+          // Тут і живуть тепер обидва правила шеру. До натискання вони були б
+          // текстом, який ніхто не читає; у цю мить вони — єдине, що має
+          // значення.
+          note={
+            "Посилання перестане працювати. Ті, хто вже взяв список, свої слова залишать — " +
+            "це копія, а не підписка. Увімкнути це саме посилання знову не можна: буде нове."
+          }
+          confirmLabel="Вимкнути посилання"
+          busy={unshare.isPending}
+          onConfirm={() => void turnOff()}
+          onCancel={() => setAsking(false)}
+        />
       ) : null}
     </Screen>
   );

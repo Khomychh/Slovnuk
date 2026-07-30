@@ -4,11 +4,10 @@
  * Панель вкладок сюди не приходить навмисно: палець не має вилітати з навчання
  * повз кнопку оцінки. Вийти можна лише хрестиком.
  *
- * Три речі, які тут вирішено свідомо:
+ * Речі, які тут вирішено свідомо:
  *
- * 1. Підпис інтервалу зʼявляється ПІСЛЯ відповіді, а не на кнопках оцінок
- *    (ADR-0009). Підпис поруч із «Легко · 3 місяці» перетворює чесну оцінку на
- *    вибір винагороди, і FSRS псується від цього тихо.
+ * 1. Скільки часу до наступного показу — не показується ніде (ADR-0009). Ні на
+ *    кнопках оцінок, ні після відповіді.
  * 2. Тап будь-де розкриває відповідь; після розкриття екран глухий. Оцінка
  *    ставиться лише кнопкою: `review_log` незворотний, і випадковий дотик, що
  *    записав би «Добре», не відкотити нічим.
@@ -20,24 +19,25 @@
  * 5. «Розкрито» тримається як id доріжки, а не як прапорець. Прапорець мусив би
  *    скидатись ефектом і тому на одну мить брехав би про нову картку — див.
  *    коментар біля `revealedFor`.
+ * 6. Картка форм і картка перекладу відрізняються будовою лиця, а не підписом:
+ *    у форм це аркуш у лінійку, який розкриття заповнює. Див. `buildFaces`.
+ * 7. Виправити картку можна не виходячи з навчання, але аркушем ПОВЕРХ екрана,
+ *    а не переходом. Перехід розмонтував би цей компонент, і разом із ним
+ *    поїхали б зерно сесії, розкритість і свіжість буфера — три латки замість
+ *    одного рішення.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Screen } from "../ui/parts";
+import { PencilIcon, Screen } from "../ui/parts";
 import { useOnline } from "../app/useOnline";
-import { nextShowLabel, secondsUntil } from "../study/format";
 import { cardSide, progressValue, type QueueItem, type Rating } from "../study/session";
 import { useSettings, useStudy, useToday } from "../study/queries";
 import { answer, beginSession, init } from "../study/store";
 import { temperature } from "../study/temperature";
 import { distinctTranscriptions } from "../vocabulary/card";
-import {
-  CardBody,
-  Headword,
-  POS_LABEL,
-  headwordClass,
-} from "../vocabulary/CardFace";
+import { CardBody, Headword, headwordClass } from "../vocabulary/CardFace";
+import CardEditSheet from "../vocabulary/CardEditSheet";
 import { SpeakButton, useTts } from "../tts/SpeakButton";
 import { autoplayText, stopSpeaking } from "../tts/speech";
 
@@ -48,20 +48,19 @@ const RATINGS: { value: Rating; label: string }[] = [
   { value: 4, label: "Легко" },
 ];
 
-/** Скільки підпис інтервалу тримається на екрані. */
-const LABEL_MS = 2600;
-
-function buildFaces({ item, side }: { item: QueueItem; side: "en_uk" | "uk_en" }) {
+function buildFaces({
+  item,
+  side,
+  revealed,
+}: {
+  item: QueueItem;
+  side: "en_uk" | "uk_en";
+  revealed: boolean;
+}) {
   const card = item.card;
   const transcriptions = distinctTranscriptions(card);
 
   if (item.kind === "forms") {
-    const labels = card.forms.map((form) => form.label).filter(Boolean) as string[];
-    // Мітки — окремим рядком під пігулкою, а не в ній: «ФОРМИ · PAST + PP» в
-    // одній пігулці робить її довгою смугою, і знак перестає читатись знаком.
-    const hint = labels.length > 0 && labels.join(" · ").length <= 30
-      ? labels.join(" · ")
-      : null;
     const summary = card.senses
       .map((sense) => sense.translation)
       .filter(Boolean)
@@ -70,42 +69,59 @@ function buildFaces({ item, side }: { item: QueueItem; side: "en_uk" | "uk_en" }
     return {
       front: (
         <>
-          {/* Доріжка форм і доріжка перекладу — різні вправи, і на закритій
-              картці це має бути видно до читання. Кольором розрізнити не можна:
-              насичений колір у застосунку означає температуру й тільки її
-              (ADR-0012, ADR-0016), тож знак — обведена пігулка. Та сама, що
-              позначає форми в рядку словника: одне поняття, один знак. */}
-          <div className="fd-badge">форми</div>
-          {hint ? <div className="fd-hint">{hint}</div> : null}
+          <div className="dirhint">форми</div>
           <Headword word={card.word} className={headwordClass(card.word)} />
-        </>
-      ),
-      back: (
-        <>
+          {/* Робочий аркуш у лінійку — і це весь знак доріжки форм.
+              Розрізняти вправи доводиться формою, а не кольором: насичений
+              колір означає температуру й тільки її (ADR-0012), а на закритій
+              картці його взагалі немає (ADR-0016). Пігулка «ФОРМИ» стояла в
+              тому самому місці й тим самим кеглем, що «АНГЛ → УКР», тобто
+              відрізнялась лише словом — а слово треба прочитати. Порожні
+              рядки видно до читання.
+
+              Рядки ті самі, що потім показують відповідь: розкриття не
+              дописує другий блок під першим, а вписує форми в ці ж лінійки.
+              Тому мітка стоїть у своїй колонці вже зараз і нікуди не
+              стрибає. */}
           <div className="fd">
             {card.forms.map((form) => (
               <div className="fd-row" key={form.id}>
                 <span className="fd-lbl">{form.label ?? "форма"}</span>
-                <span className="fd-form">{form.value}</span>
-                {form.transcription ? (
-                  <span className="fd-ipa">{form.transcription}</span>
-                ) : null}
-                {/* Вправа тут — саме вимова форми, тож динамік на кожному
-                    рядку. Автоматично вони не звучать: три висловлювання
-                    поспіль відстають від пальця, що вже тягнеться до оцінки. */}
-                <SpeakButton text={form.value} className="spk-end" />
+                {revealed ? (
+                  <>
+                    <span className="fd-form">{form.value}</span>
+                    {form.transcription ? (
+                      <span className="fd-ipa">{form.transcription}</span>
+                    ) : null}
+                    {/* Вправа тут — саме вимова форми, тож динамік на кожному
+                        рядку. Автоматично вони не звучать: три висловлювання
+                        поспіль відстають від пальця, що вже тягнеться до
+                        оцінки. */}
+                    <SpeakButton text={form.value} className="spk-end" />
+                  </>
+                ) : (
+                  <span className="fd-blank" />
+                )}
               </div>
             ))}
           </div>
-          {summary ? (
-            <div className="fd-tr">
-              <span className="fdt-lbl">значення</span>
-              {summary}
-            </div>
-          ) : null}
-          {card.comment ? <div className="cmt">{card.comment}</div> : null}
         </>
       ),
+      // Саме `null`, а не порожній фрагмент: фрагмент істинний навіть без
+      // дітей, і екран намалював би роздільник над порожнечею. У картки форм
+      // це звичайний стан — відповідь уже стоїть у лінійках лиця.
+      back:
+        summary || card.comment ? (
+          <>
+            {summary ? (
+              <div className="fd-tr">
+                <span className="fdt-lbl">значення</span>
+                {summary}
+              </div>
+            ) : null}
+            {card.comment ? <div className="cmt">{card.comment}</div> : null}
+          </>
+        ) : null,
     };
   }
 
@@ -115,12 +131,13 @@ function buildFaces({ item, side }: { item: QueueItem; side: "en_uk" | "uk_en" }
         <>
           <div className="dirhint">укр → англ</div>
           <div className="rev-list">
+            {/* Частини мови тут немає навмисно: питання поставлене рідною
+                мовою, і що «храм» — іменник, людина знає без підказки. Мітка
+                лишається там, де вона щось додає, — у деталях значення на
+                розкритій картці. */}
             {card.senses.map((sense) => (
               <div className="rev-item" key={sense.id}>
                 {sense.translation ?? "—"}
-                {sense.part_of_speech ? (
-                  <span className="rev-meta"> {POS_LABEL[sense.part_of_speech]}</span>
-                ) : null}
               </div>
             ))}
           </div>
@@ -175,10 +192,21 @@ export default function StudyScreen() {
    * визначенням, без жодного ефекту й без вікна, у якому значення застаріле.
    */
   const [revealedFor, setRevealedFor] = useState<number | null>(null);
-  const [label, setLabel] = useState<{ trackId: number; seconds: number } | null>(null);
+
+  /** Id картки, яку зараз правлять аркушем поверх навчання. */
+  const [editing, setEditing] = useState<number | null>(null);
 
   /** Момент показу картки. Від нього рахується review_duration. */
   const shownAt = useRef<number>(Date.now());
+
+  /**
+   * Чи правили цю картку, поки вона висіла на екрані.
+   *
+   * Живе окремо від `editing`, бо потрібне вже ПІСЛЯ закриття аркуша: воно
+   * вирішує, чи надсилати тривалість обдумування (ADR-0024). Скидається разом
+   * зі зміною картки.
+   */
+  const editedWhileShown = useRef(false);
 
   useEffect(() => {
     void init().then(beginSession);
@@ -192,23 +220,8 @@ export default function StudyScreen() {
   // вона закрита тим, що її id не збігається з `revealedFor`.
   useEffect(() => {
     shownAt.current = Date.now();
+    editedWhileShown.current = false;
   }, [trackId]);
-
-  // Підпис зникає сам: він інформує, а не вимагає дії.
-  useEffect(() => {
-    if (!label) return;
-    const timer = setTimeout(() => setLabel(null), LABEL_MS);
-    return () => clearTimeout(timer);
-  }, [label]);
-
-  // Відповідь доїхала до сервера — уточнюємо підпис фактом замість прогнозу.
-  useEffect(() => {
-    const fact = study.lastReview;
-    if (!fact || !label || fact.trackId !== label.trackId) return;
-    setLabel({ trackId: fact.trackId, seconds: secondsUntil(fact.dueAt) });
-    // label навмисно не в залежностях: інакше уточнення саме себе перезапускало б.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [study.lastReview]);
 
   const side = useMemo(
     () =>
@@ -221,8 +234,8 @@ export default function StudyScreen() {
   // динаміки не з'явились би на вже показаній картці, коли налаштування
   // приїхали пізніше за неї — тобто при холодному старті одразу в навчання.
   const faces = useMemo(
-    () => (item ? buildFaces({ item, side }) : null),
-    [item, side, tts.enabled],
+    () => (item ? buildFaces({ item, side, revealed }) : null),
+    [item, side, revealed, tts.enabled],
   );
 
   /**
@@ -247,20 +260,11 @@ export default function StudyScreen() {
 
   const rate = (rating: Rating) => {
     if (!item) return;
-    const preview = item.preview;
-    const seconds =
-      rating === 1
-        ? preview.again
-        : rating === 2
-          ? preview.hard
-          : rating === 3
-            ? preview.good
-            : preview.easy;
-
-    // Прогноз показуємо миттєво — чекати круга до сервера не треба, а офлайн
-    // його й не буде. Факт приїде пізніше і замінить це число.
-    setLabel({ trackId: item.track_id, seconds });
-    void answer(item.track_id, rating, Date.now() - shownAt.current);
+    // Картку правили просто зараз — тривалості немає (ADR-0024). Число
+    // вимірювало б набір тексту, а не згадування, і оптимізатор FSRS учився б
+    // на вигадці. `null` каже «не міряно» чесно, нуль сказав би «згадав миттєво».
+    const duration = editedWhileShown.current ? null : Date.now() - shownAt.current;
+    void answer(item.track_id, rating, duration);
   };
 
   const reviewGoal = (today.data ?? study.snapshotToday)?.review_goal ?? 0;
@@ -332,10 +336,6 @@ export default function StudyScreen() {
     <div className="study" onClick={revealOnTap}>
       {topBar}
 
-      <div className="study-note" role="status">
-        {label ? nextShowLabel(label.seconds) : " "}
-      </div>
-
       <div className="study-scroll">
         {/* Сяйво зʼявляється лише на розкритій картці (ADR-0016): на закритій
             колір температури — це точна підказка відповіді, і рука тягнеться до
@@ -349,6 +349,22 @@ export default function StudyScreen() {
               : undefined
           }
         >
+          {/* Правка зʼявляється разом із відповіддю, і тільки з нею: до
+              перевороту тут немає чого виправляти, бо картки ще не видно.
+              Кут панелі, а не верхня смуга екрана: дія над КАРТКОЮ, а не над
+              навчанням. Офлайн її немає зовсім — вимкнений олівець на екрані,
+              який офлайн працює повністю (ADR-0007), читався б як поламаний. */}
+          {revealed && online ? (
+            <button
+              className="card-edit"
+              type="button"
+              aria-label="Виправити картку"
+              onClick={() => setEditing(item.card.id)}
+            >
+              <PencilIcon />
+            </button>
+          ) : null}
+
           <div
             className="front"
             role={revealed ? undefined : "button"}
@@ -358,11 +374,11 @@ export default function StudyScreen() {
             }}
           >
             {faces?.front}
-            {revealed ? null : (
-              <div className="tap-hint">торкнись будь-де, щоб побачити відповідь</div>
-            )}
           </div>
-          {revealed ? <div className="back">{faces?.back}</div> : null}
+          {/* Порожній `back` не малюється: у картки форм відповідь уже вписана
+              в лінійки лиця, і смуга-роздільник над порожнечею читалась би як
+              обрізаний вміст. */}
+          {revealed && faces?.back ? <div className="back">{faces.back}</div> : null}
         </div>
       </div>
 
@@ -382,6 +398,23 @@ export default function StudyScreen() {
           </div>
         ) : null}
       </div>
+
+      {editing !== null ? (
+        <CardEditSheet
+          cardId={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            editedWhileShown.current = true;
+            setEditing(null);
+          }}
+          onDeleted={() => {
+            // Оцінки тут немає навмисно: людина не відповідала на картку, вона
+            // її прибрала. Доріжка йде з буфера, показується наступна.
+            editedWhileShown.current = false;
+            setEditing(null);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

@@ -14,6 +14,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useOnline } from "../app/useOnline";
 import { PencilIcon, Screen, TrashIcon } from "../ui/parts";
+import ConfirmSheet from "../ui/ConfirmSheet";
 import { notes as notesLabel, plural } from "../ui/plural";
 import {
   useCategories,
@@ -30,6 +31,12 @@ export default function CategoriesScreen() {
   const remove = useDeleteCategory();
 
   const [error, setError] = useState<string | null>(null);
+  /** Який саме розділ питають видалити. Рядків багато — прапорця тут мало. */
+  const [asking, setAsking] = useState<{
+    id: number;
+    name: string;
+    noteCount: number;
+  } | null>(null);
 
   const onRename = async (id: number, current: string) => {
     const next = window.prompt("Нова назва розділу", current);
@@ -44,20 +51,13 @@ export default function CategoriesScreen() {
     }
   };
 
-  const onDelete = async (id: number, name: string, noteCount: number) => {
-    // Діалог мусить казати правду: FK стоїть на SET NULL, тож нотатки живі. У
-    // старому PWA групи як сутності не було взагалі, тож очікування тут ні на
-    // чому не тримається — і саме тому наслідок треба назвати вголос.
-    const tail =
-      noteCount === 0
-        ? "Нотаток у ньому немає."
-        : `${notesLabel(noteCount)} ${plural(noteCount, "залишиться", "залишаться", "залишаться")} в довіднику — ${plural(noteCount, "вона перейде", "вони перейдуть", "вони перейдуть")} у «Без розділу».`;
-    if (!window.confirm(`Розділ «${name}» буде видалено. ${tail}`)) return;
-
+  const onDelete = async (id: number) => {
     setError(null);
     try {
       await remove.mutateAsync(id);
+      setAsking(null);
     } catch (problem) {
+      setAsking(null);
       setError(problem instanceof Error ? problem.message : "Не вдалось видалити");
     }
   };
@@ -113,7 +113,13 @@ export default function CategoriesScreen() {
             disabled={!online}
             aria-label={`Видалити «${category.name}»`}
             title="Видалити"
-            onClick={() => onDelete(category.id, category.name, category.note_count)}
+            onClick={() =>
+              setAsking({
+                id: category.id,
+                name: category.name,
+                noteCount: category.note_count,
+              })
+            }
           >
             <TrashIcon />
           </button>
@@ -128,6 +134,25 @@ export default function CategoriesScreen() {
       ) : null}
 
       {!online ? <div className="hint">Зміни потребують звʼязку.</div> : null}
+
+      {asking ? (
+        <ConfirmSheet
+          title={`Видалити розділ «${asking.name}»?`}
+          // Наслідок мусить казати правду: FK стоїть на SET NULL, тож нотатки
+          // живі. У старому PWA групи як сутності не було взагалі, тож
+          // очікування тут ні на чому не тримається — і саме тому це треба
+          // назвати вголос.
+          note={
+            asking.noteCount === 0
+              ? "Нотаток у ньому немає."
+              : `${notesLabel(asking.noteCount)} ${plural(asking.noteCount, "залишиться", "залишаться", "залишаться")} в довіднику — ${plural(asking.noteCount, "вона перейде", "вони перейдуть", "вони перейдуть")} у «Без розділу».`
+          }
+          confirmLabel="Видалити розділ"
+          busy={remove.isPending}
+          onConfirm={() => void onDelete(asking.id)}
+          onCancel={() => setAsking(null)}
+        />
+      ) : null}
     </Screen>
   );
 }

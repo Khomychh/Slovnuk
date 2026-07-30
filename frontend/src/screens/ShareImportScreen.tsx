@@ -32,6 +32,7 @@ import {
 } from "../sharing/share";
 import { skippedPreview } from "../library/library";
 import { plural, words } from "../ui/plural";
+import ConfirmSheet from "../ui/ConfirmSheet";
 import type { ImportMode, ImportResult, SharedCard } from "../api/sharing";
 
 /** Переклади чужої картки в один рядок — того самого виду, що в словнику. */
@@ -103,6 +104,8 @@ function SharedList({ token }: { token: string }) {
   /** 409 own_share / list_exists кажуть, який список уже твій, — веземо туди. */
   const [existingListId, setExistingListId] = useState<number | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
+  /** Перезапис підтверджують окремо: він єдиний тут чіпає ВЖЕ наявні картки. */
+  const [asking, setAsking] = useState(false);
 
   // Назву підставляє сервер (`suggested_name` уникає збігу з наявними), але
   // тільки доки людина не почала правити її сама.
@@ -226,12 +229,12 @@ function SharedList({ token }: { token: string }) {
   const items = cards.data?.pages.flatMap((page) => page.items) ?? [];
   const canTake = online && summary.total_cards > 0 && Boolean(name.trim());
 
+  /** Взяти список. Перезапис сюди потрапляє вже підтвердженим. */
   const run = async () => {
     setProblem(null);
     setNameProblem(null);
     setExistingListId(null);
-
-    if (mode === "overwrite" && !window.confirm(overwriteWarning(already))) return;
+    setAsking(false);
 
     try {
       setResult(await take.mutateAsync({ name: name.trim(), mode }));
@@ -261,7 +264,7 @@ function SharedList({ token }: { token: string }) {
           className="btn"
           type="button"
           disabled={!canTake || take.isPending}
-          onClick={run}
+          onClick={() => (mode === "overwrite" ? setAsking(true) : void run())}
         >
           {take.isPending ? "Беремо…" : "Взяти список"}
         </button>
@@ -337,6 +340,17 @@ function SharedList({ token }: { token: string }) {
 
       {!online ? (
         <div className="hint">Щоб узяти список, потрібен звʼязок.</div>
+      ) : null}
+
+      {asking ? (
+        <ConfirmSheet
+          title="Перезаписати власні картки?"
+          note={overwriteWarning(already)}
+          confirmLabel="Перезаписати й узяти"
+          busy={take.isPending}
+          onConfirm={() => void run()}
+          onCancel={() => setAsking(false)}
+        />
       ) : null}
 
       <div className="ed-label">Слова у списку</div>

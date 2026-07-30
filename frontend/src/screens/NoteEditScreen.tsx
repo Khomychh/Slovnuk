@@ -19,6 +19,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useOnline } from "../app/useOnline";
 import { BackIcon, SaveButton } from "../ui/parts";
+import ConfirmSheet from "../ui/ConfirmSheet";
 import { plural } from "../ui/plural";
 import { Markdown } from "../grammar/markdown";
 import {
@@ -54,6 +55,7 @@ export default function NoteEditScreen({ mode }: { mode: "create" | "edit" }) {
   const [initial, setInitial] = useState<NoteDraft | null>(null);
   const [preview, setPreview] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
 
   /** Розділ, відкритий у списку, підставляється новій нотатці. */
   const presetCategory =
@@ -86,10 +88,8 @@ export default function NoteEditScreen({ mode }: { mode: "create" | "edit" }) {
   const dirty = draftIsDirty(initial, draft);
 
   const close = () => {
-    if (
-      dirty &&
-      !window.confirm("Вийти без збереження? Зміни буде втрачено.")
-    ) {
+    if (dirty) {
+      setAsking(true);
       return;
     }
     navigate(-1);
@@ -244,6 +244,16 @@ export default function NoteEditScreen({ mode }: { mode: "create" | "edit" }) {
 
         {!online ? <div className="hint">Зміни потребують звʼязку.</div> : null}
       </div>
+
+      {asking ? (
+        <ConfirmSheet
+          title="Вийти без збереження?"
+          note="Усе, що набрано на цьому екрані, зникне."
+          confirmLabel="Вийти"
+          onConfirm={() => navigate(-1)}
+          onCancel={() => setAsking(false)}
+        />
+      ) : null}
     </div>
   );
 }

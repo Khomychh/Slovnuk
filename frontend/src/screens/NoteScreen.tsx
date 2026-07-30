@@ -10,11 +10,13 @@
  * картки, який про таку втрату попереджає).
  */
 
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useOnline } from "../app/useOnline";
 import { Markdown } from "../grammar/markdown";
 import { useDeleteNote, useNotes } from "../grammar/queries";
 import { PencilIcon } from "../ui/parts";
+import ConfirmSheet from "../ui/ConfirmSheet";
 
 export default function NoteScreen() {
   const navigate = useNavigate();
@@ -24,6 +26,7 @@ export default function NoteScreen() {
 
   const notes = useNotes();
   const remove = useDeleteNote();
+  const [asking, setAsking] = useState(false);
 
   const note = notes.data?.find((item) => item.id === id);
 
@@ -41,9 +44,6 @@ export default function NoteScreen() {
   }
 
   const onDelete = async () => {
-    if (!window.confirm(`Видалити «${note.title}»? Нотатка зникне з довідника.`)) {
-      return;
-    }
     await remove.mutateAsync(note.id);
     navigate("/grammar", { replace: true });
   };
@@ -93,11 +93,22 @@ export default function NoteScreen() {
           type="button"
           disabled={!online || remove.isPending}
           title={online ? undefined : "Потрібен звʼязок"}
-          onClick={onDelete}
+          onClick={() => setAsking(true)}
         >
           Видалити нотатку
         </button>
       </div>
+
+      {asking ? (
+        <ConfirmSheet
+          title={`Видалити «${note.title}»?`}
+          note="Нотатка зникне з довідника."
+          confirmLabel="Видалити нотатку"
+          busy={remove.isPending}
+          onConfirm={() => void onDelete()}
+          onCancel={() => setAsking(false)}
+        />
+      ) : null}
     </div>
   );
 }
