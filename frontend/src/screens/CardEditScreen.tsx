@@ -32,8 +32,9 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { findByWord } from "../api/vocabulary";
 import { useOnline } from "../app/useOnline";
-import { BackIcon, SaveButton, TrashIcon } from "../ui/parts";
+import { BackIcon, ListsIcon, SaveButton, TrashIcon } from "../ui/parts";
 import ConfirmSheet from "../ui/ConfirmSheet";
+import ListPickerSheet from "../vocabulary/ListPickerSheet";
 import {
   blankExample,
   blankForm,
@@ -73,16 +74,6 @@ const POS_ORDER: PartOfSpeech[] = [
   "int",
   "phr",
 ] as PartOfSpeech[];
-
-/**
- * Скільки списків видно до того, як натиснути «ще».
- *
- * Списків у людини бувають десятки, а міняє вона їх у картці рідко — тож
- * стіна чипів на пів екрана стоїть у кожній картці заради дії, якої зазвичай
- * не відбувається. Вибрані видно завжди: вони кажуть, де картка лежить, і це
- * інформація, а не орган керування.
- */
-const LISTS_SHOWN = 6;
 
 export default function CardEditScreen({
   mode,
@@ -135,7 +126,7 @@ export default function CardEditScreen({
     word: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [allListsOpen, setAllListsOpen] = useState(false);
+  const [pickingLists, setPickingLists] = useState(false);
   const [asking, setAsking] = useState<"leave" | "delete" | null>(null);
 
   useEffect(() => {
@@ -276,15 +267,9 @@ export default function CardEditScreen({
   const saving = create.isPending || update.isPending;
 
   const listItems = lists.data?.items ?? [];
-  // Вибрані вперед: у згорнутому стані видно саме те, що вже правда про картку.
-  const orderedLists = [
-    ...listItems.filter((list) => draft.listIds.includes(list.id)),
-    ...listItems.filter((list) => !draft.listIds.includes(list.id)),
-  ];
-  const shownLists = allListsOpen
-    ? orderedLists
-    : orderedLists.slice(0, LISTS_SHOWN);
-  const hiddenLists = orderedLists.length - shownLists.length;
+  const selectedListNames = listItems
+    .filter((list) => draft.listIds.includes(list.id))
+    .map((list) => list.name);
 
   return (
     <div className="sheet-frame">
@@ -347,13 +332,9 @@ export default function CardEditScreen({
         ) : null}
 
         {/* --- значення ---
-            Заголовок лишається: під ним повторювані панелі, і без нього «+
-            значення» нижче не має до чого належати. Волосяна лінія праворуч
-            робить із підпису межу розділу, а не ще один рядок тексту. */}
-        <div className="ed-head">
-          <span>значення</span>
-        </div>
-
+            Заголовка більше немає: панель під ним каже сама за себе (селект
+            частини мови, поле перекладу), а другий підпис того самого слова
+            тільки забирав рядок висоти. */}
         {draft.senses.map((sense, index) => (
           <div className="ed-panel" key={index}>
             <div className="ed-row">
@@ -486,10 +467,6 @@ export default function CardEditScreen({
         </button>
 
         {/* --- форми --- */}
-        <div className="ed-head">
-          <span>форми</span>
-        </div>
-
         {draft.forms.map((form, index) => (
           <div className="ed-panel" key={index}>
             <div className="ed-row">
@@ -595,43 +572,24 @@ export default function CardEditScreen({
           onChange={(event) => patch({ comment: event.target.value })}
         />
 
-        {/* --- списки: останні, бо міняються найрідше --- */}
-        <div className="ed-head">
-          <span>списки</span>
-        </div>
-        <div className="ed-lists">
-          {shownLists.map((list) => {
-            const on = draft.listIds.includes(list.id);
-            return (
-              <button
-                key={list.id}
-                className={on ? "chip chip-on" : "chip"}
-                type="button"
-                onClick={() =>
-                  patch({
-                    listIds: on
-                      ? draft.listIds.filter((value) => value !== list.id)
-                      : [...draft.listIds, list.id],
-                  })
-                }
-              >
-                {list.name}
-              </button>
-            );
-          })}
-          {hiddenLists > 0 ? (
-            <button
-              className="chip chip-more"
-              type="button"
-              onClick={() => setAllListsOpen(true)}
-            >
-              ще {hiddenLists}
-            </button>
-          ) : null}
-        </div>
-        {draft.listIds.length === 0 ? (
-          <div className="hint">Картка буде без списку — це нормально.</div>
-        ) : null}
+        {/* --- списки: останні, бо міняються найрідше ---
+            Раніше тут стояла стіна чипів, яка розпадалась на криві рядки,
+            щойно серед коротких назв траплялась одна довга («Прикметники,
+            прислівники і прийменники»). Тепер це один рядок, як «коментар»
+            вище, — відкриває аркуш із повним списком, де кожній назві
+            вистачає всієї ширини. */}
+        <button
+          type="button"
+          className="ed-list-trigger"
+          onClick={() => setPickingLists(true)}
+        >
+          <ListsIcon />
+          <span className={selectedListNames.length ? undefined : "ed-list-trigger-empty"}>
+            {selectedListNames.length
+              ? selectedListNames.join(", ")
+              : "Без списку — це нормально"}
+          </span>
+        </button>
 
         {error ? <div className="msg msg-error">{error}</div> : null}
 
@@ -679,6 +637,22 @@ export default function CardEditScreen({
           busy={remove.isPending}
           onConfirm={() => void destroy()}
           onCancel={() => setAsking(null)}
+        />
+      ) : null}
+
+      {pickingLists ? (
+        <ListPickerSheet
+          items={listItems}
+          selected={draft.listIds}
+          defaultListId={settings.data?.default_list_id ?? null}
+          onToggle={(id) =>
+            patch({
+              listIds: draft.listIds.includes(id)
+                ? draft.listIds.filter((value) => value !== id)
+                : [...draft.listIds, id],
+            })
+          }
+          onClose={() => setPickingLists(false)}
         />
       ) : null}
     </div>
