@@ -29,7 +29,6 @@ import ProfileScreen from "../screens/ProfileScreen";
 import RegisterScreen from "../screens/RegisterScreen";
 import ShareImportScreen from "../screens/ShareImportScreen";
 import StudyScreen from "../screens/StudyScreen";
-import StudySettingsScreen from "../screens/StudySettingsScreen";
 import TodayScreen from "../screens/TodayScreen";
 import VocabularyScreen from "../screens/VocabularyScreen";
 import TabsLayout from "./TabsLayout";
@@ -123,11 +122,10 @@ export default function App() {
             </RequireAuth>
           }
         >
+          {/* Налаштування навчання (напрямок, групи слів) панеллю під героєм
+              «Сьогодні», а не власним маршрутом: маршрут /study/settings
+              існував, поки шестерня відкидала на нього і назад. */}
           <Route index element={<TodayScreen />} />
-          {/* Налаштування навчання — у вкладках, на відміну від самого
-              навчання: це екран, з якого повертаються, а не місце, де сидять
-              із карткою. */}
-          <Route path="/study/settings" element={<StudySettingsScreen />} />
           <Route path="/vocabulary" element={<VocabularyScreen />} />
           <Route path="/vocabulary/lists" element={<ListsScreen />} />
           <Route path="/vocabulary/lists/:id/share" element={<ListShareScreen />} />

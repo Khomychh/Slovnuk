@@ -16,7 +16,7 @@
  * черги — з останньої вибірки або з буфера, коли мережі немає.
  */
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useOnline } from "../app/useOnline";
 import { GearIcon, Screen } from "../ui/parts";
@@ -27,6 +27,7 @@ import { progressValue } from "../study/session";
 import { useSettings, useStudy, useToday, useWeek } from "../study/queries";
 import { useAddedToday } from "../vocabulary/queries";
 import CardRow from "../vocabulary/CardRow";
+import StudyAimPanel from "../study/StudyAimPanel";
 import { init, refill } from "../study/store";
 import { unlockSpeech } from "../tts/speech";
 
@@ -89,6 +90,7 @@ export default function TodayScreen() {
   const location = useLocation();
   const online = useOnline();
   const study = useStudy();
+  const [aimOpen, setAimOpen] = useState(false);
 
   const settings = useSettings();
   const today = useToday();
@@ -193,14 +195,18 @@ export default function TodayScreen() {
         </button>
 
         <button
-          className="hero-gear"
+          className={aimOpen ? "hero-gear open" : "hero-gear"}
           type="button"
           aria-label="Налаштування навчання"
-          onClick={() => navigate("/study/settings")}
+          aria-expanded={aimOpen}
+          aria-controls="aim-panel"
+          onClick={() => setAimOpen((value) => !value)}
         >
           <GearIcon />
         </button>
       </div>
+
+      <StudyAimPanel open={aimOpen} />
 
       {waiting === 0 && !counting && !online ? (
         <p className="hint hint-center">Потрібен звʼязок: збережених карток немає.</p>
