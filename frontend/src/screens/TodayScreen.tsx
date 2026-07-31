@@ -119,10 +119,13 @@ export default function TodayScreen() {
     ? Math.max(study.dueCount + study.newCount, study.buffer.length)
     : study.buffer.length;
 
-  // Вибір щойно змінили, і черга ще летить. Це не «все повторено» — це «ще не
+  // Вибір щойно змінили, і числа ще летять. Це не «все повторено» — це «ще не
   // знаю». Показати тут нуль означало б збрехати рівно в ту мить, коли людина
   // дивиться, чи спрацював її вибір.
-  const counting = study.refilling && waiting === 0;
+  //
+  // `aimCounting` покриває паузу після дотику й політ лічильників при
+  // РОЗГОРНУТІЙ панелі, `refilling` — повну вибірку після згортання.
+  const counting = study.aimCounting || (study.refilling && waiting === 0);
 
   const reviewsDone = progressValue(study.progress);
 

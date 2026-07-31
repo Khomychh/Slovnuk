@@ -89,7 +89,16 @@ async def _day_counts(
     status_code=status.HTTP_200_OK,
 )
 async def get_queue(
-    limit: int = Query(50, ge=1, le=100),
+    limit: int = Query(
+        50,
+        ge=0,
+        le=100,
+        description=(
+            "0 — віддати самі лічильники, без карток. Так фронтенд питає «скільки "
+            "там», поки людина переводить вибір груп, і не тягне 50 карток на "
+            "кожен дотик."
+        ),
+    ),
     list_ids: list[int] | None = Query(
         None, description="Обмежити списками: ?list_ids=3&list_ids=7"
     ),
@@ -117,6 +126,13 @@ async def get_queue(
     due_count, new_count = await study_crud.count_queue(
         db, current_user.id, list_ids, now, unlisted
     )
+
+    # limit=0 — питали лише «скільки». Виходимо до вибірки: LIMIT 0 віддав би те
+    # саме, але коштував би зайвого запиту й побудови планувальника заради
+    # порожнього списку.
+    if limit == 0:
+        return QueueResponseSchema(due_count=due_count, new_count=new_count, items=[])
+
     tracks = await study_crud.fetch_queue(
         db, current_user.id, list_ids, now, limit, unlisted
     )

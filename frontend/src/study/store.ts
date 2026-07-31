@@ -55,6 +55,15 @@ export type StudyState = {
   progress: Progress;
   /** Вибір груп — звідки береться черга. Порожній означає «усі слова». */
   aim: Aim;
+  /**
+   * Вибір щойно перевели, і скільки там тепер — ще невідомо.
+   *
+   * Без цього прапорця в стані було два значення на три випадки: «рахую»
+   * (`refilling`) і «нічого немає» (лічильники по нулях). Мить між дотиком по
+   * рядку й відповіддю сервера потрапляла в друге — і екран казав «Все
+   * повторено» рівно тоді, коли людина дивилась, що ж вона щойно вибрала.
+   */
+  aimCounting: boolean;
   /** Останнє відоме «Сьогодні» — щоб офлайн-відкриття не показувало порожнечу. */
   snapshotToday: TodayResponse | null;
   snapshotDays: DaysResponse | null;
@@ -79,6 +88,7 @@ let state: StudyState = {
   pending: 0,
   progress: emptyProgress(localDay(new Date(), "UTC")),
   aim: EMPTY_AIM,
+  aimCounting: false,
   snapshotToday: null,
   snapshotDays: null,
   snapshotSettings: null,
@@ -175,37 +185,94 @@ export function init(): Promise<void> {
 
 // --- вибір груп ---
 
-/**
- * Змінити вибір груп.
- *
- * Черга тут НЕ запитується, і це навмисно. Вибір переводять дотиками по
- * рядках — вибрав три списки, передумав, зняв один. Запит на кожен дотик
- * означав би чотири повні вибірки по 50 карток, з яких три викидаються, не
- * доїхавши. Тому запит стоїть окремо, в `aimSettled`, і робиться раз — коли
- * з екрана «Налаштування» пішли.
- *
- * Що робиться одразу — це скидання буфера: показувати картки зі списків, які
- * вже не обрані, гірше, ніж не показувати нічого.
- */
-export async function setAim(aim: Aim): Promise<void> {
-  if (sameAim(aim, state.aim)) return;
-  await db.writeListFilter(aim);
-  await db.clearBuffer();
-  set({ aim, buffer: [], dueCount: 0, newCount: 0 });
+/** Скільки чекати після останнього дотику, перш ніж питати «скільки їх тепер». */
+const AIM_SETTLE_MS = 500;
+
+let aimTimer: ReturnType<typeof setTimeout> | null = null;
+let aimProbe: AbortController | null = null;
+
+/** Забути про відкладене питання «скільки» — його або вже не треба, або пізно. */
+function cancelProbe(): void {
+  if (aimTimer !== null) clearTimeout(aimTimer);
+  aimTimer = null;
+  aimProbe?.abort();
+  aimProbe = null;
 }
 
 /**
- * Вибирати закінчили — піти по нову чергу.
+ * Змінити вибір груп.
  *
- * Викликається на вихід з «Налаштувань», а не на зміну вибору. Це і є те
- * «Готово», якого немає на екрані: кнопки не треба, бо піти з екрана й означає,
- * що людина закінчила вибирати.
+ * Картки тут НЕ запитуються, і це навмисно. Вибір переводять дотиками по
+ * рядках — вибрав три списки, передумав, зняв один. Повна вибірка на кожен
+ * дотик означала б чотири порції по 50 карток, з яких три викидаються, не
+ * доїхавши. Порція приїжджає раз, у `aimSettled`.
  *
- * Без цього виклику екран показував би «Все повторено» на будь-якому
- * непорожньому словнику: `setAim` обнуляє лічильники, а поповнити їх нема
- * кому — `refill` на «Сьогодні» спрацьовує лише при монтуванні екрана.
+ * А от лічильники питаються, бо кнопка «Вчити» стоїть просто над панеллю і
+ * мусить говорити про той вибір, який зараз на екрані. Питаються з паузою після
+ * останнього дотику й без карток (`limit=0`) — три перекинуті думки коштують
+ * одного запиту за двома числами, а не трьох вибірок.
+ *
+ * Буфер скидається одразу: показувати картки зі списків, які вже не обрані,
+ * гірше, ніж не показувати нічого.
+ */
+export async function setAim(aim: Aim): Promise<void> {
+  if (sameAim(aim, state.aim)) return;
+  cancelProbe();
+  await db.writeListFilter(aim);
+  await db.clearBuffer();
+  // Офлайн лічильників не буде, і чесніше сказати нуль, ніж вічно «Рахую…».
+  // Самі рядки вибору офлайн і так недоступні — це запобіжник, не сценарій.
+  const online = navigator.onLine;
+  set({ aim, buffer: [], dueCount: 0, newCount: 0, aimCounting: online });
+  if (!online) return;
+  aimTimer = setTimeout(() => void probeAim(), AIM_SETTLE_MS);
+}
+
+/**
+ * Спитати самі лічильники нового вибору.
+ *
+ * Відповідь на давній вибір відкидається: поки два числа летіли, рядки могли
+ * перевести ще раз, і показати ці числа означало б відповісти на позавчорашнє
+ * питання.
+ */
+async function probeAim(): Promise<void> {
+  aimTimer = null;
+  const controller = new AbortController();
+  aimProbe = controller;
+  const asked = aimKey(state.aim);
+
+  try {
+    const response = await fetchQueue(state.aim, 0, controller.signal);
+    if (aimKey(state.aim) !== asked) return;
+    set({
+      dueCount: response.due_count,
+      newCount: response.new_count,
+      aimCounting: false,
+    });
+  } catch {
+    // Скасували новим дотиком — про це подбає той дотик. Зникла мережа — про це
+    // скаже прапорець офлайну. Обидва випадки лишають екран без «Рахую…».
+    if (aimKey(state.aim) === asked) set({ aimCounting: false });
+  } finally {
+    if (aimProbe === controller) aimProbe = null;
+  }
+}
+
+/**
+ * Вибирати закінчили — піти по саму чергу.
+ *
+ * Викликається на згортання панелі, а не на зміну вибору. Це і є те «Готово»,
+ * якого немає на екрані: кнопки не треба, бо згорнути панель і означає, що
+ * людина закінчила вибирати.
+ *
+ * Без цього виклику лічильники були б, а карток — ні: `setAim` чистить буфер,
+ * а `probeAim` навмисно нічим його не наповнює.
  */
 export async function aimSettled(): Promise<void> {
+  // Пауза після останнього дотику вже не потрібна: повна вибірка привезе ті
+  // самі два числа разом із картками.
+  cancelProbe();
+  if (state.aimCounting) set({ aimCounting: false });
   if (state.buffer.length > 0 || !navigator.onLine) return;
   await refill().catch(() => {
     /* мережа могла зникнути між згортанням і запитом — екран скаже про офлайн */
@@ -240,6 +307,9 @@ export async function refill(): Promise<void> {
       buffer: mergeIncoming(state.buffer, response.items, pending),
       dueCount: response.due_count,
       newCount: response.new_count,
+      // Повна вибірка відповідає на те саме питання, що й `probeAim`, тільки
+      // ще й картками. Чекати після неї нема на що.
+      aimCounting: false,
     });
     await persistBuffer();
   } catch (error) {

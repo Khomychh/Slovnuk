@@ -2740,9 +2740,12 @@ export interface operations {
     get_queue_api_v1_study_queue__get: {
         parameters: {
             query?: {
+                /** @description 0 — віддати самі лічильники, без карток. Так фронтенд питає «скільки там», поки людина переводить вибір груп, і не тягне 50 карток на кожен дотик. */
                 limit?: number;
                 /** @description Обмежити списками: ?list_ids=3&list_ids=7 */
                 list_ids?: number[] | null;
+                /** @description Додати картки, що не лежать у жодному списку. Складається зі list_ids через АБО: ?list_ids=3&unlisted=true віддасть обидві купки. */
+                unlisted?: boolean;
             };
             header?: never;
             path?: never;
