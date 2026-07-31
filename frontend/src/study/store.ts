@@ -23,13 +23,17 @@ import {
 import * as db from "./db";
 import { localDay, resolveTimeZone, type DayKey } from "./day";
 import {
+  aimKey,
   applyCardEdit,
   applyRating,
   countAnswer,
   dropCard,
   emptyProgress,
+  EMPTY_AIM,
   mergeIncoming,
+  sameAim,
   syncProgress,
+  type Aim,
   type Progress,
   type QueueItem,
   type Rating,
@@ -49,7 +53,8 @@ export type StudyState = {
   /** Скільки відповідей чекають на відправку. */
   pending: number;
   progress: Progress;
-  listFilter: number[];
+  /** Вибір груп — звідки береться черга. Порожній означає «усі слова». */
+  aim: Aim;
   /** Останнє відоме «Сьогодні» — щоб офлайн-відкриття не показувало порожнечу. */
   snapshotToday: TodayResponse | null;
   snapshotDays: DaysResponse | null;
@@ -73,7 +78,7 @@ let state: StudyState = {
   newCount: 0,
   pending: 0,
   progress: emptyProgress(localDay(new Date(), "UTC")),
-  listFilter: [],
+  aim: EMPTY_AIM,
   snapshotToday: null,
   snapshotDays: null,
   snapshotSettings: null,
@@ -107,9 +112,6 @@ function today(): DayKey {
   return localDay(new Date(), timeZone);
 }
 
-function filterKeyOf(listIds: number[]): string {
-  return [...listIds].sort((a, b) => a - b).join(",");
-}
 
 // --- запуск ---
 
@@ -126,7 +128,7 @@ export function init(): Promise<void> {
     void db.requestPersistence();
 
     const [
-      listFilter,
+      aim,
       buffer,
       progress,
       snapshotToday,
@@ -144,11 +146,11 @@ export function init(): Promise<void> {
     ]);
 
     const day = today();
-    const usable = buffer && buffer.filterKey === filterKeyOf(listFilter);
+    const usable = buffer && buffer.filterKey === aimKey(aim);
 
     set({
       ready: true,
-      listFilter,
+      aim,
       buffer: usable ? buffer.items : [],
       dueCount: usable ? buffer.dueCount : 0,
       newCount: usable ? buffer.newCount : 0,
@@ -171,14 +173,43 @@ export function init(): Promise<void> {
   return initPromise;
 }
 
-// --- фільтр списків ---
+// --- вибір груп ---
 
-export async function setListFilter(listIds: number[]): Promise<void> {
-  if (filterKeyOf(listIds) === filterKeyOf(state.listFilter)) return;
-  await db.writeListFilter(listIds);
+/**
+ * Змінити вибір груп.
+ *
+ * Черга тут НЕ запитується, і це навмисно. Вибір переводять дотиками по
+ * рядках — вибрав три списки, передумав, зняв один. Запит на кожен дотик
+ * означав би чотири повні вибірки по 50 карток, з яких три викидаються, не
+ * доїхавши. Тому запит стоїть окремо, в `aimSettled`, і робиться раз — коли
+ * з екрана «Налаштування» пішли.
+ *
+ * Що робиться одразу — це скидання буфера: показувати картки зі списків, які
+ * вже не обрані, гірше, ніж не показувати нічого.
+ */
+export async function setAim(aim: Aim): Promise<void> {
+  if (sameAim(aim, state.aim)) return;
+  await db.writeListFilter(aim);
   await db.clearBuffer();
-  // Буфер набирався за інших умов — усе, що в ньому лежить, більше не підходить.
-  set({ listFilter: listIds, buffer: [], dueCount: 0, newCount: 0 });
+  set({ aim, buffer: [], dueCount: 0, newCount: 0 });
+}
+
+/**
+ * Вибирати закінчили — піти по нову чергу.
+ *
+ * Викликається на вихід з «Налаштувань», а не на зміну вибору. Це і є те
+ * «Готово», якого немає на екрані: кнопки не треба, бо піти з екрана й означає,
+ * що людина закінчила вибирати.
+ *
+ * Без цього виклику екран показував би «Все повторено» на будь-якому
+ * непорожньому словнику: `setAim` обнуляє лічильники, а поповнити їх нема
+ * кому — `refill` на «Сьогодні» спрацьовує лише при монтуванні екрана.
+ */
+export async function aimSettled(): Promise<void> {
+  if (state.buffer.length > 0 || !navigator.onLine) return;
+  await refill().catch(() => {
+    /* мережа могла зникнути між згортанням і запитом — екран скаже про офлайн */
+  });
 }
 
 // --- поповнення буфера ---
@@ -188,7 +219,7 @@ async function persistBuffer(): Promise<void> {
     items: state.buffer,
     dueCount: state.dueCount,
     newCount: state.newCount,
-    filterKey: filterKeyOf(state.listFilter),
+    filterKey: aimKey(state.aim),
     fetchedAt: new Date().toISOString(),
   });
 }
@@ -203,7 +234,7 @@ export async function refill(): Promise<void> {
   if (state.refilling) return;
   set({ refilling: true });
   try {
-    const response = await fetchQueue(state.listFilter, QUEUE_LIMIT);
+    const response = await fetchQueue(state.aim, QUEUE_LIMIT);
     const pending = await db.pendingTrackIds();
     set({
       buffer: mergeIncoming(state.buffer, response.items, pending),

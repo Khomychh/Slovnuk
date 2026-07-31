@@ -31,6 +31,7 @@ import {
   type CardSort,
 } from "../api/vocabulary";
 import { dropPages, readLists, readPage, writeLists, writePage } from "./db";
+import { localDay } from "../study/day";
 import type { Card, CardCreate, CardUpdate } from "./card";
 
 /** Що саме показує список: фільтр, пошук і порядок разом. */
@@ -135,6 +136,34 @@ export function useCard(id: number | null) {
  * смуга. Живе тут, а не в екрані, бо потрібне двом: «Прогресу» (усе) і
  * «Спискам» (лише `cards` — знаменник смуги-частки).
  */
+/**
+ * Слова, додані сьогодні, — хвіст екрана «Сьогодні».
+ *
+ * Свого запиту на бекенді для цього немає й не треба: перша сторінка словника
+ * в порядку створення вже містить усе, що додано за сьогодні, і ще трохи.
+ * Відсікання по добі робиться тут, бо «сьогодні» рахується в поясі
+ * користувача, а не сервера.
+ *
+ * Пʼятдесят — не ліміт слів, а ліміт вибірки, і він мусить бути свідомо вищим
+ * за будь-який реальний день: на «Сьогодні» показуються ВСІ додані за добу, тож
+ * обрізана вибірка мовчки з'їдала б слова, які людина щойно додала. Двадцяти
+ * вистачало, поки в рядок влазило чотири, а решта згорталась у «ще N».
+ */
+export function useAddedToday(day: string, timeZone: string) {
+  return useQuery({
+    queryKey: ["vocabulary", "added", day],
+    queryFn: () => fetchCards({ sort: "created", page: 1, perPage: 50 }),
+    staleTime: 60_000,
+    // Порівнюється саме локальний день, а не перші десять символів ISO-рядка:
+    // той рядок в UTC, і о першій ночі за Києвом він показував би вчорашню
+    // дату — тобто слово, додане щойно, у «сьогодні» не потрапило б.
+    select: (page: CardPage) =>
+      page.items.filter(
+        (card) => localDay(new Date(card.created_at), timeZone) === day,
+      ),
+  });
+}
+
 export function useVocabularyStats() {
   return useQuery({
     queryKey: ["vocabulary", "stats"],

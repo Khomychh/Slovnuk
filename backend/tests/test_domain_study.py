@@ -125,6 +125,74 @@ async def test_queue_filters_by_list(client: AsyncClient, auth_headers):
     assert queue["items"][0]["card"]["word"] == "run"
 
 
+async def test_queue_can_aim_at_unlisted_only(client: AsyncClient, auth_headers):
+    """
+    «Без списку» — така сама група в прицілі, як будь-яка інша.
+
+    До цього картку, що втратила останній список, можна було вчити лише разом
+    з усім словником: у черги не було способу її назвати.
+    """
+    response = await client.post(
+        f"{VOCAB}/lists/", json={"name": "Дієслова"}, headers=auth_headers
+    )
+    list_id = response.json()["id"]
+
+    await _new_card(client, auth_headers, "run", list_ids=[list_id])
+    await _new_card(client, auth_headers, "table")
+
+    queue = (
+        await client.get(f"{STUDY}/queue/?unlisted=true", headers=auth_headers)
+    ).json()
+    assert queue["new_count"] == 1
+    assert queue["items"][0]["card"]["word"] == "table"
+
+
+async def test_unlisted_adds_to_lists_rather_than_narrowing_them(
+    client: AsyncClient, auth_headers
+):
+    """
+    Приціл складається через АБО, а не через І.
+
+    Вибір «Дієслова + без списку» означає рівно те, що написано, — обидві
+    купки. Якби прапорець звужував list_ids, така комбінація давала б завжди
+    порожню чергу: картка не може одночасно лежати в списку і не лежати в
+    жодному.
+    """
+    response = await client.post(
+        f"{VOCAB}/lists/", json={"name": "Дієслова"}, headers=auth_headers
+    )
+    list_id = response.json()["id"]
+
+    await _new_card(client, auth_headers, "run", list_ids=[list_id])
+    await _new_card(client, auth_headers, "table")
+    await _new_card(client, auth_headers, "chair")
+
+    queue = (
+        await client.get(
+            f"{STUDY}/queue/?list_ids={list_id}&unlisted=true", headers=auth_headers
+        )
+    ).json()
+    assert queue["new_count"] == 3
+    assert {item["card"]["word"] for item in queue["items"]} == {"run", "table", "chair"}
+
+
+async def test_empty_aim_still_means_every_word(client: AsyncClient, auth_headers):
+    """
+    Порожній приціл — це «усі слова», включно з тими, що без списку. Прапорець
+    за замовчуванням не має права нічого відрізати.
+    """
+    response = await client.post(
+        f"{VOCAB}/lists/", json={"name": "Дієслова"}, headers=auth_headers
+    )
+    list_id = response.json()["id"]
+
+    await _new_card(client, auth_headers, "run", list_ids=[list_id])
+    await _new_card(client, auth_headers, "table")
+
+    queue = (await client.get(f"{STUDY}/queue/", headers=auth_headers)).json()
+    assert queue["new_count"] == 2
+
+
 # --------------------------------------------------------------------------
 # «Крок навчання: слово вертається того ж дня»
 # --------------------------------------------------------------------------

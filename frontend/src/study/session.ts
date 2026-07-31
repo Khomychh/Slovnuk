@@ -20,6 +20,43 @@ export type QueueItem = components["schemas"]["QueueItemSchema"];
 export type Rating = 1 | 2 | 3 | 4;
 
 /**
+ * Вибір груп — звідки береться черга.
+ *
+ * Дві частини, а не один масив, бо «Без списку» списком не є: у нього немає
+ * id, яким його можна було б покласти поруч із рештою. Підмінити його
+ * сентинелом на кшталт `0` спокусливо рівно доти, доки цей нуль не поїде в
+ * `?list_ids=0` і сервер не почне шукати список із таким номером.
+ *
+ * Порожній вибір (ні списків, ні прапорця) означає «усі слова», а не
+ * «жодного»: фільтра просто немає.
+ */
+export type Aim = {
+  listIds: number[];
+  unlisted: boolean;
+};
+
+export const EMPTY_AIM: Aim = { listIds: [], unlisted: false };
+
+/** Чи звужено вибір до конкретних груп. */
+export function aimIsAll(aim: Aim): boolean {
+  return aim.listIds.length === 0 && !aim.unlisted;
+}
+
+/**
+ * Стала подоба вибору — нею звіряють, чи буфер ще годиться.
+ *
+ * Порядок id нормалізується: «Фрази, потім IELTS» і «IELTS, потім Фрази» — це
+ * той самий вибір, і викидати через них повний буфер було б безпідставно.
+ */
+export function aimKey(aim: Aim): string {
+  return `${[...aim.listIds].sort((a, b) => a - b).join(",")}|${aim.unlisted ? "u" : ""}`;
+}
+
+export function sameAim(a: Aim, b: Aim): boolean {
+  return aimKey(a) === aimKey(b);
+}
+
+/**
  * Через скільки інших карток повертається забуте слово.
  *
  * Число взяте з ADR-0007 і ні на що, крім найближчих хвилин, не впливає —

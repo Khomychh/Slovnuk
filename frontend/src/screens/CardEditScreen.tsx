@@ -242,7 +242,12 @@ export default function CardEditScreen({
       if (mode === "create") {
         const created = await create.mutateAsync(payload);
         if (onSaved) onSaved(created);
-        else navigate(`/vocabulary/cards/${created.id}`, { replace: true });
+        // Назад на той екран, з якого натиснули «+», а не на щойно створену
+        // картку. Слова додають підряд, і картка, відкрита після кожного,
+        // ставила б між двома словами зайвий крок «закрити». Побачити зроблене
+        // однаково є де: на «Сьогодні» слово стає рядком у доданих за добу, у
+        // словнику — першим рядком списку.
+        else leave();
       } else {
         const saved = await update.mutateAsync({ id: id as number, payload });
         if (onSaved) onSaved(saved);

@@ -93,6 +93,13 @@ async def get_queue(
     list_ids: list[int] | None = Query(
         None, description="Обмежити списками: ?list_ids=3&list_ids=7"
     ),
+    unlisted: bool = Query(
+        False,
+        description=(
+            "Додати картки, що не лежать у жодному списку. Складається зі "
+            "list_ids через АБО: ?list_ids=3&unlisted=true віддасть обидві купки."
+        ),
+    ),
     current_user: UserModel = Depends(get_current_authenticated_user),
     db: AsyncSession = Depends(get_db),
 ) -> QueueResponseSchema:
@@ -108,9 +115,11 @@ async def get_queue(
     now = datetime.now(timezone.utc)
 
     due_count, new_count = await study_crud.count_queue(
-        db, current_user.id, list_ids, now
+        db, current_user.id, list_ids, now, unlisted
     )
-    tracks = await study_crud.fetch_queue(db, current_user.id, list_ids, now, limit)
+    tracks = await study_crud.fetch_queue(
+        db, current_user.id, list_ids, now, limit, unlisted
+    )
 
     # Планувальник будується один раз на всю вибірку, а не на кожну доріжку:
     # Scheduler не тримає стану між викликами, а конструктор валідує 21 вагу.

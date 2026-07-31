@@ -1,34 +1,36 @@
 /**
  * «Сьогодні» — головний екран.
  *
- * Велика кнопка «Вчити N», дві смужки денних цілей, сім крапок тижня, згорнутий
- * вибір списків і згорнутий напрямок.
+ * Одна дія, потім підбиття, потім те, що зроблено. Кнопка «Вчити» — єдине, за
+ * чим сюди заходять по десять разів на день; під нею тиждень і дві смужки
+ * цілей, а в самому низу — слова, додані за добу, тими самими рядками, що в
+ * словнику.
+ *
+ * Заголовків розділів тут немає навмисно. Раніше екран ділився на «Повторення»
+ * і «Поповнення», але поділ був потрібен верстці, а не людині: смужка,
+ * підписана «повторення», не стає зрозумілішою від заголовка «Повторення» над
+ * нею.
  *
  * Числа тут не вигадуються: нові слова беруться з `/study/today/`, повторення —
  * з локального лічильника (він знає про відповіді, які ще не доїхали), довжина
  * черги — з останньої вибірки або з буфера, коли мережі немає.
  */
 
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useOnline } from "../app/useOnline";
-import { Screen } from "../ui/parts";
+import { GearIcon, Screen } from "../ui/parts";
 import { plural } from "../ui/plural";
 import { localDay, resolveTimeZone } from "../study/day";
 import { ProfileAvatar } from "../profile/ProfileAvatar";
 import { progressValue } from "../study/session";
-import { useLists, useSettings, useStudy, useToday, useUpdateSettings, useWeek } from "../study/queries";
-import { init, refill, setListFilter } from "../study/store";
+import { useSettings, useStudy, useToday, useWeek } from "../study/queries";
+import { useAddedToday } from "../vocabulary/queries";
+import CardRow from "../vocabulary/CardRow";
+import { init, refill } from "../study/store";
 import { unlockSpeech } from "../tts/speech";
-import type { StudyDirection } from "../api/study";
 
 const WEEKDAY_SHORT = ["пн", "вт", "ср", "чт", "пт", "сб", "нд"];
-
-const DIRECTIONS: { value: StudyDirection; label: string }[] = [
-  { value: "en_uk", label: "англ → укр" },
-  { value: "uk_en", label: "укр → англ" },
-  { value: "mixed", label: "змішано" },
-];
 
 function todayCaption(timeZone: string): string {
   return new Intl.DateTimeFormat("uk-UA", {
@@ -84,27 +86,27 @@ function GoalBar({
 
 export default function TodayScreen() {
   const navigate = useNavigate();
+  const location = useLocation();
   const online = useOnline();
   const study = useStudy();
 
   const settings = useSettings();
   const today = useToday();
   const week = useWeek(settings.data?.timezone);
-  const lists = useLists();
-  const updateSettings = useUpdateSettings();
-
-  const [listsOpen, setListsOpen] = useState(false);
 
   useEffect(() => {
     void init().then(() => {
       // Свіжі лічильники потрібні саме тут: кнопка «Вчити N» — єдине місце, де
-      // видно всю чергу, а не її порцію.
+      // видно всю чергу, а не її порцію. Це ж поповнення ловить повернення з
+      // «Налаштувань»: екран перемонтовується, і черга приїжджає під новий
+      // вибір груп.
       if (navigator.onLine) void refill();
     });
   }, []);
 
   const timeZone = resolveTimeZone(settings.data?.timezone);
   const day = localDay(new Date(), timeZone);
+  const added = useAddedToday(day, timeZone);
 
   // Знімок — не запасний варіант «на всяк випадок», а те, що показується при
   // офлайн-відкритті. Без нього екран був би порожній при повному буфері поруч.
@@ -114,6 +116,11 @@ export default function TodayScreen() {
   const waiting = online
     ? Math.max(study.dueCount + study.newCount, study.buffer.length)
     : study.buffer.length;
+
+  // Вибір щойно змінили, і черга ще летить. Це не «все повторено» — це «ще не
+  // знаю». Показати тут нуль означало б збрехати рівно в ту мить, коли людина
+  // дивиться, чи спрацював її вибір.
+  const counting = study.refilling && waiting === 0;
 
   const reviewsDone = progressValue(study.progress);
 
@@ -133,21 +140,7 @@ export default function TodayScreen() {
     });
   }, [weekData, week.days, day]);
 
-  const selected = study.listFilter;
-  const listItems = lists.data?.items ?? [];
-  const listLabel =
-    selected.length === 0
-      ? "усі списки"
-      : selected.length === 1
-        ? (listItems.find((item) => item.id === selected[0])?.name ?? "1 список")
-        : `${selected.length} списків`;
-
-  const toggleList = (id: number) => {
-    const next = selected.includes(id)
-      ? selected.filter((value) => value !== id)
-      : [...selected, id];
-    void setListFilter(next);
-  };
+  const addedCards = added.data ?? [];
 
   return (
     <Screen
@@ -157,65 +150,69 @@ export default function TodayScreen() {
     >
       {/* Герой екрана. Число — не підпис на кнопці, а сама кнопка: у навчання
           заходять по десять разів на день, і цілитись у нього не має бути в що.
-          Стрічка сяйва рухається тільки тут. */}
-      <button
-        className="hero aurora aurora-live"
-        type="button"
-        disabled={waiting === 0}
-        onClick={() => {
-          // Єдиний жест, після якого починається автоозвучення, — саме цей.
-          // На iOS без нього перша картка (і всі наступні) не пролунали б:
-          // подробиці в `unlockSpeech`. На Android виклик не робить нічого.
-          unlockSpeech();
-          navigate("/study");
-        }}
-      >
-        {waiting > 0 ? (
-          <>
-            <span className="hero-lbl">вчити</span>
-            <span className="hero-num">{waiting}</span>
-            <span className="hero-sub">
-              {online
-                ? `${study.dueCount} ${plural(study.dueCount, "повторення", "повторення", "повторень")} · ${study.newCount} ${plural(study.newCount, "нове", "нових", "нових")}`
-                : `${study.buffer.length} ${plural(study.buffer.length, "картка збережена", "картки збережені", "карток збережено")}`}
-            </span>
-          </>
-        ) : (
-          <>
-            <span className="hero-lbl">черга порожня</span>
-            <span className="hero-word">Все повторено</span>
-            <span className="hero-sub">
-              Забуті слова повернуться сьогодні ж — черга поповнюється сама.
-            </span>
-          </>
-        )}
-      </button>
+          Стрічка сяйва рухається тільки тут.
 
-      {waiting === 0 && !online ? (
-        <p className="hint hint-center">
-          Збережених карток немає. Потрібен звʼязок, щоб завантажити чергу.
-        </p>
+          Шестерня — сестра кнопки, а не її частина: кнопка всередині кнопки
+          недопустима в розмітці. Стоїть вона в правому кінці нижньої полички,
+          тобто рівно там, де закінчується рядок, який вона й дозволяє змінити. */}
+      <div className="hero-wrap">
+        <button
+          className="hero aurora aurora-live"
+          type="button"
+          disabled={waiting === 0}
+          onClick={() => {
+            // Єдиний жест, після якого починається автоозвучення, — саме цей.
+            // На iOS без нього перша картка (і всі наступні) не пролунали б:
+            // подробиці в `unlockSpeech`. На Android виклик не робить нічого.
+            unlockSpeech();
+            navigate("/study");
+          }}
+        >
+          {counting ? (
+            <>
+              <span className="hero-lbl">вчити</span>
+              <span className="hero-word">Рахую…</span>
+            </>
+          ) : waiting > 0 ? (
+            <>
+              <span className="hero-lbl">вчити</span>
+              <span className="hero-num">{waiting}</span>
+              <span className="hero-sub">
+                {online
+                  ? `${study.dueCount} ${plural(study.dueCount, "повторення", "повторення", "повторень")} · ${study.newCount} ${plural(study.newCount, "нове", "нових", "нових")}`
+                  : `${study.buffer.length} ${plural(study.buffer.length, "картка збережена", "картки збережені", "карток збережено")}`}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="hero-lbl">черга порожня</span>
+              <span className="hero-word">Все повторено</span>
+              <span className="hero-sub">Забуті слова повернуться сьогодні ж.</span>
+            </>
+          )}
+        </button>
+
+        <button
+          className="hero-gear"
+          type="button"
+          aria-label="Налаштування навчання"
+          onClick={() => navigate("/study/settings")}
+        >
+          <GearIcon />
+        </button>
+      </div>
+
+      {waiting === 0 && !counting && !online ? (
+        <p className="hint hint-center">Потрібен звʼязок: збережених карток немає.</p>
       ) : null}
 
       {study.pending > 0 ? (
         <p className="hint hint-center">
-          {study.pending} {study.pending === 1 ? "відповідь чекає" : "відповідей чекають"} на
+          {study.pending}{" "}
+          {study.pending === 1 ? "відповідь чекає" : "відповідей чекають"} на
           відправку
         </p>
       ) : null}
-
-      <div className="goals">
-        <GoalBar
-          label="нові слова"
-          done={todayData?.new_added ?? 0}
-          goal={todayData?.new_goal ?? 0}
-        />
-        <GoalBar
-          label="повторення"
-          done={reviewsDone}
-          goal={todayData?.review_goal ?? 0}
-        />
-      </div>
 
       <div className="week" aria-label="Тиждень">
         {dots.map((dot) => (
@@ -234,74 +231,55 @@ export default function TodayScreen() {
         ))}
       </div>
 
-      {/* Вибір списків живе тільки на клієнті: це «що я вчу зараз», а не
-          налаштування користувача. Але змінити його офлайн не можна — нову
-          вибірку нема звідки взяти, і застосунок лишився б без карток. */}
-      <details
-        className="fold"
-        open={listsOpen}
-        onToggle={(event) => setListsOpen(event.currentTarget.open)}
-      >
-        <summary>
-          <span className="fold-label">списки</span>
-          <span className="fold-value">{listLabel}</span>
-        </summary>
-        {online ? (
-          <div className="fold-body">
-            <button
-              className={selected.length === 0 ? "chip chip-on" : "chip"}
-              type="button"
-              onClick={() => void setListFilter([])}
-            >
-              усі списки
-            </button>
-            {listItems.map((item) => (
-              <button
-                key={item.id}
-                className={selected.includes(item.id) ? "chip chip-on" : "chip"}
-                type="button"
-                onClick={() => toggleList(item.id)}
-              >
-                {item.name}
-                <span className="chip-num">{item.due_count}</span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="fold-body">
-            <p className="hint">Змінити списки можна лише зі звʼязком.</p>
-          </div>
-        )}
-      </details>
+      <div className="goals">
+        <GoalBar
+          label="повторення"
+          done={reviewsDone}
+          goal={todayData?.review_goal ?? 0}
+        />
+        <GoalBar
+          label="нові слова"
+          done={todayData?.new_added ?? 0}
+          goal={todayData?.new_goal ?? 0}
+        />
+      </div>
 
-      <details className="fold">
-        <summary>
-          <span className="fold-label">напрямок</span>
-          <span className="fold-value">
-            {DIRECTIONS.find((item) => item.value === settings.data?.study_direction)
-              ?.label ?? "—"}
-          </span>
-        </summary>
-        <div className="fold-body">
-          {online ? (
-            DIRECTIONS.map((item) => (
-              <button
-                key={item.value}
-                className={
-                  settings.data?.study_direction === item.value ? "chip chip-on" : "chip"
-                }
-                type="button"
-                disabled={updateSettings.isPending}
-                onClick={() => updateSettings.mutate({ study_direction: item.value })}
-              >
-                {item.label}
-              </button>
-            ))
-          ) : (
-            <p className="hint">Змінити напрямок можна лише зі звʼязком.</p>
-          )}
+      {/* Слова, додані за добу, — усі, і рядками словника. Це хвіст екрана,
+          нижче нема нічого, тож довга прокрутка тут нічого не відсуває: у день,
+          коли додав двадцять слів, довгий хвіст і є те, на що дивишся.
+
+          Порожнього підписаного блоку не буває: у день, коли нічого не додав,
+          лишається сама кругла кнопка — і це запрошення, а не дірка. */}
+      {addedCards.length > 0 ? (
+        <div className="v-list today-added">
+          {addedCards.map((card) => (
+            <CardRow
+              key={card.id}
+              card={card}
+              onOpen={() =>
+                navigate(`/vocabulary/cards/${card.id}`, {
+                  state: { background: location },
+                })
+              }
+            />
+          ))}
         </div>
-      </details>
+      ) : null}
+
+      <button
+        className="v-add"
+        type="button"
+        disabled={!online}
+        title={online ? "Додати слово" : "Потрібен звʼязок"}
+        onClick={() =>
+          // Без `activeListId`: на «Сьогодні» відкритого списку немає, і
+          // `defaultListFor` сам підставить список за замовчуванням. Вибір груп
+          // на це не впливає — він про читання черги, а не про запис.
+          navigate("/vocabulary/cards/new", { state: { background: location } })
+        }
+      >
+        +
+      </button>
     </Screen>
   );
 }

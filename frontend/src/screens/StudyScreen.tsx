@@ -48,15 +48,7 @@ const RATINGS: { value: Rating; label: string }[] = [
   { value: 4, label: "Легко" },
 ];
 
-function buildFaces({
-  item,
-  side,
-  revealed,
-}: {
-  item: QueueItem;
-  side: "en_uk" | "uk_en";
-  revealed: boolean;
-}) {
+function buildFaces({ item, side }: { item: QueueItem; side: "en_uk" | "uk_en" }) {
   const card = item.card;
   const transcriptions = distinctTranscriptions(card);
 
@@ -66,62 +58,47 @@ function buildFaces({
       .filter(Boolean)
       .join(", ");
 
+    // Мітки того, що питають, — і це формулювання завдання, а не оздоба.
+    // Довгий перелік згортається: чотири мітки поспіль перестають бути
+    // підписом і стають другим заголовком, більшим за саме слово.
+    const labels = card.forms
+      .map((form) => form.label)
+      .filter((label): label is string => Boolean(label));
+    const task = labels.join("  ·  ");
+
     return {
       front: (
         <>
-          <div className="dirhint">форми</div>
           <Headword word={card.word} className={headwordClass(card.word)} />
-          {/* Робочий аркуш у лінійку — і це весь знак доріжки форм.
-              Розрізняти вправи доводиться формою, а не кольором: насичений
-              колір означає температуру й тільки її (ADR-0012), а на закритій
-              картці його взагалі немає (ADR-0016). Пігулка «ФОРМИ» стояла в
-              тому самому місці й тим самим кеглем, що «АНГЛ → УКР», тобто
-              відрізнялась лише словом — а слово треба прочитати. Порожні
-              рядки видно до читання.
-
-              Рядки ті самі, що потім показують відповідь: розкриття не
-              дописує другий блок під першим, а вписує форми в ці ж лінійки.
-              Тому мітка стоїть у своїй колонці вже зараз і нікуди не
-              стрибає. */}
+          {task && task.length <= 40 ? <div className="fd-task">{task}</div> : null}
+        </>
+      ),
+      back: (
+        <>
           <div className="fd">
             {card.forms.map((form) => (
               <div className="fd-row" key={form.id}>
                 <span className="fd-lbl">{form.label ?? "форма"}</span>
-                {revealed ? (
-                  <>
-                    <span className="fd-form">{form.value}</span>
-                    {form.transcription ? (
-                      <span className="fd-ipa">{form.transcription}</span>
-                    ) : null}
-                    {/* Вправа тут — саме вимова форми, тож динамік на кожному
-                        рядку. Автоматично вони не звучать: три висловлювання
-                        поспіль відстають від пальця, що вже тягнеться до
-                        оцінки. */}
-                    <SpeakButton text={form.value} className="spk-end" />
-                  </>
-                ) : (
-                  <span className="fd-blank" />
-                )}
+                <span className="fd-form">{form.value}</span>
+                {form.transcription ? (
+                  <span className="fd-ipa">{form.transcription}</span>
+                ) : null}
+                {/* Вправа тут — саме вимова форми, тож динамік на кожному
+                    рядку. Автоматично вони не звучать: три висловлювання
+                    поспіль відстають від пальця, що вже тягнеться до оцінки. */}
+                <SpeakButton text={form.value} className="spk-end" />
               </div>
             ))}
           </div>
+          {summary ? (
+            <div className="fd-tr">
+              <span className="fdt-lbl">значення</span>
+              {summary}
+            </div>
+          ) : null}
+          {card.comment ? <div className="cmt">{card.comment}</div> : null}
         </>
       ),
-      // Саме `null`, а не порожній фрагмент: фрагмент істинний навіть без
-      // дітей, і екран намалював би роздільник над порожнечею. У картки форм
-      // це звичайний стан — відповідь уже стоїть у лінійках лиця.
-      back:
-        summary || card.comment ? (
-          <>
-            {summary ? (
-              <div className="fd-tr">
-                <span className="fdt-lbl">значення</span>
-                {summary}
-              </div>
-            ) : null}
-            {card.comment ? <div className="cmt">{card.comment}</div> : null}
-          </>
-        ) : null,
     };
   }
 
@@ -234,8 +211,8 @@ export default function StudyScreen() {
   // динаміки не з'явились би на вже показаній картці, коли налаштування
   // приїхали пізніше за неї — тобто при холодному старті одразу в навчання.
   const faces = useMemo(
-    () => (item ? buildFaces({ item, side, revealed }) : null),
-    [item, side, revealed, tts.enabled],
+    () => (item ? buildFaces({ item, side }) : null),
+    [item, side, tts.enabled],
   );
 
   /**
@@ -342,13 +319,26 @@ export default function StudyScreen() {
             «Легко» ще до того, як памʼять щось видала. Без `--temp` панель бере
             запасне значення й лишається нейтральною. */}
         <div
-          className="card-panel"
+          className={item.kind === "forms" ? "card-panel has-tab" : "card-panel"}
           style={
             revealed
               ? ({ "--temp": temperature(item.stability) } as React.CSSProperties)
               : undefined
           }
         >
+          {/* Знак доріжки форм — вкладка на краї панелі, а не пігулка серед
+              вмісту. Три речі роблять її знаком, і жодна з них не вимагає
+              читання: вона сидить там, де підпису напрямку не буває ніколи;
+              вона світиться стрічкою сяйва; а картка перекладу такої вкладки
+              не має взагалі, тож відрізняти доводиться НАЯВНІСТЮ предмета.
+
+              Колір тут не порушує ADR-0012, хоч і стоїть на закритій картці.
+              Закон забороняє одну насичену зупинку поза температурою — вона
+              сказала б, наскільки це слово тепле. Тут же стоїть уся рампа
+              разом, тобто підпис застосунку, і вона ОДНАКОВА на кожній
+              картці. Те, що не змінюється від слова до слова, підказати
+              відповідь не може в принципі. */}
+          {item.kind === "forms" ? <div className="card-tab">форми</div> : null}
           {/* Правка зʼявляється разом із відповіддю, і тільки з нею: до
               перевороту тут немає чого виправляти, бо картки ще не видно.
               Кут панелі, а не верхня смуга екрана: дія над КАРТКОЮ, а не над
