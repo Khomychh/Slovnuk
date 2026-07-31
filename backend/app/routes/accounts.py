@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from typing import cast
 
@@ -25,7 +26,7 @@ from app.database.models import (
     RefreshTokenModel,
     UserSettingsModel,
 )
-from app.exceptions import BaseSecurityError
+from app.exceptions import BaseEmailError, BaseSecurityError
 from app.notifications import EmailSenderInterface
 from app.schemas.accounts import (
     UserRegistrationRequestSchema,
@@ -49,6 +50,24 @@ from app.security.interfaces import JWTAuthManagerInterface
 from app.storages import S3StorageInterface
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+async def _send_email_safely(send_email, *args, **kwargs) -> None:
+    """
+    Обгортка над BackgroundTasks.add_task для листів.
+
+    BackgroundTasks виконуються ПІСЛЯ того, як відповідь клієнту вже пішла:
+    показати виняток звідти клієнту нічим, і він летить прямо в ASGI-сервер.
+    EmailSender.send_*_email навмисно кидає BaseEmailError (відхилений домен,
+    вичерпаний ліміт Resend) — це очікуваний збій стороннього сервісу, а не
+    помилка програми, тож тут він лише лягає в лог. Раніше він там і не ловився,
+    і саме так один невдалий лист клав увесь бекенд для всіх користувачів.
+    """
+    try:
+        await send_email(*args, **kwargs)
+    except BaseEmailError as error:
+        logger.error("Не вдалося надіслати лист: %s", error)
 
 
 @router.post(
@@ -158,6 +177,7 @@ async def register_user(
             f"?email={new_user.email}&token={activation_token.token}"
         )
         background_tasks.add_task(
+            _send_email_safely,
             email_sender.send_activation_email,
             email=str(new_user.email),
             activation_link=activation_link,
@@ -260,6 +280,7 @@ async def activate_account(
     # відправляємо лист про активацію
     login_link = f"{settings.FRONTEND_BASE_URL}/accounts/login"
     background_tasks.add_task(
+        _send_email_safely,
         email_sender.send_activation_complete_email,
         email=str(user.email),
         login_link=login_link,
@@ -428,6 +449,7 @@ async def request_password_reset_token(
         f"?email={user.email}&token={reset_token.token}"
     )
     background_tasks.add_task(
+        _send_email_safely,
         email_sender.send_password_reset_email,
         email=str(user.email),
         reset_link=reset_link,
@@ -558,6 +580,7 @@ async def reset_password(
 
     login_link = f"{settings.FRONTEND_BASE_URL}/accounts/login/"
     background_tasks.add_task(
+        _send_email_safely,
         email_sender.send_password_reset_complete_email,
         email=str(user.email),
         login_link=login_link,
