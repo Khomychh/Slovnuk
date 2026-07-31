@@ -133,7 +133,6 @@
 .ed-panel select,
 .ed-inline input,
 .ed-word-field > input,
-.ed-comment,
 .ed-cat,
 .ed-body,
 .ed-list-trigger {
@@ -154,7 +153,6 @@
 .v-search::placeholder,
 .ed-panel input::placeholder,
 .ed-inline input::placeholder,
-.ed-comment::placeholder,
 .ed-cat::placeholder,
 .ed-body::placeholder {
   color: var(--haze-2);
@@ -165,7 +163,6 @@
 .ed-panel input:focus,
 .ed-panel select:focus,
 .ed-inline input:focus,
-.ed-comment:focus,
 .ed-cat:focus,
 .ed-body:focus {
   outline: none;
@@ -1492,6 +1489,9 @@
   font-size: 14px;
   color: var(--haze);
   line-height: 1.5;
+  /* Коментар тепер набирається textarea з переносами рядків (редактор картки)
+     — без цього браузер зливає їх у суцільний абзац і на слові, і в навчанні. */
+  white-space: pre-wrap;
 }
 
 /* --- оцінки ------------------------------------------------------------- */
@@ -2100,6 +2100,85 @@
   box-shadow: 0 1px 0 0 color-mix(in srgb, var(--a1) 45%, transparent);
 }
 
+/* Слово — панель, а не гола лінійка (заміна `.ed-word-field` вище: та лишається
+   для редактора нотатки, де підпис над полем є).
+
+   Той самий силует, що в значень і форм нижче: рамка, фон, легкий верхній
+   відблиск. Дублікат каже про себе кольором рамки й другою круглою кнопкою
+   біля динаміка, а не окремим банером під полем — рядок один, предмет один. */
+.ed-word-panel {
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  background: var(--sheet);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  padding: 8px 12px;
+  margin-bottom: 22px;
+  transition: border-color 0.15s ease;
+}
+
+.ed-word-panel:focus-within {
+  border-color: color-mix(in srgb, var(--a1) 55%, var(--edge));
+}
+
+/* Дублікат переважає фокус: перевірка йде на `onBlur`, тобто до цього стану
+   фокус на полі вже нема кому суперечити. */
+.ed-word-dup {
+  border-color: color-mix(in srgb, var(--a0) 55%, var(--edge));
+}
+
+.ed-word-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.ed-word-row > input.ed-word-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  padding: 8px 2px;
+  font-family: var(--display);
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  color: var(--frost);
+}
+
+.ed-word-row > input.ed-word-input::placeholder {
+  color: var(--haze-2);
+}
+
+.ed-word-row > input.ed-word-input:focus {
+  outline: none;
+}
+
+/* Посилання на наявну картку — той самий силует кнопки, що динамік поруч,
+   лише кольору дубліката. Речення про «вже у словнику» сидить у
+   aria-label/title: рамка панелі й сама стрілка кажуть досить, щоб не читати
+   його щоразу, а для екранного читача чи довгого натискання воно лишається. */
+.ed-word-dup-link {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--a0);
+}
+
+.ed-word-dup-link svg {
+  width: 18px;
+  height: 18px;
+}
+
+.ed-word-dup-link:active {
+  color: var(--frost);
+}
+
 /* Значення і форма — панелі однакової ваги. Раніше значення було в рамці, а
    форма голою лінійкою, хоча за суттю це однорідні блоки картки. */
 .ed-panel {
@@ -2162,10 +2241,63 @@
   font-size: 17px;
 }
 
-/* Коментар — одне поле без заголовка: слово «коментар» уже стоїть у ньому
-   самому, і підпис над ним був би тим самим словом удруге. */
-.ed-comment {
+/* Коментар — одна панель, а не заголовок над окремим полем. Рамку й фон несе
+   контейнер (той самий силует, що в слова й у значень), заголовок-рядок і
+   textarea всередині — без власних меж, тому це один предмет, не два. Textarea
+   росте, а не однорядковий input: коментарі бувають довші за рядок, і переніс
+   мусить лишатись переносом. */
+.ed-comment-panel {
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  background: var(--sheet);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  padding: 12px 14px 14px;
   margin-top: 20px;
+}
+
+.ed-comment-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.ed-comment-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+}
+
+.ed-comment-panel textarea.ed-comment-input {
+  display: block;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 0;
+  resize: vertical;
+  min-height: 70px;
+  line-height: 1.55;
+  font-family: var(--sans);
+  font-size: 16px; /* менше 16px — і iOS збільшує сторінку на фокусі */
+  color: var(--frost);
+}
+
+.ed-comment-panel textarea.ed-comment-input::placeholder {
+  color: var(--haze-2);
+}
+
+.ed-comment-panel textarea.ed-comment-input:focus {
+  outline: none;
+}
+
+.ed-comment-panel .ed-preview {
+  border: none;
+  background: none;
+  padding: 0;
+  min-height: 70px;
 }
 
 /* Видалення — остання річ у прокрутці. Далі від «Зберегти» нікуди, і саме це

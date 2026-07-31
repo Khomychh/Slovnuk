@@ -32,9 +32,10 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { findByWord } from "../api/vocabulary";
 import { useOnline } from "../app/useOnline";
-import { BackIcon, ListsIcon, SaveButton, TrashIcon } from "../ui/parts";
+import { BackIcon, ListsIcon, OpenIcon, SaveButton, TrashIcon } from "../ui/parts";
 import ConfirmSheet from "../ui/ConfirmSheet";
 import ListPickerSheet from "../vocabulary/ListPickerSheet";
+import { Markdown } from "../grammar/markdown";
 import {
   blankExample,
   blankForm,
@@ -128,6 +129,7 @@ export default function CardEditScreen({
   const [error, setError] = useState<string | null>(null);
   const [pickingLists, setPickingLists] = useState(false);
   const [asking, setAsking] = useState<"leave" | "delete" | null>(null);
+  const [commentPreview, setCommentPreview] = useState(false);
 
   useEffect(() => {
     if (draft) return;
@@ -293,43 +295,43 @@ export default function CardEditScreen({
       </div>
 
       <div className="sheet-scroll ed">
-        {/* Слово набирається дисплейною гарнітурою на письмовій лінійці, а не в
-          такому самому полі, як коментар: це головне, заради чого існує вся
-          решта екрана. Підпису над ним немає — порожня лінійка з великим
-          курсором не буває нічим іншим. */}
-        <div className="ed-word-field">
-          <input
-            id="word"
-            className="ed-word"
-            aria-label="Слово"
-            value={draft.word}
-            placeholder="hold on"
-            autoCapitalize="none"
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-            onChange={(event) => patch({ word: event.target.value })}
-            onBlur={checkDuplicate}
-          />
-          {/* Динамік стоїть НА письмовій лінійці, а не окремим рядком під нею:
-            він перевіряє щойно набране слово, а не є ще одним полем. */}
-          <SpeakButton text={draft.word} size="md" className="spk-on-rule" />
-        </div>
-
-        {duplicate ? (
-          <div className="msg msg-error">
-            «{duplicate.word}» уже у вашому словнику.{" "}
-            <button
-              className="btn-link"
-              type="button"
-              onClick={() =>
-                navigate(`/vocabulary/cards/${duplicate.id}`, { replace: true })
-              }
-            >
-              Відкрити
-            </button>
+        {/* Слово набирається дисплейною гарнітурою в панелі, як і решта блоків
+          картки нижче — це головне, заради чого існує вся решта екрана.
+          Підпису над ним немає — порожнє поле з великим курсором у першій
+          панелі екрана не буває нічим іншим. Дублікат каже про себе кольором
+          рамки й другою круглою кнопкою біля динаміка, а не окремим банером
+          під полем: увесь блок «слово» лишається одним предметом. */}
+        <div className={duplicate ? "ed-word-panel ed-word-dup" : "ed-word-panel"}>
+          <div className="ed-word-row">
+            <input
+              id="word"
+              className="ed-word-input"
+              aria-label="Слово"
+              value={draft.word}
+              placeholder="слово"
+              autoCapitalize="none"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              onChange={(event) => patch({ word: event.target.value })}
+              onBlur={checkDuplicate}
+            />
+            <SpeakButton text={draft.word} size="md" />
+            {duplicate ? (
+              <button
+                type="button"
+                className="ed-word-dup-link"
+                aria-label={`«${duplicate.word}» вже у вашому словнику — відкрити картку`}
+                title={`«${duplicate.word}» вже у вашому словнику — відкрити картку`}
+                onClick={() =>
+                  navigate(`/vocabulary/cards/${duplicate.id}`, { replace: true })
+                }
+              >
+                <OpenIcon />
+              </button>
+            ) : null}
           </div>
-        ) : null}
+        </div>
 
         {/* --- значення ---
             Заголовка більше немає: панель під ним каже сама за себе (селект
@@ -562,15 +564,54 @@ export default function CardEditScreen({
           </label>
         ) : null}
 
-        {/* --- коментар --- */}
-        <input
-          id="comment"
-          className="ed-comment"
-          aria-label="Коментар"
-          placeholder="коментар"
-          value={draft.comment}
-          onChange={(event) => patch({ comment: event.target.value })}
-        />
+        {/* --- коментар ---
+            Одна панель, а не заголовок над окремим полем: рамку й фон несе
+            контейнер, заголовок-рядок і textarea всередині — без власних меж.
+            Слово «Коментар» стоїть рівно один раз, у заголовку — у textarea
+            плейсхолдера немає, інакше вийшло б те саме слово вдруге.
+            Перемикач «Текст / Перегляд» — той самий компонент і той самий
+            рендерер Markdown, що в редакторі граматичної нотатки
+            (`NoteEditScreen`), перенесений сюди без власної логіки. */}
+        <div className="ed-comment-panel">
+          <div className="ed-comment-head">
+            <span className="ed-comment-label">Коментар</span>
+            <span className="ed-tabs">
+              <button
+                type="button"
+                className={commentPreview ? "ed-tab" : "ed-tab ed-tab-on"}
+                onClick={() => setCommentPreview(false)}
+              >
+                Текст
+              </button>
+              <button
+                type="button"
+                className={commentPreview ? "ed-tab ed-tab-on" : "ed-tab"}
+                onClick={() => setCommentPreview(true)}
+              >
+                Перегляд
+              </button>
+            </span>
+          </div>
+
+          {commentPreview ? (
+            <div className="ed-preview">
+              {draft.comment.trim() ? (
+                <Markdown source={draft.comment} />
+              ) : (
+                <div className="hint">Коментар порожній.</div>
+              )}
+            </div>
+          ) : (
+            <textarea
+              id="comment"
+              className="ed-comment-input"
+              aria-label="Коментар"
+              rows={3}
+              value={draft.comment}
+              onChange={(event) => patch({ comment: event.target.value })}
+            />
+          )}
+        </div>
 
         {/* --- списки: останні, бо міняються найрідше ---
             Раніше тут стояла стіна чипів, яка розпадалась на криві рядки,
