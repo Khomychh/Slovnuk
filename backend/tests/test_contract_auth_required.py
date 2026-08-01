@@ -101,7 +101,7 @@ def test_public_list_matches_reality():
 
 def test_endpoint_count_is_sane():
     """Дешевий сторож: роути зникли цілим роутером — помітимо одразу."""
-    assert len(ALL_ENDPOINTS) == 53, (
-        f"Ендпоінтів стало {len(ALL_ENDPOINTS)}, а було 53. Якщо це навмисно — "
+    assert len(ALL_ENDPOINTS) == 54, (
+        f"Ендпоінтів стало {len(ALL_ENDPOINTS)}, а було 54. Якщо це навмисно — "
         "онови число тут."
     )

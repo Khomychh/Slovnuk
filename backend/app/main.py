@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config.dependencies import get_settings
 from app.routes.accounts import router as accounts_router
+from app.routes.ai import router as ai_router
 from app.routes.grammar import router as grammar_router
 from app.routes.library import router as library_router
 from app.routes.profiles import router as profiles_router
@@ -33,6 +34,7 @@ app.include_router(
     vocabulary_router, prefix=f"{api_version_prefix}/vocabulary", tags=["vocabulary"]
 )
 app.include_router(grammar_router, prefix=f"{api_version_prefix}/grammar", tags=["grammar"])
+app.include_router(ai_router, prefix=f"{api_version_prefix}/ai", tags=["ai"])
 # Без власного префікса: шеринг живе у двох адресних просторах одразу —
 # /vocabulary/lists/{id}/share/ для власника і /shares/{token}/ для отримувача.
 app.include_router(sharing_router, prefix=api_version_prefix, tags=["sharing"])

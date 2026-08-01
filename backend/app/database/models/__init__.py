@@ -4,6 +4,8 @@ from app.database.models.enums import (
     ThemeEnum,
     StudyDirectionEnum,
     TtsAccentEnum,
+    TranscriptionVarietyEnum,
+    AiRequestOutcomeEnum,
     PartOfSpeechEnum,
     PublicationReportReasonEnum,
     ReviewKindEnum,
@@ -46,6 +48,7 @@ from app.database.models.grammar import (
     GrammarNoteModel,
 )
 from app.database.models.sharing import ListShareModel
+from app.database.models.ai import AiAccessModel, AiRequestModel
 from app.database.models.library import (
     PublicationModel,
     PublicationCardModel,
@@ -68,6 +71,8 @@ __all__ = [
     "ThemeEnum",
     "StudyDirectionEnum",
     "TtsAccentEnum",
+    "TranscriptionVarietyEnum",
+    "AiRequestOutcomeEnum",
     "PartOfSpeechEnum",
     "PublicationReportReasonEnum",
     "ReviewKindEnum",
@@ -105,6 +110,9 @@ __all__ = [
     "GrammarNoteModel",
     # sharing
     "ListShareModel",
+    # ai
+    "AiAccessModel",
+    "AiRequestModel",
     # library
     "PublicationModel",
     "PublicationCardModel",

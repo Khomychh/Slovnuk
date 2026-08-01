@@ -1,6 +1,7 @@
 from fastapi import Depends
 
 from app.config.settings import Settings
+from app.integrations import AiClientInterface, AnthropicAiClient
 from app.notifications import EmailSenderInterface, EmailSender
 from app.security.interfaces import JWTAuthManagerInterface
 from app.security.token_manager import JWTAuthManager
@@ -59,6 +60,36 @@ def get_accounts_email_notificator(
         activation_complete_email_template_name=settings.ACTIVATION_COMPLETE_EMAIL_TEMPLATE_NAME,
         password_email_template_name=settings.PASSWORD_RESET_TEMPLATE_NAME,
         password_complete_email_template_name=settings.PASSWORD_RESET_COMPLETE_TEMPLATE_NAME
+    )
+
+
+def get_ai_client(
+    settings: Settings = Depends(get_settings)
+) -> AiClientInterface | None:
+    """
+    Повертає клієнта ШІ або None, якщо ключа немає.
+
+    None — не помилка, а рубильник: без ключа фічі на цьому сервері немає
+    взагалі, і роут віддає 503. Саме тому залежність повертає None, а не кидає
+    виняток при старті — локальна розробка й тести піднімаються без ключа й без
+    жодного звернення до Claude.
+
+    Це рівень «чи є ШІ тут», окремий від «чи можна цій людині» (таблиця
+    ai_access). Дві незалежні перевірки, два різні коди: 503 проти 403.
+
+    Args:
+        settings (Settings, optional): Налаштування застосунку,
+        надані через dependency injection з `get_settings`.
+
+    Returns:
+        AiClientInterface | None: Клієнт Claude або None, якщо ключ не заданий.
+    """
+    if not settings.ANTHROPIC_API_KEY:
+        return None
+    return AnthropicAiClient(
+        api_key=settings.ANTHROPIC_API_KEY,
+        model=settings.AI_MODEL,
+        timeout=settings.AI_TIMEOUT_SECONDS,
     )
 
 

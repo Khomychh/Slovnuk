@@ -76,6 +76,11 @@ class CurrentUserResponseSchema(BaseModel):
     email: EmailStr
     is_active: bool
     role: UserGroupEnum
+    # Чи малювати кнопку заповнення з ШІ. Одне поле на дві незалежні перевірки:
+    # і привілей у людини є, і ключ на сервері є. Фронтенду розрізняти їх не
+    # треба — в обох випадках кнопки просто немає; розрізняє їх сам роут
+    # (403 проти 503).
+    ai_enabled: bool = False
     first_name: str | None = None
     last_name: str | None = None
     patronymic: str | None = None

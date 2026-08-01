@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from app.database.models.study import ReviewLogModel, StudyDayModel
     from app.database.models.grammar import GrammarNoteModel, NoteCategoryModel
     from app.database.models.sharing import ListShareModel
+    from app.database.models.ai import AiAccessModel, AiRequestModel
 
 
 class UserGroupEnum(str, enum.Enum):
@@ -143,6 +144,21 @@ class UserModel(Base):
         "ListShareModel",
         foreign_keys="ListShareModel.owner_id",
         back_populates="owner",
+        cascade="all, delete-orphan"
+    )
+
+    # На відміну від settings, тут Optional і без гарантії існування: доступ до
+    # ШІ видається руками окремим людям, і його відсутність — звичайний стан.
+    ai_access: Mapped[Optional["AiAccessModel"]] = relationship(
+        "AiAccessModel",
+        foreign_keys="AiAccessModel.user_id",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    ai_requests: Mapped[List["AiRequestModel"]] = relationship(
+        "AiRequestModel",
+        back_populates="user",
         cascade="all, delete-orphan"
     )
 

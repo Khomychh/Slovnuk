@@ -4,6 +4,12 @@ from app.exceptions.security import (
     TokenExpiredError
 )
 from app.exceptions.email import BaseEmailError
+from app.exceptions.ai import (
+    BaseAiError,
+    AiUnavailableError,
+    AiRateLimitedError,
+    AiInvalidResponseError,
+)
 from app.exceptions.storage import (
     BaseS3Error,
     S3ConnectionError,
