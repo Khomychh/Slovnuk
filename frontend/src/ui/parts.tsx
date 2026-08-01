@@ -321,12 +321,46 @@ export function OpenIcon() {
  * межа панелі гуляла від рядка до рядка. Три крапки стоять у кожного рядка, і
  * саме тому вони складаються в колонку.
  */
-export function MoreIcon() {
+/**
+ * Прибрати рядок.
+ *
+ * Була `MoreIcon` — три крапки, тобто обіцянка меню. Меню там ніколи не було:
+ * кнопка має рівно одну дію, і на порожньому рядку вона навіть не питає
+ * (`askRemove`). Лінія тієї ж довжини, що й ряд крапок (5→19), нічого не
+ * обіцяє понад те, що робить.
+ *
+ * Хрестика тут немає навмисно, і це не косметика: «×» стояв би лише там, де є
+ * що прибирати, і права колонка панелі гуляла б від рядка до рядка. Лінія
+ * стоїть завжди.
+ */
+export function RemoveIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <circle cx="5" cy="12" r="1.7" />
-      <circle cx="12" cy="12" r="1.7" />
-      <circle cx="19" cy="12" r="1.7" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M5 12h14" />
+    </svg>
+  );
+}
+
+/** Шеврон «розкрити»: у тригері вибору й у поверненні до списку міток. */
+export function ChevronIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M7 10l5 5 5-5" />
     </svg>
   );
 }
