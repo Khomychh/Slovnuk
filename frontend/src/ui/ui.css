@@ -966,6 +966,15 @@
   padding-bottom: 18px;
 }
 
+/* ЧИП — ЦЕ ДІЯ, А НЕ СТАН.
+   Стану чипів більше немає ніде: вибір «одне з двох-трьох» скрізь робить
+   доріжка (`.seg`), і саме тому тут немає `.chip-on`. Лишились рівно ті чипи,
+   які нічого не тримають, а натискаються один раз і зникають: підказки
+   розділу в нотатці й причини скарги на публікацію.
+
+   Різниця не формальна. Чип-стан і чип-дія виглядали однаково, і в рядку з
+   чотирьох було не видно, котрі з них показують вибране, а котрі щось
+   зроблять. */
 .chip {
   border: 1px solid var(--edge);
   background: none;
@@ -980,9 +989,8 @@
   gap: 7px;
 }
 
-.chip-on {
-  border-color: color-mix(in srgb, var(--a1) 50%, transparent);
-  background: color-mix(in srgb, var(--a1) 12%, transparent);
+.chip:active {
+  border-color: color-mix(in srgb, var(--a1) 45%, transparent);
   color: var(--frost);
 }
 
@@ -992,17 +1000,6 @@
   min-height: 40px;
   padding: 0 14px;
   font-size: 13.5px;
-  color: var(--haze-2);
-}
-
-.chip-sm:active {
-  border-color: color-mix(in srgb, var(--a1) 45%, transparent);
-  color: var(--frost);
-}
-
-.chip-num {
-  font-family: var(--mono);
-  font-size: 11px;
   color: var(--haze-2);
 }
 
@@ -2545,9 +2542,9 @@
 /* --- перемикач тренування форм ------------------------------------------- */
 
 /* Стан показує не він, а верхній край панелі (`.ed-lit` вище). Сам контрол
-   бере рецепт `.chip-on` — той самий, що будь-яке інше «ввімкнено» в
-   застосунку: якби він фарбувався зупинкою рампи «по-своєму», насичений колір
-   означав би дві різні речі. */
+   бере той самий рецепт «увімкнено», що й `.sw` у профілі та `.seg > button.on`:
+   якби він фарбувався зупинкою рампи «по-своєму», насичений колір означав би
+   в застосунку дві різні речі. */
 .ed-switch {
   display: inline-flex;
   align-items: center;
@@ -2572,47 +2569,10 @@
   color: var(--haze);
 }
 
-.ed-switch-track {
-  position: relative;
-  flex: none;
-  width: 36px;
-  height: 21px;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: var(--edge);
-  transition:
-    background 0.16s ease,
-    border-color 0.16s ease;
-}
-
-.ed-switch[data-on] .ed-switch-track {
-  background: color-mix(in srgb, var(--a1) 14%, transparent);
-  border-color: color-mix(in srgb, var(--a1) 50%, transparent);
-}
-
-.ed-switch-knob {
-  position: absolute;
-  top: 50%;
-  left: 2px;
-  width: 15px;
-  height: 15px;
-  margin-top: -7.5px;
-  border-radius: 50%;
-  background: var(--haze-2);
-  transition:
-    transform 0.16s ease,
-    background 0.16s ease;
-}
-
-.ed-switch[data-on] .ed-switch-knob {
-  transform: translateX(15px);
-  background: var(--frost);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .ed-switch-label,
-  .ed-switch-track,
-  .ed-switch-knob {
+  .sw,
+  .sw > i {
     transition: none;
   }
 }
@@ -3580,11 +3540,15 @@ button.cal-c {
   line-height: 1.4;
 }
 
+/* Доріжка перемикача. Один вигляд на весь застосунок: тут, у рядку профілю, і
+   в шапці панелі «Форми» редактора картки (`.ed-switch`), де перемикають
+   тренування. Були два різні перемикачі — 36×21 із заливкою 14% і 46×28 із
+   суцільною, — і ніщо не казало, що це той самий орган. */
 .sw {
   flex: none;
   position: relative;
-  width: 46px;
-  height: 28px;
+  width: 44px;
+  height: 26px;
   border-radius: 999px;
   background: var(--sheet-2);
   border: 1px solid var(--edge);
@@ -3593,8 +3557,8 @@ button.cal-c {
 
 .sw > i {
   position: absolute;
-  top: 3px;
-  left: 3px;
+  top: 2px;
+  left: 2px;
   width: 20px;
   height: 20px;
   border-radius: 50%;
@@ -3602,8 +3566,9 @@ button.cal-c {
   transition: transform 0.18s ease, background 0.18s ease;
 }
 
-/* Увімкнене — зупинка рампи. Заливка суцільна, а не 12% як у старого чипа:
-   перемикач мусить читатись боковим зором, а 12% на цю відстань не доживає. */
+/* Увімкнене — суцільна зупинка рампи (ADR-0030). Було 14% від неї: перемикач
+   мусить читатись боковим зором, а на такій заливці його стан доводилось
+   роздивлятись. */
 .sw-on {
   background: var(--a1);
   border-color: var(--a1);
@@ -3611,7 +3576,7 @@ button.cal-c {
 
 .sw-on > i {
   background: #fff;
-  transform: translateX(18px);
+  transform: translateX(19px);
 }
 
 /* Погашений чип — це твердження «цього тут немає», а не «зачекай». Лишається
@@ -4049,10 +4014,6 @@ button.cal-c {
    тут його треба задати — інакше воно липне просто до перемикача. */
 .halves + .v-search {
   margin-top: 16px;
-}
-
-.lib-sorts {
-  margin-top: 12px;
 }
 
 /* --- картка публікації --------------------------------------------------- */

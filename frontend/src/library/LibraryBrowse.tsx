@@ -18,7 +18,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { OfflineError } from "../api/client";
 import { useOnline } from "../app/useOnline";
-import { Message } from "../ui/parts";
+import { Message, Segmented } from "../ui/parts";
 import { useLibrary } from "./queries";
 import {
   authorLine,
@@ -174,18 +174,18 @@ export default function LibraryBrowse() {
         onChange={(event) => setQuery(event.target.value)}
       />
 
-      <div className="ed-chips lib-sorts">
-        {SORTS.map((option) => (
-          <button
-            key={option}
-            className={sort === option ? "chip chip-on" : "chip"}
-            type="button"
-            onClick={() => setSort(option)}
-          >
-            {SORT_LABELS[option]}
-          </button>
-        ))}
-      </div>
+      {/* Порядок витрини — вибір одного з трьох, тобто та сама доріжка, що в
+          профілі й під героєм «Сьогодні». Чипами він виглядав як «можна
+          позначити кілька», хоч позначити можна рівно один. */}
+      <Segmented
+        label="Порядок витрини"
+        value={sort}
+        options={SORTS.map((option) => ({
+          value: option,
+          label: SORT_LABELS[option],
+        }))}
+        onChange={setSort}
+      />
 
       {!online ? (
         <div className="hint">
