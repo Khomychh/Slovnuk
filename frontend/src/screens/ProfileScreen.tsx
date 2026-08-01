@@ -1,11 +1,23 @@
 /**
- * Профіль: імʼя, аватар, денні цілі, обліковий запис.
+ * Профіль: імʼя, аватар, денні цілі, озвучення, вигляд, обліковий запис.
+ *
+ * ЕКРАН ГОВОРИТЬ ПАНЕЛЯМИ — так само, як редактор картки. До цього він був
+ * пласким потоком, у якому секції розділяв лише капітельний підпис, і два
+ * найдовші екрани застосунку були збудовані по-різному без жодної причини.
+ *
+ * Кожна преференція показана рівно одним органом:
+ *
+ *   булеве          — перемикач у рядку («Озвучення», «Повільніше»);
+ *   два-три названі — сегментована доріжка («Акцент», «Тема»).
+ *
+ * Ряду чипів більше немає ніде. Пара чипів коштувала двох рядків — рубрики над
+ * ними й самої пари — і показувала обидві відповіді там, де питання одне.
  *
  * Чого тут немає і чому:
  *
- * — **Теми.** Палітри світлої теми не існує (`theme.css` тримає одну), тож
- *   перемикач був би мертвим органом керування. Поле `theme` при цьому лишається
- *   в API недоторканим.
+ * — **Перевірки голосу.** Кнопка на всю ширину плюс рядок «Прозвучить: …» —
+ *   90 пікселів екрана на «послухати три слова», причому тією самою вагою, що
+ *   й «Вийти». Акцент перевіряється в живому слові: динамік стоїть на картці.
  * — **Напрямку показу.** Він живе на «Сьогодні»; другий орган керування тим
  *   самим полем — це два місця, де його шукати.
  * — **Цільової памʼятливості.** Сирий 0.7–0.99 — це кнопка «зіпсувати собі
@@ -18,11 +30,12 @@
  *   авторизації; доменного сенсу в застосунку для вивчення слів не мають.
  */
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ApiError } from "../api/client";
 import { changePassword, patchProfile, uploadAvatar } from "../api/profile";
 import { useAuth } from "../auth/AuthProvider";
 import { useOnline } from "../app/useOnline";
+import { readThemePreference, storeThemePreference, type ThemePreference } from "../app/theme";
 import { avatarVersion, markAvatarChanged, prepareAvatar } from "../profile/avatar";
 import { AvatarImage } from "../profile/AvatarImage";
 import {
@@ -35,23 +48,20 @@ import {
 import { useSettings, useUpdateSettings } from "../study/queries";
 import { detectTimeZone } from "../study/day";
 import { useVoices } from "../tts/SpeakButton";
-import { accentAvailable, speak, speechAvailable, type Accent } from "../tts/speech";
-import { SaveButton, Screen } from "../ui/parts";
-
-/**
- * Фраза перевірки.
- *
- * Три слова, у яких американська й британська вимова розходяться найпомітніше
- * (`schedule` — SHED-jool проти SKED-jool). Тому кнопка перевіряє не лише «чи є
- * звук узагалі», а й «чи справді змінився акцент» — на «Hello, this is a test»
- * зі старого PWA другого не чути.
- */
-const TEST_PHRASE = "Schedule. Water. Tomato.";
+import { accentAvailable, speechAvailable, type Accent } from "../tts/speech";
+import { OpenIcon, SaveButton, Screen, Segmented, Switch } from "../ui/parts";
 
 const ACCENTS: { value: Accent; label: string; full: string }[] = [
   { value: "auto", label: "Авто", full: "Англійського" },
   { value: "us", label: "US", full: "Американського" },
   { value: "gb", label: "UK", full: "Британського" },
+];
+
+/** Підписи теми. «Системна» перша: вона ж і початкове значення на сервері. */
+const THEMES: { value: ThemePreference; label: string }[] = [
+  { value: "system", label: "Системна" },
+  { value: "light", label: "Світла" },
+  { value: "dark", label: "Темна" },
 ];
 
 const messageOf = (problem: unknown, fallback: string) =>
@@ -81,8 +91,7 @@ export default function ProfileScreen() {
         </button>
       }
     >
-      <AvatarBlock />
-      <NameBlock key={user?.id ?? 0} />
+      <IdentityBlock key={user?.id ?? 0} />
 
       <div className="ed-label">Щоденні цілі</div>
       {settings.data ? (
@@ -93,30 +102,37 @@ export default function ProfileScreen() {
           onSave={(payload) => updateSettings.mutateAsync(payload)}
         />
       ) : (
-        <div className="hint">Завантаження…</div>
+        <div className="p-note">Завантаження…</div>
       )}
 
       <div className="ed-label">Озвучення</div>
       <VoiceBlock />
 
-      <div className="ed-label">Обліковий запис</div>
-      <div className="p-row">
-        <span className="p-row-key">Часовий пояс</span>
-        <span className="p-row-val">
-          {settings.data?.timezone ?? detectTimeZone()}
-        </span>
-      </div>
-      <div className="hint">
-        Пояс визначається автоматично й змінюється разом із телефоном. Від нього
-        залежить, до якої доби потрапить нічне повторення.
-      </div>
+      <div className="ed-label">Вигляд</div>
+      <ThemeBlock />
 
-      <PasswordBlock />
+      <div className="ed-label">Обліковий запис</div>
+      <AccountBlock timezone={settings.data?.timezone ?? detectTimeZone()} />
     </Screen>
   );
 }
 
-function AvatarBlock() {
+/**
+ * Плитка впізнання: фото, пошта й імʼя одним предметом.
+ *
+ * Аватар і імʼя були двома блоками поспіль, і це читалось як дві теми там, де
+ * тема одна — «хто я». Злиття прибрало з екрана цілий шов.
+ *
+ * Кільце сяйва навколо фото — ціла рампа, тобто підпис застосунку (ADR-0025),
+ * а не значення: воно однакове в кожного користувача й нічого не міряє. Це
+ * четвертий його масштаб після картки, кнопки «Вчити» й героя «Прогресу».
+ *
+ * Розмита стрічка над верхнім краєм плитки тут БУЛА і знята. На панелі 200px
+ * заввишки вона перестає бути сяйвом над обрієм і стає градієнтним банером на
+ * пів плитки — тим самим, якого мільйон, — а пошта опиняється написаною по
+ * веселці. Кільце дає той самий підпис на 68 пікселях і нічого не заливає.
+ */
+function IdentityBlock() {
   const { user, refreshUser } = useAuth();
   const online = useOnline();
   const input = useRef<HTMLInputElement>(null);
@@ -124,6 +140,36 @@ function AvatarBlock() {
   const [error, setError] = useState<string | null>(null);
   const [unreachable, setUnreachable] = useState(false);
   const [version, setVersion] = useState(avatarVersion);
+
+  const [firstName, setFirstName] = useState(user?.first_name ?? "");
+  const [lastName, setLastName] = useState(user?.last_name ?? "");
+  const [saving, setSaving] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  const problem = nameProblem(firstName) ?? nameProblem(lastName);
+  const changed = nameChanged(
+    { firstName: user?.first_name ?? null, lastName: user?.last_name ?? null },
+    { firstName, lastName },
+  );
+
+  const saveName = async () => {
+    if (!user || problem) return;
+    setNameError(null);
+    setSaving(true);
+    try {
+      await patchProfile(user.id, {
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+      });
+      await refreshUser();
+      setSaved(true);
+    } catch (issue) {
+      setNameError(messageOf(issue, "Не вдалось зберегти імʼя"));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const src = avatarSrc(user?.avatar, version);
   const initial = (user?.first_name || user?.email || "?").trim().charAt(0).toUpperCase();
@@ -149,128 +195,95 @@ function AvatarBlock() {
 
   return (
     <>
-      {/* Плитка впізнання: фото і пошта разом. Окремий рядок «ПОШТА» нижче був
-          би другим місцем, де написано те саме. */}
       <div className="p-id">
-        {/* Кнопкою є саме фото: окрема «Замінити» поруч із ним казала б те
-            саме, що й дотик по ньому, тільки словами. */}
-        <button
-          className="p-avatar"
-          type="button"
-          disabled={!online || busy}
-          aria-label={src ? "Замінити фото" : "Додати фото"}
-          onClick={() => input.current?.click()}
-        >
-          <AvatarImage src={src} initial={initial} onFail={() => setUnreachable(true)} />
-          <span className="p-avatar-hint">{busy ? "…" : "змінити"}</span>
-        </button>
-        {/* Тут лише пошта. Підпису «натисни на коло» немає — на самому колі
-            стоїть «змінити». Кнопки «Прибрати фото» теж немає навмисно: нею
-            користуються раз на рік, а висіла б вона завжди. Ендпоінт
-            `DELETE /profiles/{id}/avatar/` при цьому лишається живим. */}
-        <div className="p-id-main">
-          <div className="p-id-mail">{user?.email ?? "—"}</div>
+        <div className="p-id-top">
+          {/* Кнопкою є саме фото: окрема «Замінити» поруч із ним казала б те
+              саме, що й дотик по ньому, тільки словами. Кільце сяйва навколо —
+              оправа, а не ореол: тінь-сяйво тут була б четвертим видом тіні. */}
+          <span className="p-ring">
+            <button
+              className="p-avatar"
+              type="button"
+              disabled={!online || busy}
+              aria-label={src ? "Замінити фото" : "Додати фото"}
+              onClick={() => input.current?.click()}
+            >
+              <AvatarImage
+                src={src}
+                initial={initial}
+                onFail={() => setUnreachable(true)}
+              />
+              <span className="p-avatar-hint">{busy ? "…" : "змінити"}</span>
+            </button>
+          </span>
+          {/* Тут лише пошта. Підпису «натисни на коло» немає — на самому колі
+              стоїть «змінити». Кнопки «Прибрати фото» теж немає навмисно: нею
+              користуються раз на рік, а висіла б вона завжди. Ендпоінт
+              `DELETE /profiles/{id}/avatar/` при цьому лишається живим. */}
+          <div className="p-id-main">
+            <div className="p-id-mail">{user?.email ?? "—"}</div>
+          </div>
+          <input
+            ref={input}
+            className="p-file"
+            type="file"
+            accept="image/jpeg,image/png"
+            onChange={(event) => void pick(event.target.files?.[0])}
+          />
         </div>
-        <input
-          ref={input}
-          className="p-file"
-          type="file"
-          accept="image/jpeg,image/png"
-          onChange={(event) => void pick(event.target.files?.[0])}
-        />
+
+        {/* Підписи полів кажуть, що це імʼя, тож секційної мітки над ними
+            немає. Обидва поля в один рядок — окремими рядками вони займали б
+            пів плитки під два слова. Збереження стоїть у тому ж рядку: окремим
+            рядком під ними кнопка читалась як дія всього екрана. */}
+        <div className="p-pair">
+          <div className="field">
+            <label htmlFor="first-name">Імʼя</label>
+            <input
+              id="first-name"
+              value={firstName}
+              autoComplete="given-name"
+              onChange={(event) => {
+                setFirstName(event.target.value);
+                setSaved(false);
+              }}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="last-name">Прізвище</label>
+            <input
+              id="last-name"
+              value={lastName}
+              autoComplete="family-name"
+              onChange={(event) => {
+                setLastName(event.target.value);
+                setSaved(false);
+              }}
+            />
+          </div>
+          <SaveButton
+            onClick={saveName}
+            disabled={!online || saving || !changed || problem !== null}
+            state={saving ? "saving" : saved && !changed ? "saved" : "idle"}
+          />
+        </div>
       </div>
+
+      {/* Правило бекенду, а не наша примха: `validate_name` приймає лише
+          українські літери. Кажемо про це до збереження, а не після 422. */}
+      {problem ? <div className="msg msg-error">{problem}</div> : null}
+      {nameError ? <div className="msg msg-error">{nameError}</div> : null}
       {error ? <div className="msg msg-error">{error}</div> : null}
       {/* Файл завантажився, а картинка з нього не приїхала — це не помилка
           користувача, і мовчати про неї не можна: без цього рядка залишається
           враження, що завантаження не спрацювало. Причина завжди одна —
           `S3_STORAGE_PUBLIC_ENDPOINT` на сервері не вказує на публічну адресу. */}
       {unreachable && !error ? (
-        <div className="hint">
+        <div className="p-note">
           Фото збережено, але показати його не вдалось — сховище недоступне з
           цього пристрою.
         </div>
       ) : null}
-    </>
-  );
-}
-
-function NameBlock() {
-  const { user, refreshUser } = useAuth();
-  const online = useOnline();
-  const [firstName, setFirstName] = useState(user?.first_name ?? "");
-  const [lastName, setLastName] = useState(user?.last_name ?? "");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
-
-  const problem = nameProblem(firstName) ?? nameProblem(lastName);
-  const changed = nameChanged(
-    { firstName: user?.first_name ?? null, lastName: user?.last_name ?? null },
-    { firstName, lastName },
-  );
-
-  const save = async () => {
-    if (!user || problem) return;
-    setError(null);
-    setSaving(true);
-    try {
-      await patchProfile(user.id, {
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-      });
-      await refreshUser();
-      setSaved(true);
-    } catch (issue) {
-      setError(messageOf(issue, "Не вдалось зберегти імʼя"));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <>
-      {/* Секційної мітки тут немає: підписи полів кажуть те саме, а «ІМʼЯ»
-          двічі поспіль виглядало б як помилка верстки. Обидва поля в один
-          рядок — окремими рядками вони займали б пів екрана під два слова. */}
-      <div className="p-pair">
-        <div className="field">
-          <label htmlFor="first-name">Імʼя</label>
-          <input
-            id="first-name"
-            value={firstName}
-            autoComplete="given-name"
-            onChange={(event) => {
-              setFirstName(event.target.value);
-              setSaved(false);
-            }}
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="last-name">Прізвище</label>
-          <input
-            id="last-name"
-            value={lastName}
-            autoComplete="family-name"
-            onChange={(event) => {
-              setLastName(event.target.value);
-              setSaved(false);
-            }}
-          />
-        </div>
-        {/* Збереження стоїть у тому ж рядку, що й поля: окремим рядком під ними
-            кнопка читалась як дія всього екрана, хоча вона стосується рівно
-            цих двох полів. */}
-        <SaveButton
-          onClick={save}
-          disabled={!online || saving || !changed || problem !== null}
-          state={saving ? "saving" : saved && !changed ? "saved" : "idle"}
-        />
-      </div>
-
-      {/* Правило бекенду, а не наша примха: `validate_name` приймає лише
-          українські літери. Кажемо про це до збереження, а не після 422. */}
-      {problem ? <div className="msg msg-error">{problem}</div> : null}
-      {error ? <div className="msg msg-error">{error}</div> : null}
     </>
   );
 }
@@ -312,41 +325,43 @@ function GoalsBlock({
 
   return (
     <>
-      <div className="p-pair">
-        <div className="field">
-          <label htmlFor="goal-new">Нових слів</label>
-          <input
-            id="goal-new"
-            inputMode="numeric"
-            value={nextNew}
-            onChange={(event) => {
-              setNextNew(event.target.value);
-              setSaved(false);
-            }}
+      <div className="p-card p-card-fields">
+        <div className="p-pair">
+          <div className="field">
+            <label htmlFor="goal-new">Нових слів</label>
+            <input
+              id="goal-new"
+              inputMode="numeric"
+              value={nextNew}
+              onChange={(event) => {
+                setNextNew(event.target.value);
+                setSaved(false);
+              }}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="goal-review">Повторень</label>
+            <input
+              id="goal-review"
+              inputMode="numeric"
+              value={nextReview}
+              onChange={(event) => {
+                setNextReview(event.target.value);
+                setSaved(false);
+              }}
+            />
+          </div>
+          <SaveButton
+            onClick={save}
+            disabled={disabled || !valid || !changed}
+            state={saved && !changed ? "saved" : "idle"}
           />
         </div>
-        <div className="field">
-          <label htmlFor="goal-review">Повторень</label>
-          <input
-            id="goal-review"
-            inputMode="numeric"
-            value={nextReview}
-            onChange={(event) => {
-              setNextReview(event.target.value);
-              setSaved(false);
-            }}
-          />
-        </div>
-        <SaveButton
-          onClick={save}
-          disabled={disabled || !valid || !changed}
-          state={saved && !changed ? "saved" : "idle"}
-        />
       </div>
 
       {/* Ціль — орієнтир, а не обмеження: застосунок ніколи не ховає картки,
           яким настав час. Нуль вимикає ціль. */}
-      <div className="hint">
+      <div className="p-note">
         Нуль вимикає ціль. Прострочені картки показуються завжди — ціль їх не
         обмежує.
       </div>
@@ -382,7 +397,7 @@ function VoiceBlock() {
 
   if (!speechAvailable) {
     return (
-      <div className="hint">
+      <div className="p-note">
         Цей браузер не вміє озвучувати. На Android голос дає застосунок «Google
         Синтез мовлення» з англомовним пакетом; на iPhone він уже вбудований.
       </div>
@@ -390,7 +405,7 @@ function VoiceBlock() {
   }
 
   const data = settings.data;
-  if (!data) return <div className="hint">Завантаження…</div>;
+  if (!data) return <div className="p-note">Завантаження…</div>;
 
   const locked = !online || update.isPending;
   const noEnglish = ready && !accentAvailable(voices, "auto");
@@ -398,156 +413,123 @@ function VoiceBlock() {
 
   return (
     <>
-      <div className="tts">
-        {/* Мікрорубрики над цим рядком немає навмисно: «Озвучення» стоїть
-            секційною міткою одразу над блоком, і другий підпис поспіль
-            читається як помилка верстки. */}
-        <div className="tts-group">
-          <div className="tts-opts">
-            <Opt
-              on={data.tts_enabled}
-              disabled={locked}
-              onClick={() => update.mutate({ tts_enabled: true })}
-            >
-              Увімкнено
-            </Opt>
-            <Opt
-              on={!data.tts_enabled}
-              disabled={locked}
-              onClick={() => update.mutate({ tts_enabled: false })}
-            >
-              Вимкнено
-            </Opt>
-          </div>
-        </div>
+      <div className="p-card">
+        {/* Підпис перемикача називає УВІМКНЕНИЙ стан, а не тему налаштування:
+            «Озвучення» з вимкненим перемикачем читається однозначно, а «Темп»
+            із вимкненим — ні. Через це «Звичайний / Повільний» стало
+            «Повільніше», а «Автоматично / Лише вручну» — «Промовляти саме». */}
+        <Switch
+          label="Озвучення"
+          on={data.tts_enabled}
+          disabled={locked}
+          onChange={(on) => update.mutate({ tts_enabled: on })}
+        />
 
         {/* Вимкнене озвучення ховає решту цілком: темп і акцент голосу, якого
             не буде, — це органи керування нічим. */}
         {data.tts_enabled ? (
           <>
-            <div className="tts-group">
-              <div className="tts-key">у навчанні</div>
-              <div className="tts-opts">
-                <Opt
-                  on={data.tts_autoplay}
-                  disabled={locked}
-                  onClick={() => update.mutate({ tts_autoplay: true })}
-                >
-                  Автоматично
-                </Opt>
-                <Opt
-                  on={!data.tts_autoplay}
-                  disabled={locked}
-                  onClick={() => update.mutate({ tts_autoplay: false })}
-                >
-                  Лише вручну
-                </Opt>
-              </div>
-            </div>
-
-            <div className="tts-group">
-              <div className="tts-key">акцент</div>
-              <div className="tts-opts">
-                {ACCENTS.map((accent) => (
-                  <Opt
-                    key={accent.value}
-                    on={data.tts_accent === accent.value}
-                    disabled={locked || missing(accent.value)}
-                    title={
-                      missing(accent.value)
-                        ? `${accent.full} голосу на цьому пристрої немає`
-                        : undefined
-                    }
-                    onClick={() => update.mutate({ tts_accent: accent.value })}
-                  >
-                    {accent.label}
-                  </Opt>
-                ))}
-              </div>
-            </div>
-
-            <div className="tts-group">
-              <div className="tts-key">темп</div>
-              <div className="tts-opts">
-                <Opt
-                  on={!data.tts_slow}
-                  disabled={locked}
-                  onClick={() => update.mutate({ tts_slow: false })}
-                >
-                  Звичайний
-                </Opt>
-                <Opt
-                  on={data.tts_slow}
-                  disabled={locked}
-                  onClick={() => update.mutate({ tts_slow: true })}
-                >
-                  Повільний
-                </Opt>
-              </div>
+            <Switch
+              label="Промовляти саме"
+              hint="У навчанні слово звучить без дотику"
+              on={data.tts_autoplay}
+              disabled={locked}
+              onChange={(on) => update.mutate({ tts_autoplay: on })}
+            />
+            <Switch
+              label="Повільніше"
+              on={data.tts_slow}
+              disabled={locked}
+              onChange={(on) => update.mutate({ tts_slow: on })}
+            />
+            <div className="p-line">
+              <span className="p-line-key">Акцент</span>
+              <Segmented
+                label="Акцент"
+                value={data.tts_accent}
+                disabled={locked}
+                options={ACCENTS.map((accent) => ({
+                  value: accent.value,
+                  label: accent.label,
+                  disabled: missing(accent.value),
+                  title: missing(accent.value)
+                    ? `${accent.full} голосу на цьому пристрої немає`
+                    : undefined,
+                }))}
+                onChange={(value) => update.mutate({ tts_accent: value })}
+              />
             </div>
           </>
         ) : null}
       </div>
 
-      {data.tts_enabled ? (
-        <>
-          <button
-            className="btn-quiet"
-            type="button"
-            onClick={() =>
-              void speak(TEST_PHRASE, { accent: data.tts_accent, slow: data.tts_slow })
-            }
-          >
-            Перевірити голос
-          </button>
-          {/* Не випадкові слова: саме на них чути різницю між US і UK, тож
-              перевірка заразом показує, чи справді змінився акцент. */}
-          <div className="hint">Прозвучить: «{TEST_PHRASE}»</div>
-        </>
-      ) : null}
-
       {noEnglish ? (
-        <div className="hint">
+        <div className="p-note">
           Англійських голосів на цьому пристрої не знайшлось. Слова
           озвучуватимуться тим, що є, а голос доставляється в налаштуваннях
           системи.
         </div>
       ) : null}
 
-      {!online ? <div className="hint">Змінити озвучення можна лише зі звʼязком.</div> : null}
+      {!online ? (
+        <div className="p-note">Змінити озвучення можна лише зі звʼязком.</div>
+      ) : null}
     </>
   );
 }
 
-/** Кнопка вибору. Той самий чип, що й у виборі напрямку на «Сьогодні». */
-function Opt({
-  on,
-  disabled,
-  title,
-  onClick,
-  children,
-}: {
-  on: boolean;
-  disabled?: boolean;
-  title?: string;
-  onClick: () => void;
-  children: ReactNode;
-}) {
+/**
+ * Вигляд: тема оформлення.
+ *
+ * Пишеться у ДВА місця, і обидва обовʼязкові. `storeThemePreference` малює
+ * негайно й кладе копію в `localStorage` заради першого кадру наступного
+ * запуску; `update.mutate` везе вибір на сервер, щоб він доїхав на інший
+ * пристрій. Мережі при цьому може не бути — і тоді тема все одно змінилась,
+ * бо перше з двох записів локальне. Це навмисно: вигляд не та річ, заради якої
+ * варто чекати на звʼязок.
+ */
+function ThemeBlock() {
+  const online = useOnline();
+  const update = useUpdateSettings();
+  const [theme, setTheme] = useState<ThemePreference>(readThemePreference);
+
   return (
-    <button
-      className={on ? "chip chip-on" : "chip"}
-      type="button"
-      disabled={disabled}
-      title={title}
-      aria-pressed={on}
-      onClick={onClick}
-    >
-      {children}
-    </button>
+    <>
+      <div className="p-card">
+        {/* Підпис над доріжкою, а не поруч: «Системна · Світла · Темна» —
+            двадцять символів, і в рядок із підписом вони не стають на жодному
+            телефоні. Акцент («Авто · US · UK») стає, тому там рядок. */}
+        <div className="p-line p-line-stack">
+          <span className="p-line-key">Тема</span>
+          <Segmented
+            label="Тема"
+            value={theme}
+            options={THEMES}
+            onChange={(value) => {
+              setTheme(value);
+              storeThemePreference(value);
+              if (online) update.mutate({ theme: value });
+            }}
+          />
+        </div>
+      </div>
+      {!online ? (
+        <div className="p-note">
+          Без звʼязку тема змінюється лише на цьому пристрої.
+        </div>
+      ) : null}
+    </>
   );
 }
 
-function PasswordBlock() {
+/**
+ * Обліковий запис: пояс і пароль однією панеллю.
+ *
+ * Пояс тут рядком, а не полем: він їде за телефоном сам (`timeZoneNeedsSync`),
+ * і показаний рівно для того, щоб було де побачити причину, якщо календар
+ * колись здасться дивним.
+ */
+function AccountBlock({ timezone }: { timezone: string }) {
   const online = useOnline();
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState("");
@@ -572,69 +554,83 @@ function PasswordBlock() {
     }
   };
 
-  if (!open) {
-    return (
-      <>
+  return (
+    <>
+      <div className="p-card">
+        <div className="p-line">
+          <span className="p-line-key">Часовий пояс</span>
+          <span className="p-line-val">{timezone}</span>
+        </div>
+        {/* Зміна пароля — рядок панелі, а не кнопка під нею: до неї доходять
+            раз на рік, і власна кнопка на всю ширину важила б стільки ж, що
+            «Вийти». */}
         <button
-          className="btn-quiet"
+          className="p-act"
           type="button"
-          disabled={!online}
+          disabled={!online || open}
           onClick={() => {
             setOpen(true);
             setDone(false);
           }}
         >
-          Змінити пароль
+          <span>Змінити пароль</span>
+          <OpenIcon />
         </button>
-        {done ? <div className="hint">Пароль змінено.</div> : null}
-      </>
-    );
-  }
-
-  return (
-    <div className="ed-panel">
-      <div className="field">
-        <label htmlFor="pwd-current">Поточний пароль</label>
-        <input
-          id="pwd-current"
-          type="password"
-          autoComplete="current-password"
-          value={current}
-          onChange={(event) => setCurrent(event.target.value)}
-        />
-      </div>
-      <div className="field">
-        <label htmlFor="pwd-next">Новий пароль</label>
-        <input
-          id="pwd-next"
-          type="password"
-          autoComplete="new-password"
-          value={next}
-          onChange={(event) => setNext(event.target.value)}
-        />
       </div>
 
-      {error ? <div className="msg msg-error">{error}</div> : null}
+      <div className="p-note">
+        Пояс визначається автоматично й змінюється разом із телефоном. Від нього
+        залежить, до якої доби потрапить нічне повторення.
+      </div>
 
-      <button
-        className="btn"
-        type="button"
-        disabled={!online || busy || !current || !next}
-        onClick={submit}
-      >
-        {busy ? "Зміна…" : "Змінити пароль"}
-      </button>
-      <button
-        className="btn-quiet"
-        type="button"
-        style={{ marginTop: 8 }}
-        onClick={() => {
-          setOpen(false);
-          setError(null);
-        }}
-      >
-        Скасувати
-      </button>
-    </div>
+      {done ? <div className="p-note">Пароль змінено.</div> : null}
+
+      {open ? (
+        <div className="p-card p-card-fields">
+          <div className="field">
+            <label htmlFor="pwd-current">Поточний пароль</label>
+            <input
+              id="pwd-current"
+              type="password"
+              autoComplete="current-password"
+              value={current}
+              onChange={(event) => setCurrent(event.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="pwd-next">Новий пароль</label>
+            <input
+              id="pwd-next"
+              type="password"
+              autoComplete="new-password"
+              value={next}
+              onChange={(event) => setNext(event.target.value)}
+            />
+          </div>
+
+          {error ? <div className="msg msg-error">{error}</div> : null}
+
+          <button
+            className="btn"
+            type="button"
+            disabled={!online || busy || !current || !next}
+            onClick={submit}
+          >
+            {busy ? "Зміна…" : "Змінити пароль"}
+          </button>
+          <button
+            className="btn-quiet"
+            type="button"
+            style={{ margin: "8px 0 14px" }}
+            onClick={() => {
+              setOpen(false);
+              setError(null);
+            }}
+          >
+            Скасувати
+          </button>
+        </div>
+      ) : null}
+    </>
   );
 }

@@ -129,8 +129,6 @@
 
 .field > input,
 .v-search,
-.ed-panel input,
-.ed-panel select,
 .ed-inline input,
 .ed-word-field > input,
 .ed-cat,
@@ -151,7 +149,6 @@
 
 .field > input::placeholder,
 .v-search::placeholder,
-.ed-panel input::placeholder,
 .ed-inline input::placeholder,
 .ed-cat::placeholder,
 .ed-body::placeholder {
@@ -160,8 +157,6 @@
 
 .field > input:focus,
 .v-search:focus,
-.ed-panel input:focus,
-.ed-panel select:focus,
 .ed-inline input:focus,
 .ed-cat:focus,
 .ed-body:focus {
@@ -727,41 +722,71 @@
 }
 
 /* --- сегментний перемикач ------------------------------------------------
-   Для напрямку, і поки що тільки для нього: рівно три взаємовиключні варіанти,
-   які завжди вміщаються в рядок. Чипи виглядають однаково і там, де можна
-   обрати кілька, — сегменти формою кажуть «одне з трьох».
+   Орган вибору «одне з двох-трьох» на весь застосунок: напрямок показу, акцент
+   голосу, тема, порядок витрини, режим імпорту. Був пристроєм одного екрана,
+   поки вибір деінде робився чипами; тепер чипів-станів немає ніде.
+
+   Чипи виглядають однаково і там, де можна обрати кілька, — доріжка формою
+   каже «одне з трьох». Але вона ж і обмежена: від чотирьох поділок вона знову
+   розсипається на окремі предмети, і тоді потрібен список, а не доріжка.
    ------------------------------------------------------------------------ */
 
 .seg {
   display: flex;
+  /* Відступ для доріжки, що стоїть під підписом розділу — так вона живе в
+     панелі «Сьогодні». У рядку профілю він гаситься: там відступи дає рядок. */
   margin: 6px 0 2px;
+  padding: 3px;
+  gap: 2px;
   border: 1px solid var(--edge);
   border-radius: 999px;
-  overflow: hidden;
+  background: var(--sheet-2);
+}
+
+/* Доріжка в рядку панелі стискається під свій вміст, а не займає весь рядок:
+   поруч із нею стоїть підпис («Акцент»), і на всю ширину вона зіштовхнула б
+   його за край. У стовпчику (`.p-line-stack`) обмеження знімається. */
+.p-line > .seg {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+
+.p-line-stack > .seg {
+  flex: none;
 }
 
 .seg > button {
   flex: 1;
-  padding: 10px 4px;
+  min-width: 0;
+  padding: 9px 12px;
   border: none;
+  border-radius: 999px;
   background: none;
   color: var(--haze);
   font-family: var(--sans);
   font-size: 13.5px;
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease;
 }
 
-.seg > button + button {
-  border-left: 1px solid var(--edge);
-}
-
+/* Вибране — суцільна зупинка рампи (ADR-0030). Було 16% від неї: на такій
+   заливці позиція доріжки читалась, лише коли на неї дивишся впритул, а це
+   орган, який мусить упізнаватись боковим зором. Тут колір нічого не міряє —
+   на цих екранах температури немає. */
 .seg > button.on {
-  background: color-mix(in srgb, var(--a1) 16%, transparent);
-  color: var(--frost);
+  background: var(--a1);
+  color: #fff;
 }
 
 .seg > button:disabled {
   cursor: default;
+  opacity: 0.35;
+}
+
+.seg > button.on:disabled {
   opacity: 0.6;
 }
 
@@ -2670,26 +2695,6 @@
 
 /* --- спільне з іншими екранами -------------------------------------------- */
 
-/* `.ed-panel` лишається аркушем зміни пароля в профілі: там під ним `.field` з
-   підписами, тобто зовсім інша будова, ніж у редактора картки вище. */
-.ed-panel {
-  border: 1px solid var(--edge);
-  border-radius: var(--r-sm);
-  background: var(--sheet);
-  box-shadow: var(--edge-lit);
-  padding: 12px;
-  margin-bottom: 10px;
-}
-
-.ed-panel input,
-.ed-panel select {
-  background: var(--night);
-  border: none;
-  border-radius: 11px;
-  padding: 11px 12px;
-  margin-bottom: 8px;
-}
-
 /* «Ще 28» — не список, а кнопка, що його розгортає. */
 .chip-more {
   border-style: dashed;
@@ -3277,24 +3282,38 @@ button.cal-c {
 /* ==========================================================================
    Профіль
 
-   Сяйва тут немає навмисно — з тієї самої причини, що й у редакторі: насичений
-   колір у цьому застосунку означає стан памʼяті слова, а на профілі його
-   немає. Екран тримається на тих самих нейтралях, що й решта хрому.
+   КОЛІР ТУТ Є, І ЦЕ НЕ ВИМІР (ADR-0030). Температури на профілі немає жодної,
+   тому зупинка рампи означає тут рівно те, що видно: увімкнений контрол. Стан
+   контрола говорить `--a1` і тільки він — одна зупинка на весь екран, інакше
+   «вибране» довелось би вгадувати заново в кожній панелі.
+
+   Гучне місце одне — плитка впізнання: сяйво над її краєм і кільце сяйва
+   навколо фото. Це ціла рампа, тобто підпис застосунку (ADR-0025), а не
+   значення, і саме тому їй можна те, чого не можна окремій зупинці.
+
+   Екран говорить панелями, як і редактор картки: секційний підпис зовні,
+   поверхня всередині. До цього він був пласким потоком, і два найдовші екрани
+   застосунку були збудовані по-різному без жодної причини.
    ========================================================================== */
 
-/* Плитка впізнання: фото і пошта. Стоїть окремою панеллю, а не стовпчиком під
-   заголовком — інакше рубрика, назва екрана й коло сходяться в три рядки
+/* Плитка впізнання: фото, пошта й імʼя. Стоїть окремою панеллю, а не стовпчиком
+   під заголовком — інакше рубрика, назва екрана й коло сходяться в три рядки
    поспіль і читаються як одна злипла грудка. */
 .p-id {
-  display: flex;
-  align-items: center;
-  gap: 14px;
   margin: 22px 0 24px;
-  padding: 14px;
+  padding: 16px;
   border: 1px solid var(--edge);
   border-radius: var(--r);
   background: var(--sheet);
   box-shadow: var(--lift);
+}
+
+/* Верхній рядок плитки: коло і пошта. Імʼя з прізвищем іде під ним на всю
+   ширину — у рядку з фото два поля лишали б на кожне по сім символів. */
+.p-id-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
 .p-id-main {
@@ -3307,10 +3326,16 @@ button.cal-c {
   overflow-wrap: anywhere;
 }
 
-.p-id-sub {
-  color: var(--haze-2);
-  font-size: 13px;
-  margin-top: 3px;
+/* Кільце сяйва навколо фото. Градієнт лежить на самому кільці, а не за колом:
+   тінь-ореол тут була б четвертим видом тіні на екрані, а кільце читається
+   як оправа. 2px — рівно стільки, щоб побачити всі шість зупинок; на 1px
+   рампа зливається в сіре, на 3px оправа починає змагатися з фотографією. */
+.p-ring {
+  flex: none;
+  padding: 2px;
+  border-radius: 50%;
+  background: var(--aurora);
+  line-height: 0;
 }
 
 /* Фото і є кнопка заміни. Підпис «змінити» лежить смужкою по нижньому краю
@@ -3318,12 +3343,12 @@ button.cal-c {
 .p-avatar {
   position: relative;
   flex: none;
-  width: 72px;
-  height: 72px;
+  width: 68px;
+  height: 68px;
   padding: 0;
   border-radius: 50%;
-  border: 1px solid var(--edge);
-  background: var(--sheet);
+  border: none;
+  background: var(--sheet-2);
   color: var(--haze);
   font-family: var(--display);
   font-size: 26px;
@@ -3379,9 +3404,10 @@ button.cal-c {
 }
 
 /* Кнопка тримається нижнього краю полів, а не їхніх зовнішніх відступів: у
-   `.field` знизу 16px, і без цього галочка провисала б під рамками. */
+   `.field` усередині панелі знизу 14px, і без цього галочка провисала б під
+   рамками. */
 .p-pair > .btn-save {
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .p-pair .field {
@@ -3389,66 +3415,207 @@ button.cal-c {
   min-width: 0;
 }
 
-/* Рядок «ключ — значення»: пошта й пояс. Це не поля, і виглядати вони як поля
-   не мусять — редагувати там нічого. */
-.p-row {
+/* --- панель профілю ------------------------------------------------------ */
+
+/* Поверхня секції. Та сама конструкція, що `.ed-block` у редакторі: підпис
+   зовні капітеллю, вміст усередині, роздільники до самих країв. */
+.p-card {
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  background: var(--sheet);
+  box-shadow: var(--edge-lit);
+  margin-bottom: 18px;
+  padding: 0 14px;
+}
+
+/* Роздільник між рядками панелі — не після останнього. `* + *`, а не
+   `border-bottom` на кожному: рядки бувають умовними (акцент зникає разом із
+   вимкненим озвученням), і межа тоді лишалась би висіти під порожнечею. */
+.p-card > * + * {
+  border-top: 1px solid var(--edge-soft);
+}
+
+/* Панель, що тримає поля з підписами, а не рядки. Нижнього відступу немає
+   свого: його дає `margin-bottom` останнього `.field`. */
+.p-card-fields {
+  padding: 14px 14px 0;
+}
+
+.p-card-fields > * + * {
+  border-top: none;
+}
+
+.p-id .field,
+.p-card-fields .field {
+  margin-bottom: 14px;
+}
+
+/* Поле всередині панелі — ЗАГЛИБЛЕНЕ, а не обведене.
+   Типове `.field > input` заливається `--sheet`, тобто рівно тим, чим залита
+   сама панель: усередині неї поле зникало б, лишаючи саму рамку. Тому тут воно
+   стає ямкою в поверхні — і в темряві, і на світлі, бо `--night` в обох темах
+   на крок глибший за `--sheet`. */
+.p-id .field > input,
+.p-card-fields .field > input {
+  background: var(--night);
+  border-color: transparent;
+}
+
+.p-id .field > input:focus,
+.p-card-fields .field > input:focus {
+  border-color: color-mix(in srgb, var(--a1) 55%, transparent);
+}
+
+/* Рядок «підпис — контрол». Одна конструкція для перемикача, сегмента й
+   значення, яке не редагують: інакше три сусідні рядки однієї панелі стояли б
+   на трьох різних висотах. */
+.p-line {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 13px 0;
-  border-bottom: 1px solid var(--edge-soft);
+  gap: 14px;
+  min-height: 52px;
+  padding: 8px 0;
 }
 
-.p-row-key {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--haze-2);
-  flex: none;
+/* Рядок, у якому контрол не вміщається поруч із підписом (сегмент на три
+   слова). Підпис стає над ним, а не поруч. */
+.p-line-stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
 }
 
-.p-row-val {
+.p-line-key {
   color: var(--frost);
+  font-size: 15px;
+  min-width: 0;
+}
+
+.p-line-val {
+  color: var(--haze);
   font-size: 15px;
   text-align: right;
   overflow-wrap: anywhere;
 }
 
-/* --- озвучення ---------------------------------------------------------- */
+/* Рядок панелі, що є кнопкою на весь її ряд: «Змінити пароль». */
+.p-act {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 0;
+  border: none;
+  background: none;
+  color: var(--frost);
+  font-family: var(--sans);
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+}
 
-/* Чотири преференції одного вигляду: мікропідпис і ряд чипів під ним. Чипи, а
-   не перемикачі й не випадаючі списки, — бо це ті самі органи, якими вже
-   вибирається напрямок показу на «Сьогодні», і другого способу вибирати з
-   двох-трьох названих варіантів у застосунку бути не повинно.
+.p-act:disabled {
+  color: var(--haze-2);
+  cursor: default;
+}
 
-   Підпис стоїть НАД чипами, а не збоку: «лише вручну» і «звичайний» поруч із
-   міткою не вміщаються в колонку телефона, а перенос розсипав би ряд. */
-.tts {
+.p-act svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--haze-2);
+}
+
+/* Підказка під панеллю, а не всередині: усередині вона ставала б ще одним
+   рядком і претендувала на роздільник, хоч керувати нею нічим. */
+.p-note {
+  margin: -10px 0 18px;
+  font-size: 13px;
+  color: var(--haze-2);
+  line-height: 1.5;
+}
+
+/* --- перемикач ------------------------------------------------------------ */
+
+/* Кнопкою є весь рядок, а не сама доріжка: доріжка 44px завширшки — надто
+   дрібна ціль, і поціляти в неї на ходу означало б промахуватись. */
+.sw-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 0;
+  border: none;
+  background: none;
+  font-family: var(--sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.sw-row:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.sw-text {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin-bottom: 16px;
+  gap: 2px;
+  min-width: 0;
 }
 
-.tts-key {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+.sw-label {
+  color: var(--frost);
+  font-size: 15px;
+}
+
+.sw-hint {
   color: var(--haze-2);
-  margin-bottom: 8px;
+  font-size: 12.5px;
+  line-height: 1.4;
 }
 
-.tts-opts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.sw {
+  flex: none;
+  position: relative;
+  width: 46px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--sheet-2);
+  border: 1px solid var(--edge);
+  transition: background 0.18s ease, border-color 0.18s ease;
 }
 
-/* Погашений чип — це твердження «на цьому пристрої такого голосу немає», а не
-   «зачекай». Тому він гасне лише тоді, коли список голосів уже приїхав. */
+.sw > i {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--haze);
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+
+/* Увімкнене — зупинка рампи. Заливка суцільна, а не 12% як у старого чипа:
+   перемикач мусить читатись боковим зором, а 12% на цю відстань не доживає. */
+.sw-on {
+  background: var(--a1);
+  border-color: var(--a1);
+}
+
+.sw-on > i {
+  background: #fff;
+  transform: translateX(18px);
+}
+
+/* Погашений чип — це твердження «цього тут немає», а не «зачекай». Лишається
+   для чипів-дій: підказок розділу в нотатці й причин скарги. */
 .chip:disabled {
   opacity: 0.35;
   cursor: default;

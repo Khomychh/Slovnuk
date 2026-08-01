@@ -428,6 +428,102 @@ export function SaveButton({
   );
 }
 
+/**
+ * Рядок панелі з підписом ліворуч і перемикачем праворуч.
+ *
+ * Замінив пару чипів «Увімкнено / Вимкнено». Пара чипів завжди коштувала двох
+ * рядків — рубрики над ними й самої пари — і показувала обидві відповіді там,
+ * де питання одне: чипом «Вимкнено» ніхто не користувався інакше, ніж щоб
+ * вимкнути.
+ *
+ * Плата, яку варто знати: перемикач вимагає, щоб підпис називав УВІМКНЕНИЙ
+ * стан («Повільніше», а не «Темп»). Інакше незрозуміло, що саме він робить.
+ */
+export function Switch({
+  label,
+  on,
+  disabled,
+  hint,
+  onChange,
+}: {
+  label: string;
+  on: boolean;
+  disabled?: boolean;
+  /** Дрібним під підписом. Для того, що інакше пішло б окремим рядком `.hint`. */
+  hint?: string;
+  onChange: (on: boolean) => void;
+}) {
+  return (
+    <button
+      className="sw-row"
+      type="button"
+      role="switch"
+      aria-checked={on}
+      disabled={disabled}
+      onClick={() => onChange(!on)}
+    >
+      <span className="sw-text">
+        <span className="sw-label">{label}</span>
+        {hint ? <span className="sw-hint">{hint}</span> : null}
+      </span>
+      <span className={on ? "sw sw-on" : "sw"} aria-hidden="true">
+        <i />
+      </span>
+    </button>
+  );
+}
+
+/**
+ * Вибір одного з двох-трьох варіантів суцільною доріжкою.
+ *
+ * Це той самий орган, яким на «Сьогодні» вибирають напрямок показу, — саме
+ * тому він тут, а не в профілі: доріжка перестала бути пристроєм одного
+ * екрана. Замінив ряди чипів у профілі, бібліотеці й імпорті.
+ *
+ * Різниця з чипами не косметична: чипи — це N окремих предметів, між якими око
+ * щоразу шукає, котрий із них засвічений, а доріжка — один предмет, у якому
+ * видно позицію. Тому вона й дозволена лише на короткі набори: від чотирьох
+ * поділок доріжка знову розсипається на предмети.
+ *
+ * Погашена поділка означає «цього тут немає» (голосу на пристрої), а не
+ * «зачекай» — гасити можна лише тоді, коли це вже точно відомо.
+ */
+export function Segmented<T extends string>({
+  label,
+  value,
+  options,
+  disabled,
+  onChange,
+}: {
+  /** Читається екранним читачем; візуально підпис стоїть окремо в рядку. */
+  label: string;
+  value: T | undefined;
+  options: { value: T; label: string; disabled?: boolean; title?: string }[];
+  disabled?: boolean;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="seg" role="group" aria-label={label}>
+      {options.map((option) => {
+        const on = option.value === value;
+        return (
+          <button
+            key={option.value}
+            className={on ? "on" : ""}
+            type="button"
+            aria-pressed={on}
+            title={option.title}
+            disabled={disabled || option.disabled}
+            onClick={() => onChange(option.value)}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function Message({
   kind = "info",
   children,
