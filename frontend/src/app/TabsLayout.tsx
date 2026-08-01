@@ -20,6 +20,7 @@
 import { useEffect } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useOnline } from "../app/useOnline";
+import { useThemeSync } from "./useTheme";
 import { useTimeZoneSync } from "../study/queries";
 import { init } from "../study/store";
 
@@ -84,6 +85,10 @@ export default function TabsLayout() {
 
   // Пояс переписується сам, коли телефон переїхав: органу керування ним немає.
   useTimeZoneSync();
+
+  // Тему могли змінити на іншому пристрої. Стоїть поруч із поясом, бо питання
+  // те саме: налаштування приїхало з сервера — вирівняти по ньому пристрій.
+  useThemeSync();
 
   return (
     <>

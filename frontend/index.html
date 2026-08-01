@@ -9,7 +9,8 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <!-- Дорівнює --night у theme.css. Розійтись їм не можна: смуга статусу
-         телефона стоїть упритул до застосунку, і різниця читається як шов. -->
+         телефона стоїть упритул до застосунку, і різниця читається як шов.
+         Значення переставляє скрипт нижче, якщо тема світла. -->
     <meta name="theme-color" content="#070a14" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -17,6 +18,35 @@
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <title>Slovnuk</title>
+    <!-- Тема ставиться ДО першого малювання і тому тут, а не в застосунку.
+         Преференція живе на сервері, але дзеркало налаштувань лежить в
+         IndexedDB, тобто читається асинхронно: до відповіді встиг би
+         намалюватись кадр полярної ночі, і кожен холодний старт у світлій
+         темі починався б зі спалаху. `localStorage` синхронний.
+
+         Дублює `applyTheme` з `src/app/theme.ts` — навмисно: модуль сюди не
+         імпортується, бо будь-який `type="module"` відкладається до розбору
+         документа, а це вже після першого кадру. Міняти обидва разом. -->
+    <script>
+      (function () {
+        try {
+          var pref = localStorage.getItem("slovnuk.theme");
+          if (pref !== "light" && pref !== "dark") pref = "system";
+          var light =
+            pref === "light" ||
+            (pref === "system" &&
+              matchMedia("(prefers-color-scheme: light)").matches);
+          document.documentElement.dataset.theme = light ? "light" : "dark";
+          if (light) {
+            document
+              .querySelector('meta[name="theme-color"]')
+              .setAttribute("content", "#eef1fa");
+          }
+        } catch (e) {
+          document.documentElement.dataset.theme = "dark";
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
