@@ -5,13 +5,10 @@
  * фільтр рахує сервер: при пагінації по 50 фільтрація по завантаженому тихо
  * брехала б — слово є, але воно на сороковій сторінці.
  *
- * Рядок навмисно бідний: без крапки «час повторити» (після імпорту прострочені
- * всі доріжки, і вона стояла б на кожному рядку) і без тегів списків (540 із
- * 608 карток лежать в одному списку, тобто тег не ніс би інформації).
- *
- * Єдине, що рядок каже понад текст, — температура на лівій рисці (ADR-0017).
- * Разом із порядком «спершу холодні» це робить прокрутку словника розгорнутою
- * тепловою смугою «Прогресу»: та сама величина, ті самі шість зупинок.
+ * Сам рядок живе в `vocabulary/CardRow` — його малює ще й «Сьогодні». Разом із
+ * порядком «спершу холодні» температура на його лівій рисці робить прокрутку
+ * словника розгорнутою тепловою смугою «Прогресу»: та сама величина, ті самі
+ * шість зупинок.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -19,7 +16,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useOnline } from "../app/useOnline";
 import { ProfileAvatar } from "../profile/ProfileAvatar";
 import { ListsIcon, Screen } from "../ui/parts";
-import { senseSummary, distinctTranscriptions, type Card } from "../vocabulary/card";
 import {
   EMPTY_BROWSE,
   flatten,
@@ -27,10 +23,9 @@ import {
   useLists,
   type Browse,
 } from "../vocabulary/queries";
+import CardRow from "../vocabulary/CardRow";
 import ListFilterSheet from "../vocabulary/ListFilterSheet";
 import SortSheet from "../vocabulary/SortSheet";
-import { cardTemperature } from "../study/temperature";
-import { SpeakButton } from "../tts/SpeakButton";
 import { lists as listsLabel, words } from "../ui/plural";
 import type { CardSort } from "../api/vocabulary";
 
@@ -40,39 +35,6 @@ const SORT_LABEL: Record<CardSort, string> = {
   word: "за абеткою",
   stability: "спершу холодні",
 };
-
-function CardRow({ card, onOpen }: { card: Card; onOpen: () => void }) {
-  const summary = senseSummary(card);
-  const transcriptions = distinctTranscriptions(card);
-  // Довге «слово» — не рідкість: у словнику є цілі речення на 61 символ. Тоді
-  // транскрипція поруч не поміститься, і показувати її не варто.
-  const longWord = card.word.length > 24;
-
-  // Рядок — не кнопка, а смуга з кнопкою всередині: динамік поруч мусить бути
-  // окремим органом, а кнопка в кнопці недопустима в розмітці й непередбачувана
-  // в поведінці.
-  return (
-    <div
-      className="v-row"
-      // Риска ліворуч несе температуру (ADR-0017). Підказкою вона тут бути не
-      // може: поруч уже стоїть переклад, тобто ховати нічого — на відміну від
-      // закритої картки навчання, де той самий колір заборонений (ADR-0016).
-      style={{ "--temp": cardTemperature(card.tracks) } as React.CSSProperties}
-    >
-      <button className="v-row-main" type="button" onClick={onOpen}>
-        <span className="v-word-line">
-          <span className="v-word">{card.word}</span>
-          {!longWord && transcriptions.length > 0 ? (
-            <span className="v-ipa">{transcriptions.join(" · ")}</span>
-          ) : null}
-          {card.forms.length > 0 ? <span className="v-tag">форми</span> : null}
-        </span>
-        {summary ? <span className="v-tr">{summary}</span> : null}
-      </button>
-      <SpeakButton text={card.word} className="spk-row" />
-    </div>
-  );
-}
 
 export default function VocabularyScreen() {
   const navigate = useNavigate();

@@ -27,6 +27,25 @@ if not os.environ["POSTGRES_DB"].endswith("_test"):
 os.environ.setdefault("SECRET_KEY_ACCESS", "test-only-access-key")
 os.environ.setdefault("SECRET_KEY_REFRESH", "test-only-refresh-key")
 
+# Тільки IPv4, і це не косметика. У .env `POSTGRES_HOST=localhost`, а на Windows
+# `localhost` резолвиться і в `127.0.0.1`, і в `::1`. Postgres же опублікований
+# рівно на IPv4 (`docker-compose.yml`: "127.0.0.1:5432:5432"), тож коли резолвер
+# віддає `::1`, з'єднання лишається в SynSent і висить, доки Windows не набридне
+# повторювати SYN — хвилини, а не секунди.
+#
+# Ловиться це важко, бо воно НЕ детерміноване: `_clean_db` створює новий engine
+# після кожного тесту, тобто резолвить `localhost` 192 рази за прогін, і досить
+# одного невдалого. Симптом виглядає як «набір застиг посеред випадкового
+# тесту», причому щоразу іншого.
+os.environ.setdefault("POSTGRES_HOST", "127.0.0.1")
+
+# Ключ Anthropic гаситься ЖОРСТКО, а не через setdefault: інакше набір читав би
+# справжній ключ із кореневого .env, і тести «без ключа фічі немає» червоніли б
+# рівно тоді, коли ШІ увімкнули по-справжньому. Ходити в мережу за гроші вони
+# однаково не почали б — Claude підмінений FakeAiClient, — але поводились би
+# по-різному на різних машинах.
+os.environ["ANTHROPIC_API_KEY"] = ""
+
 import subprocess  # noqa: E402
 import sys  # noqa: E402
 from functools import lru_cache  # noqa: E402
@@ -45,11 +64,28 @@ from sqlalchemy.pool import NullPool  # noqa: E402
 import app.database.database as db_module  # noqa: E402
 from app.config.dependencies import (  # noqa: E402
     get_accounts_email_notificator,
+    get_ai_client,
     get_jwt_auth_manager,
     get_s3_storage_client,
     get_settings,
 )
-from app.database.models import Base, UserGroupModel, UserModel  # noqa: E402
+from app.database.models import (  # noqa: E402
+    AiAccessModel,
+    Base,
+    PartOfSpeechEnum,
+    TranscriptionVarietyEnum,
+    UserGroupModel,
+    UserModel,
+)
+from app.integrations.interfaces import AiCall, AiClientInterface  # noqa: E402
+from app.schemas.ai import (  # noqa: E402
+    AiExampleSchema,
+    AiFormSchema,
+    AiProposalSchema,
+    AiRefusalSchema,
+    AiResultSchema,
+    AiSenseSchema,
+)
 from app.database.models.accounts import UserGroupEnum  # noqa: E402
 from app.database.models.user_settings import UserSettingsModel  # noqa: E402
 from app.main import app  # noqa: E402
@@ -232,6 +268,93 @@ class FakeS3Storage(S3StorageInterface):
 @pytest.fixture
 def s3_storage() -> FakeS3Storage:
     return FakeS3Storage()
+
+
+# --------------------------------------------------------------------------
+# ШІ
+# --------------------------------------------------------------------------
+
+
+class FakeAiClient(AiClientInterface):
+    """
+    Замість Claude. Без нього набір або ходив би в мережу за гроші, або не
+    перевіряв би нічого з того, що робить роут навколо виклику.
+
+    За замовчуванням віддає пропозицію; `refuse_with` і `fail_with` перемикають
+    на дві інші гілки. `calls` тримає аргументи — саме так перевіряється, що
+    преференція транскрипції справді доїжджає до промпта.
+    """
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, TranscriptionVarietyEnum]] = []
+        self.refuse_with: AiRefusalSchema | None = None
+        self.fail_with: Exception | None = None
+        self.proposal = AiProposalSchema(
+            senses=[
+                AiSenseSchema(
+                    part_of_speech=PartOfSpeechEnum.VERB,
+                    translation="бігти",
+                    transcription="/rʌn/",
+                    examples=[AiExampleSchema(text_en="I run.", text_uk="Я біжу.")],
+                )
+            ],
+            forms=[AiFormSchema(label="Past", value="ran", transcription="/ræn/")],
+            comment=None,
+        )
+        self.model = "fake-model"
+        self.input_tokens = 600
+        self.output_tokens = 800
+
+    async def propose_card(
+        self, word: str, transcription_variety: TranscriptionVarietyEnum
+    ) -> AiCall:
+        self.calls.append((word, transcription_variety))
+        if self.fail_with is not None:
+            raise self.fail_with
+        result = (
+            AiResultSchema(refusal=self.refuse_with)
+            if self.refuse_with is not None
+            else AiResultSchema(proposal=self.proposal)
+        )
+        return AiCall(
+            result=result,
+            model=self.model,
+            input_tokens=self.input_tokens,
+            output_tokens=self.output_tokens,
+        )
+
+
+@pytest.fixture
+def ai_client() -> FakeAiClient:
+    return FakeAiClient()
+
+
+@pytest.fixture
+def ai_enabled(client: AsyncClient, ai_client: FakeAiClient) -> FakeAiClient:
+    """
+    Увімкнути ШІ на цьому «сервері».
+
+    Окремою фікстурою, а не в `client`: без неї `get_ai_client` віддає None (у
+    тестах немає ключа), і решта набору бачить рівно те, що побачив би сервер
+    без ключа. Тобто «фічі тут немає» — стан за замовчуванням, і його не треба
+    імітувати окремо.
+
+    Залежить від `client`, щоб підміна встала ПІСЛЯ того, як той виставить
+    свої, і дожила до його ж `dependency_overrides.clear()`.
+    """
+    app.dependency_overrides[get_ai_client] = lambda: ai_client
+    return ai_client
+
+
+@pytest.fixture
+def grant_ai_access(db_session: AsyncSession):
+    """Видати доступ до ШІ — те саме, що робить scripts/ai_access.py grant."""
+
+    async def _grant(user: UserModel) -> None:
+        db_session.add(AiAccessModel(user_id=user.id))
+        await db_session.commit()
+
+    return _grant
 
 
 # --------------------------------------------------------------------------

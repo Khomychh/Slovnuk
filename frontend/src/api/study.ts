@@ -8,6 +8,7 @@
 
 import { apiFetch } from "./client";
 import type { components } from "./schema";
+import type { Aim } from "../study/session";
 
 export type QueueResponse = components["schemas"]["QueueResponseSchema"];
 export type TrackReviewResponse = components["schemas"]["TrackReviewResponseSchema"];
@@ -27,12 +28,15 @@ export type WordListPage = components["schemas"]["WordListPageSchema"];
  * перші N.
  */
 export function fetchQueue(
-  listIds: number[],
+  aim: Aim,
   limit = 50,
   signal?: AbortSignal,
 ): Promise<QueueResponse> {
   const params = new URLSearchParams({ limit: String(limit) });
-  for (const id of listIds) params.append("list_ids", String(id));
+  for (const id of aim.listIds) params.append("list_ids", String(id));
+  // Прапорець ставиться лише коли він увімкнений: `unlisted=false` у рядку
+  // запиту зробив би два різні URL для того самого вибору.
+  if (aim.unlisted) params.set("unlisted", "true");
   return apiFetch<QueueResponse>(`/study/queue/?${params}`, { signal });
 }
 

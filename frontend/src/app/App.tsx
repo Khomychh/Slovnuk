@@ -122,6 +122,9 @@ export default function App() {
             </RequireAuth>
           }
         >
+          {/* Налаштування навчання (напрямок, групи слів) панеллю під героєм
+              «Сьогодні», а не власним маршрутом: маршрут /study/settings
+              існував, поки шестерня відкидала на нього і назад. */}
           <Route index element={<TodayScreen />} />
           <Route path="/vocabulary" element={<VocabularyScreen />} />
           <Route path="/vocabulary/lists" element={<ListsScreen />} />

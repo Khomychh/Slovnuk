@@ -112,6 +112,26 @@ async def test_queue_respects_limit(client: AsyncClient, auth_headers):
     assert body["new_count"] == 4
 
 
+async def test_queue_limit_zero_counts_only(client: AsyncClient, auth_headers):
+    """
+    limit=0 — самі лічильники, без карток.
+
+    Так фронтенд питає «скільки їх тепер», поки людина переводить вибір груп:
+    кнопка «Вчити» стоїть просто над панеллю вибору й мусить говорити про той
+    вибір, який зараз на екрані. Тягти на кожен дотик 50 карток із прогнозами
+    інтервалів заради двох чисел було б марно.
+    """
+    await _create_card(client, auth_headers, word="run")
+    await _create_card(client, auth_headers, word="go")
+
+    response = await client.get(f"{API}/queue/?limit=0", headers=auth_headers)
+    assert response.status_code == 200, response.text
+
+    body = response.json()
+    assert body["items"] == []
+    assert body["new_count"] == 4
+
+
 # --------------------------------------------------------------------------
 # Оцінка
 # --------------------------------------------------------------------------

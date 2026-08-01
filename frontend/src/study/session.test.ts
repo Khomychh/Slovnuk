@@ -9,6 +9,8 @@
 import { describe, expect, it } from "vitest";
 import {
   AGAIN_GAP,
+  aimIsAll,
+  aimKey,
   applyCardEdit,
   applyRating,
   cardSide,
@@ -17,6 +19,7 @@ import {
   emptyProgress,
   mergeIncoming,
   progressValue,
+  sameAim,
   syncProgress,
   type QueueItem,
 } from "./session";
@@ -285,5 +288,40 @@ describe("dropCard", () => {
   it("картки, якої в буфері немає, не помічає", () => {
     const buffer = [track(1), track(2)];
     expect(ids(dropCard(buffer, 999))).toEqual([1, 2]);
+  });
+});
+
+describe("вибір груп", () => {
+  it("порожній вибір означає «усі слова», а не «жодного»", () => {
+    expect(aimIsAll({ listIds: [], unlisted: false })).toBe(true);
+  });
+
+  it("«без списку» сам по собі — це вже вибір, а не порожнеча", () => {
+    // Без цього вибір «вчу тільки те, що без списку» мовчки перетворювався б
+    // на «вчу все»: списків у ньому справді нема.
+    expect(aimIsAll({ listIds: [], unlisted: true })).toBe(false);
+  });
+
+  it("порядок списків вибору не міняє", () => {
+    // Інакше перевибір тих самих списків в іншому порядку викидав би повний
+    // буфер і слав зайву вибірку на 50 карток.
+    expect(
+      sameAim({ listIds: [7, 3], unlisted: false }, { listIds: [3, 7], unlisted: false }),
+    ).toBe(true);
+  });
+
+  it("«без списку» відрізняє вибори з тими самими списками", () => {
+    expect(
+      sameAim({ listIds: [3], unlisted: true }, { listIds: [3], unlisted: false }),
+    ).toBe(false);
+  });
+
+  it("ключ порожнього вибору не збігається з ключем «лише без списку»", () => {
+    // Ключем звіряють, чи годиться збережений буфер. Збіг тут означав би, що
+    // після перезапуску людина побачила б картки з усього словника там, де
+    // вибрала лише картки без списку.
+    expect(aimKey({ listIds: [], unlisted: false })).not.toBe(
+      aimKey({ listIds: [], unlisted: true }),
+    );
   });
 });

@@ -53,6 +53,22 @@ class Settings(BaseSettings):
     PASSWORD_RESET_TEMPLATE_NAME: str = "password_reset_request.html"
     PASSWORD_RESET_COMPLETE_TEMPLATE_NAME: str = "password_reset_complete.html"
 
+    # Заповнення картки з ШІ.
+    #
+    # Порожній ключ — це рубильник, а не помилка конфігурації: без нього фічі на
+    # цьому сервері немає взагалі, роут віддає 503, і жоден користувач її не
+    # бачить, навіть той, кому видано доступ. Саме тому дефолт "" — локальна
+    # розробка й тести піднімаються без ключа й без жодного звернення до Claude.
+    #
+    # Ключ керує НАЯВНІСТЮ фічі, а таблиця ai_access — ПРАВОМ на неї. Дві
+    # незалежні перевірки, два різні коди: 503 проти 403.
+    ANTHROPIC_API_KEY: str = ""
+    # Модель у налаштуваннях, а не константою в коді: міняється в .env без
+    # правки коду. Дефолт — рекомендація Anthropic для нових інтеграцій; чи
+    # вистачить дешевшої, видно тільки на живих словах і живому рахунку.
+    AI_MODEL: str = "claude-opus-5"
+    AI_TIMEOUT_SECONDS: float = 60.0
+
     # Frontend
     FRONTEND_BASE_URL: str = "http://localhost:5173"
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]

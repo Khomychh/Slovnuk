@@ -14,7 +14,12 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.models import Base, TimestampMixin
-from app.database.models.enums import StudyDirectionEnum, ThemeEnum, TtsAccentEnum
+from app.database.models.enums import (
+    StudyDirectionEnum,
+    ThemeEnum,
+    TranscriptionVarietyEnum,
+    TtsAccentEnum,
+)
 
 
 if TYPE_CHECKING:
@@ -50,6 +55,19 @@ class UserSettingsModel(Base, TimestampMixin):
     # Налаштування вивчення
     study_direction: Mapped[StudyDirectionEnum] = mapped_column(
         Enum(StudyDirectionEnum), default=StudyDirectionEnum.EN_UK, nullable=False
+    )
+
+    # Якою системою ШІ записує транскрипцію в нових картках. Живе тут, а не в
+    # ai_access, бо це властивість людини, а не її доступу: зняв доступ і повернув
+    # — вибір лишився. І будь-яке інше джерело транскрипції (ручне поле, імпорт
+    # зі словника) питатиме те саме, тож прив'язувати відповідь до ШІ не можна.
+    #
+    # Заднім числом не діє: вибір міняє те, що ШІ запропонує ДАЛІ. Старі картки
+    # лишаються як були — це нормальний стан, а не розсинхрон.
+    transcription_variety: Mapped[TranscriptionVarietyEnum] = mapped_column(
+        Enum(TranscriptionVarietyEnum),
+        default=TranscriptionVarietyEnum.GB,
+        nullable=False,
     )
 
     # Опції озвучування

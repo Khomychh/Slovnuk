@@ -23,13 +23,17 @@ import {
 import * as db from "./db";
 import { localDay, resolveTimeZone, type DayKey } from "./day";
 import {
+  aimKey,
   applyCardEdit,
   applyRating,
   countAnswer,
   dropCard,
   emptyProgress,
+  EMPTY_AIM,
   mergeIncoming,
+  sameAim,
   syncProgress,
+  type Aim,
   type Progress,
   type QueueItem,
   type Rating,
@@ -49,7 +53,17 @@ export type StudyState = {
   /** Скільки відповідей чекають на відправку. */
   pending: number;
   progress: Progress;
-  listFilter: number[];
+  /** Вибір груп — звідки береться черга. Порожній означає «усі слова». */
+  aim: Aim;
+  /**
+   * Вибір щойно перевели, і скільки там тепер — ще невідомо.
+   *
+   * Без цього прапорця в стані було два значення на три випадки: «рахую»
+   * (`refilling`) і «нічого немає» (лічильники по нулях). Мить між дотиком по
+   * рядку й відповіддю сервера потрапляла в друге — і екран казав «Все
+   * повторено» рівно тоді, коли людина дивилась, що ж вона щойно вибрала.
+   */
+  aimCounting: boolean;
   /** Останнє відоме «Сьогодні» — щоб офлайн-відкриття не показувало порожнечу. */
   snapshotToday: TodayResponse | null;
   snapshotDays: DaysResponse | null;
@@ -73,7 +87,8 @@ let state: StudyState = {
   newCount: 0,
   pending: 0,
   progress: emptyProgress(localDay(new Date(), "UTC")),
-  listFilter: [],
+  aim: EMPTY_AIM,
+  aimCounting: false,
   snapshotToday: null,
   snapshotDays: null,
   snapshotSettings: null,
@@ -107,9 +122,6 @@ function today(): DayKey {
   return localDay(new Date(), timeZone);
 }
 
-function filterKeyOf(listIds: number[]): string {
-  return [...listIds].sort((a, b) => a - b).join(",");
-}
 
 // --- запуск ---
 
@@ -126,7 +138,7 @@ export function init(): Promise<void> {
     void db.requestPersistence();
 
     const [
-      listFilter,
+      aim,
       buffer,
       progress,
       snapshotToday,
@@ -144,11 +156,11 @@ export function init(): Promise<void> {
     ]);
 
     const day = today();
-    const usable = buffer && buffer.filterKey === filterKeyOf(listFilter);
+    const usable = buffer && buffer.filterKey === aimKey(aim);
 
     set({
       ready: true,
-      listFilter,
+      aim,
       buffer: usable ? buffer.items : [],
       dueCount: usable ? buffer.dueCount : 0,
       newCount: usable ? buffer.newCount : 0,
@@ -171,14 +183,100 @@ export function init(): Promise<void> {
   return initPromise;
 }
 
-// --- фільтр списків ---
+// --- вибір груп ---
 
-export async function setListFilter(listIds: number[]): Promise<void> {
-  if (filterKeyOf(listIds) === filterKeyOf(state.listFilter)) return;
-  await db.writeListFilter(listIds);
+/** Скільки чекати після останнього дотику, перш ніж питати «скільки їх тепер». */
+const AIM_SETTLE_MS = 500;
+
+let aimTimer: ReturnType<typeof setTimeout> | null = null;
+let aimProbe: AbortController | null = null;
+
+/** Забути про відкладене питання «скільки» — його або вже не треба, або пізно. */
+function cancelProbe(): void {
+  if (aimTimer !== null) clearTimeout(aimTimer);
+  aimTimer = null;
+  aimProbe?.abort();
+  aimProbe = null;
+}
+
+/**
+ * Змінити вибір груп.
+ *
+ * Картки тут НЕ запитуються, і це навмисно. Вибір переводять дотиками по
+ * рядках — вибрав три списки, передумав, зняв один. Повна вибірка на кожен
+ * дотик означала б чотири порції по 50 карток, з яких три викидаються, не
+ * доїхавши. Порція приїжджає раз, у `aimSettled`.
+ *
+ * А от лічильники питаються, бо кнопка «Вчити» стоїть просто над панеллю і
+ * мусить говорити про той вибір, який зараз на екрані. Питаються з паузою після
+ * останнього дотику й без карток (`limit=0`) — три перекинуті думки коштують
+ * одного запиту за двома числами, а не трьох вибірок.
+ *
+ * Буфер скидається одразу: показувати картки зі списків, які вже не обрані,
+ * гірше, ніж не показувати нічого.
+ */
+export async function setAim(aim: Aim): Promise<void> {
+  if (sameAim(aim, state.aim)) return;
+  cancelProbe();
+  await db.writeListFilter(aim);
   await db.clearBuffer();
-  // Буфер набирався за інших умов — усе, що в ньому лежить, більше не підходить.
-  set({ listFilter: listIds, buffer: [], dueCount: 0, newCount: 0 });
+  // Офлайн лічильників не буде, і чесніше сказати нуль, ніж вічно «Рахую…».
+  // Самі рядки вибору офлайн і так недоступні — це запобіжник, не сценарій.
+  const online = navigator.onLine;
+  set({ aim, buffer: [], dueCount: 0, newCount: 0, aimCounting: online });
+  if (!online) return;
+  aimTimer = setTimeout(() => void probeAim(), AIM_SETTLE_MS);
+}
+
+/**
+ * Спитати самі лічильники нового вибору.
+ *
+ * Відповідь на давній вибір відкидається: поки два числа летіли, рядки могли
+ * перевести ще раз, і показати ці числа означало б відповісти на позавчорашнє
+ * питання.
+ */
+async function probeAim(): Promise<void> {
+  aimTimer = null;
+  const controller = new AbortController();
+  aimProbe = controller;
+  const asked = aimKey(state.aim);
+
+  try {
+    const response = await fetchQueue(state.aim, 0, controller.signal);
+    if (aimKey(state.aim) !== asked) return;
+    set({
+      dueCount: response.due_count,
+      newCount: response.new_count,
+      aimCounting: false,
+    });
+  } catch {
+    // Скасували новим дотиком — про це подбає той дотик. Зникла мережа — про це
+    // скаже прапорець офлайну. Обидва випадки лишають екран без «Рахую…».
+    if (aimKey(state.aim) === asked) set({ aimCounting: false });
+  } finally {
+    if (aimProbe === controller) aimProbe = null;
+  }
+}
+
+/**
+ * Вибирати закінчили — піти по саму чергу.
+ *
+ * Викликається на згортання панелі, а не на зміну вибору. Це і є те «Готово»,
+ * якого немає на екрані: кнопки не треба, бо згорнути панель і означає, що
+ * людина закінчила вибирати.
+ *
+ * Без цього виклику лічильники були б, а карток — ні: `setAim` чистить буфер,
+ * а `probeAim` навмисно нічим його не наповнює.
+ */
+export async function aimSettled(): Promise<void> {
+  // Пауза після останнього дотику вже не потрібна: повна вибірка привезе ті
+  // самі два числа разом із картками.
+  cancelProbe();
+  if (state.aimCounting) set({ aimCounting: false });
+  if (state.buffer.length > 0 || !navigator.onLine) return;
+  await refill().catch(() => {
+    /* мережа могла зникнути між згортанням і запитом — екран скаже про офлайн */
+  });
 }
 
 // --- поповнення буфера ---
@@ -188,7 +286,7 @@ async function persistBuffer(): Promise<void> {
     items: state.buffer,
     dueCount: state.dueCount,
     newCount: state.newCount,
-    filterKey: filterKeyOf(state.listFilter),
+    filterKey: aimKey(state.aim),
     fetchedAt: new Date().toISOString(),
   });
 }
@@ -203,12 +301,15 @@ export async function refill(): Promise<void> {
   if (state.refilling) return;
   set({ refilling: true });
   try {
-    const response = await fetchQueue(state.listFilter, QUEUE_LIMIT);
+    const response = await fetchQueue(state.aim, QUEUE_LIMIT);
     const pending = await db.pendingTrackIds();
     set({
       buffer: mergeIncoming(state.buffer, response.items, pending),
       dueCount: response.due_count,
       newCount: response.new_count,
+      // Повна вибірка відповідає на те саме питання, що й `probeAim`, тільки
+      // ще й картками. Чекати після неї нема на що.
+      aimCounting: false,
     });
     await persistBuffer();
   } catch (error) {

@@ -57,7 +57,12 @@ async def get_own_track_for_update(
     return (await db.execute(stmt)).scalars().first()
 
 
-def _queue_conditions(user_id: int, list_ids: Sequence[int] | None, now: datetime):
+def _queue_conditions(
+    user_id: int,
+    list_ids: Sequence[int] | None,
+    now: datetime,
+    unlisted: bool = False,
+):
     """
     Спільний фільтр черги для вибірки і для лічильників — щоб число «705
     карток на повторення» не розходилося з тим, що реально прийде.
@@ -65,6 +70,12 @@ def _queue_conditions(user_id: int, list_ids: Sequence[int] | None, now: datetim
     Доріжка FORMS показується лише коли в картки справді є форми і тренування
     форм не вимкнене. Саму доріжку при цьому ніхто не видаляє: вимкнув на
     місяць — прогрес чекає (див. HANDOFF, розділ 2).
+
+    `unlisted` — це «Без списку» як ще одна група поруч зі списками, а не
+    режим. Тому він додається В АБО до list_ids, а не звужує їх: вибір «Фрази
+    + без списку» означає рівно те, що написано, і має віддати обидві купки.
+    Порожній вибір (ні списків, ні прапорця) фільтра не ставить узагалі — це
+    вся черга, включно з картками без списку.
     """
     conditions = [
         CardModel.user_id == user_id,
@@ -77,8 +88,10 @@ def _queue_conditions(user_id: int, list_ids: Sequence[int] | None, now: datetim
             ),
         ),
     ]
+
+    groups = []
     if list_ids:
-        conditions.append(
+        groups.append(
             exists().where(
                 and_(
                     CardListLinkModel.card_id == CardModel.id,
@@ -86,6 +99,11 @@ def _queue_conditions(user_id: int, list_ids: Sequence[int] | None, now: datetim
                 )
             )
         )
+    if unlisted:
+        groups.append(~exists().where(CardListLinkModel.card_id == CardModel.id))
+    if groups:
+        conditions.append(or_(*groups))
+
     return conditions
 
 
@@ -94,6 +112,7 @@ async def count_queue(
     user_id: int,
     list_ids: Sequence[int] | None,
     now: datetime,
+    unlisted: bool = False,
 ) -> tuple[int, int]:
     """Скільки всього чекає: (прострочені повторення, нові). Одним запитом."""
     stmt = (
@@ -103,7 +122,7 @@ async def count_queue(
         )
         .select_from(ReviewTrackModel)
         .join(CardModel, ReviewTrackModel.card_id == CardModel.id)
-        .where(*_queue_conditions(user_id, list_ids, now))
+        .where(*_queue_conditions(user_id, list_ids, now, unlisted))
     )
     due_count, new_count = (await db.execute(stmt)).one()
     return due_count, new_count
@@ -115,6 +134,7 @@ async def fetch_queue(
     list_ids: Sequence[int] | None,
     now: datetime,
     limit: int,
+    unlisted: bool = False,
 ) -> Sequence[ReviewTrackModel]:
     """
     Порція черги.
@@ -130,7 +150,7 @@ async def fetch_queue(
     stmt = (
         select(ReviewTrackModel)
         .join(CardModel, ReviewTrackModel.card_id == CardModel.id)
-        .where(*_queue_conditions(user_id, list_ids, now))
+        .where(*_queue_conditions(user_id, list_ids, now, unlisted))
         .options(
             selectinload(ReviewTrackModel.card)
             .selectinload(CardModel.senses)

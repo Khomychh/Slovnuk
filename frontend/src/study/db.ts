@@ -16,7 +16,7 @@
 
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import type { components } from "../api/schema";
-import type { Progress, QueueItem, Rating } from "./session";
+import type { Aim, Progress, QueueItem, Rating } from "./session";
 
 export type OutboxEntry = {
   trackId: number;
@@ -51,7 +51,10 @@ interface StudyDb extends DBSchema {
   outbox: { key: number; value: OutboxEntry };
   snapshot: {
     key: string;
-    value: TodayResponse | DaysResponse | Progress | Settings | number[];
+    // `number[]` лишається серед типів не заради запису, а заради читання:
+    // вибір груп до появи «Без списку» зберігався голим масивом id, і ці записи
+    // досі лежать у базах на телефонах. Див. `readListFilter`.
+    value: TodayResponse | DaysResponse | Progress | Settings | Aim | number[];
   };
 }
 
@@ -175,16 +178,23 @@ export async function writeSettings(value: Settings): Promise<void> {
 }
 
 /**
- * Обрані списки.
+ * Вибір груп — що саме зараз вчиться.
  *
- * Живуть тільки на клієнті: це не налаштування користувача, а «що я вчу зараз».
- * Порожній масив означає «усі списки», а не «жодного» — тому й зберігається
- * саме масив, а не прапорець.
+ * Живе тільки на клієнті: це не налаштування користувача, а «що я вчу зараз».
+ * Порожній вибір означає «усі слова», а не «жодного» — тому й зберігається
+ * структура, а не прапорець «фільтр увімкнено».
+ *
+ * Читання приймає ще й старий формат — голий масив id, яким це поле було до
+ * появи рядка «без списку». Інакше перше ж відкриття після оновлення застало б
+ * у базі масив там, де код чекає обʼєкт, і вибір мовчки скинувся б на «усі
+ * слова» — тобто людина без жодної своєї дії почала б учити не те.
  */
-export async function readListFilter(): Promise<number[]> {
-  return ((await (await db()).get("snapshot", "filter")) as number[]) ?? [];
+export async function readListFilter(): Promise<Aim> {
+  const stored = await (await db()).get("snapshot", "filter");
+  if (Array.isArray(stored)) return { listIds: stored as number[], unlisted: false };
+  return (stored as Aim | undefined) ?? { listIds: [], unlisted: false };
 }
 
-export async function writeListFilter(listIds: number[]): Promise<void> {
-  await (await db()).put("snapshot", listIds, "filter");
+export async function writeListFilter(aim: Aim): Promise<void> {
+  await (await db()).put("snapshot", aim, "filter");
 }
