@@ -321,12 +321,46 @@ export function OpenIcon() {
  * межа панелі гуляла від рядка до рядка. Три крапки стоять у кожного рядка, і
  * саме тому вони складаються в колонку.
  */
-export function MoreIcon() {
+/**
+ * Прибрати рядок.
+ *
+ * Була `MoreIcon` — три крапки, тобто обіцянка меню. Меню там ніколи не було:
+ * кнопка має рівно одну дію, і на порожньому рядку вона навіть не питає
+ * (`askRemove`). Лінія тієї ж довжини, що й ряд крапок (5→19), нічого не
+ * обіцяє понад те, що робить.
+ *
+ * Хрестика тут немає навмисно, і це не косметика: «×» стояв би лише там, де є
+ * що прибирати, і права колонка панелі гуляла б від рядка до рядка. Лінія
+ * стоїть завжди.
+ */
+export function RemoveIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <circle cx="5" cy="12" r="1.7" />
-      <circle cx="12" cy="12" r="1.7" />
-      <circle cx="19" cy="12" r="1.7" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M5 12h14" />
+    </svg>
+  );
+}
+
+/** Шеврон «розкрити»: у тригері вибору й у поверненні до списку міток. */
+export function ChevronIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M7 10l5 5 5-5" />
     </svg>
   );
 }
@@ -425,6 +459,102 @@ export function SaveButton({
     >
       <SaveIcon />
     </button>
+  );
+}
+
+/**
+ * Рядок панелі з підписом ліворуч і перемикачем праворуч.
+ *
+ * Замінив пару чипів «Увімкнено / Вимкнено». Пара чипів завжди коштувала двох
+ * рядків — рубрики над ними й самої пари — і показувала обидві відповіді там,
+ * де питання одне: чипом «Вимкнено» ніхто не користувався інакше, ніж щоб
+ * вимкнути.
+ *
+ * Плата, яку варто знати: перемикач вимагає, щоб підпис називав УВІМКНЕНИЙ
+ * стан («Повільніше», а не «Темп»). Інакше незрозуміло, що саме він робить.
+ */
+export function Switch({
+  label,
+  on,
+  disabled,
+  hint,
+  onChange,
+}: {
+  label: string;
+  on: boolean;
+  disabled?: boolean;
+  /** Дрібним під підписом. Для того, що інакше пішло б окремим рядком `.hint`. */
+  hint?: string;
+  onChange: (on: boolean) => void;
+}) {
+  return (
+    <button
+      className="sw-row"
+      type="button"
+      role="switch"
+      aria-checked={on}
+      disabled={disabled}
+      onClick={() => onChange(!on)}
+    >
+      <span className="sw-text">
+        <span className="sw-label">{label}</span>
+        {hint ? <span className="sw-hint">{hint}</span> : null}
+      </span>
+      <span className={on ? "sw sw-on" : "sw"} aria-hidden="true">
+        <i />
+      </span>
+    </button>
+  );
+}
+
+/**
+ * Вибір одного з двох-трьох варіантів суцільною доріжкою.
+ *
+ * Це той самий орган, яким на «Сьогодні» вибирають напрямок показу, — саме
+ * тому він тут, а не в профілі: доріжка перестала бути пристроєм одного
+ * екрана. Замінив ряди чипів у профілі, бібліотеці й імпорті.
+ *
+ * Різниця з чипами не косметична: чипи — це N окремих предметів, між якими око
+ * щоразу шукає, котрий із них засвічений, а доріжка — один предмет, у якому
+ * видно позицію. Тому вона й дозволена лише на короткі набори: від чотирьох
+ * поділок доріжка знову розсипається на предмети.
+ *
+ * Погашена поділка означає «цього тут немає» (голосу на пристрої), а не
+ * «зачекай» — гасити можна лише тоді, коли це вже точно відомо.
+ */
+export function Segmented<T extends string>({
+  label,
+  value,
+  options,
+  disabled,
+  onChange,
+}: {
+  /** Читається екранним читачем; візуально підпис стоїть окремо в рядку. */
+  label: string;
+  value: T | undefined;
+  options: { value: T; label: string; disabled?: boolean; title?: string }[];
+  disabled?: boolean;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="seg" role="group" aria-label={label}>
+      {options.map((option) => {
+        const on = option.value === value;
+        return (
+          <button
+            key={option.value}
+            className={on ? "on" : ""}
+            type="button"
+            aria-pressed={on}
+            title={option.title}
+            disabled={disabled || option.disabled}
+            onClick={() => onChange(option.value)}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 

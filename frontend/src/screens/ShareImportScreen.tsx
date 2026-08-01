@@ -17,7 +17,7 @@ import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { ApiError, OfflineError } from "../api/client";
 import { useAuth } from "../auth/AuthProvider";
 import { useOnline } from "../app/useOnline";
-import { Message, Screen } from "../ui/parts";
+import { Message, Screen, Segmented } from "../ui/parts";
 import { forgetShare, rememberShare } from "../sharing/pending";
 import { useImportShare, useSharePreview, useSharedCards } from "../sharing/queries";
 import {
@@ -314,22 +314,19 @@ function SharedList({ token }: { token: string }) {
       {needsMode(summary) ? (
         <>
           <div className="ed-label">Слова, які у вас уже є</div>
-          <div className="ed-chips">
-            <button
-              className={mode === "skip" ? "chip chip-on" : "chip"}
-              type="button"
-              onClick={() => setMode("skip")}
-            >
-              Пропустити
-            </button>
-            <button
-              className={mode === "overwrite" ? "chip chip-on" : "chip"}
-              type="button"
-              onClick={() => setMode("overwrite")}
-            >
-              Замінити вмістом зі списку
-            </button>
-          </div>
+          {/* Два взаємовиключні режими — доріжка, а не пара чипів: чипи не
+              кажуть формою, що вибрати можна рівно один. Підпис другого
+              скорочено до «Замінити»: у поділці доріжки він мусить уміщатись
+              у рядок, а що саме заміняється — сказано в абзаці нижче. */}
+          <Segmented
+            label="Що робити зі словами, які вже є"
+            value={mode}
+            options={[
+              { value: "skip", label: "Пропустити" },
+              { value: "overwrite", label: "Замінити" },
+            ]}
+            onChange={setMode}
+          />
           <p className="hint">
             {mode === "skip"
               ? `${words(already)} ${plural(already, "лишиться", "лишаться", "лишаться")} як є, і в новий список не ${plural(already, "потрапить", "потраплять", "потраплять")}.`

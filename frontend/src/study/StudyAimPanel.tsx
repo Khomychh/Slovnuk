@@ -24,6 +24,7 @@ import { useLists, useSettings, useStudy, useUpdateSettings } from "./queries";
 import { aimIsAll } from "./session";
 import { DIRECTIONS, aimRows, splitRows } from "./aim";
 import { aimSettled, setAim } from "./store";
+import { Segmented } from "../ui/parts";
 
 /** З якої кількості рядків зʼявляється пошук. Нижче — шукати довше, ніж глянути. */
 const SEARCH_AT = 12;
@@ -79,20 +80,18 @@ export default function StudyAimPanel({ open }: { open: boolean }) {
           {!online ? <p className="hint">Потрібен звʼязок.</p> : null}
 
           <div className="sec-h aim-panel-h1">Напрямок</div>
-          <div className="seg" role="group" aria-label="Напрямок навчання">
-            {DIRECTIONS.map((item) => (
-              <button
-                key={item.value}
-                className={direction === item.value ? "on" : ""}
-                type="button"
-                aria-pressed={direction === item.value}
-                disabled={!online || updateSettings.isPending}
-                onClick={() => updateSettings.mutate({ study_direction: item.value })}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
+          {/* Той самий `Segmented`, що в профілі: доріжка вибору в застосунку
+              одна. Розмітка тут була написана руками, поки вона була єдиною. */}
+          <Segmented
+            label="Напрямок навчання"
+            value={direction}
+            options={DIRECTIONS.map((item) => ({
+              value: item.value,
+              label: item.label,
+            }))}
+            disabled={!online || updateSettings.isPending}
+            onChange={(value) => updateSettings.mutate({ study_direction: value })}
+          />
 
           <div className="sec-h">Групи слів</div>
 

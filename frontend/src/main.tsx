@@ -4,9 +4,16 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./auth/AuthProvider";
 import App from "./app/App";
+import { watchSystemTheme } from "./app/theme";
 import "./app/fonts.css";
 import "./app/theme.css";
 import "./ui/ui.css";
+
+// Підписка на системну тему живе стільки ж, скільки вкладка, тому стоїть тут, а
+// не в компоненті: у дереві їй довелось би висіти в TabsLayout, який на час
+// навчання розмонтовується, — і телефон, що вдосвіта перейшов на світле, до
+// кінця сесії лишався б непоміченим.
+watchSystemTheme();
 
 const queryClient = new QueryClient({
   defaultOptions: {
