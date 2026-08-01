@@ -250,6 +250,82 @@ export function toCardPayload(draft: CardDraft): CardCreate & CardUpdate {
 }
 
 /**
+ * Чи є в чернетці що втрачати при підстановці пропозиції ШІ.
+ *
+ * Рахуються значення й форми — рівно те, що пропозиція заміняє цілком. Слово
+ * не рахується, бо ШІ його не міняє ніколи; коментар не рахується, бо
+ * пропозиція заповнює лише порожній (ADR-0027). Тобто «є що втрачати» тут
+ * означає буквально «щось загине», а не «форма не порожня».
+ *
+ * Порожнім вважається те саме, що вважає порожнім `toCardPayload`: рядок, який
+ * і так не доїхав би до сервера, втратою не є.
+ */
+export function draftHasContent(draft: CardDraft): boolean {
+  return (
+    draft.senses.some((sense) => !senseIsBlank(sense)) ||
+    draft.forms.some((form) => !formIsBlank(form))
+  );
+}
+
+/**
+ * Пропозиція ШІ → чернетка.
+ *
+ * Значення й форми заміняються ЦІЛКОМ, а не зливаються: ШІ не бачив картки й
+ * пропонує з нуля, тож питання «чи це те саме значення, що твоє» не має
+ * відповіді ні в машини, ні в людини, яка дивиться на змішаний результат
+ * (ADR-0027).
+ *
+ * Коментар — виняток: заповнюється лише порожній. Значення й форми є фактами
+ * про мову, де чужа версія конкурує з твоєю; коментар — нотатка собі, якій
+ * конкурента немає. Префікс «ШІ: » до нього додає бекенд.
+ *
+ * `id` усіх дітей — `null`: старі рядки зникають, нові створюються. Саме тому
+ * підстановка й питає дозволу — після збереження повернути нема звідки.
+ *
+ * Не чіпає нічого, чого пропозиція не несе: слово, списки й перемикач
+ * тренування форм лишаються, як були.
+ */
+export function applyProposal(
+  draft: CardDraft,
+  proposal: {
+    senses?: {
+      part_of_speech?: PartOfSpeech | null;
+      translation?: string | null;
+      transcription?: string | null;
+      examples?: { text_en: string; text_uk?: string | null }[];
+    }[];
+    forms?: {
+      label?: string | null;
+      value: string;
+      transcription?: string | null;
+    }[];
+    comment?: string | null;
+  },
+): CardDraft {
+  return {
+    ...draft,
+    comment: draft.comment.trim() ? draft.comment : (proposal.comment ?? ""),
+    senses: (proposal.senses ?? []).map((sense) => ({
+      id: null,
+      partOfSpeech: sense.part_of_speech ?? null,
+      translation: sense.translation ?? "",
+      transcription: sense.transcription ?? "",
+      examples: (sense.examples ?? []).map((example) => ({
+        id: null,
+        textEn: example.text_en,
+        textUk: example.text_uk ?? "",
+      })),
+    })),
+    forms: (proposal.forms ?? []).map((form) => ({
+      id: null,
+      label: form.label ?? "",
+      value: form.value,
+      transcription: form.transcription ?? "",
+    })),
+  };
+}
+
+/**
  * Куди кладеться нова картка.
  *
  * Порядок правил: активний фільтр списку → список за замовчуванням → жодного.

@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyProposal,
   blankSense,
   type Card,
   type CardDraft,
   defaultListFor,
+  draftHasContent,
   deletionLosesHistory,
   distinctTranscriptions,
   draftIsDirty,
@@ -326,5 +328,119 @@ describe("монорядок стану списку", () => {
     expect(
       listStateLine({ card_count: 5, share_token: "AbC", in_library: true }, true),
     ).toBe("5 слів · за замовчуванням · поділено · в бібліотеці");
+  });
+});
+
+// --------------------------------------------------------------------------
+// Пропозиція ШІ — друге місце, де помилка тихо зносить роботу
+// --------------------------------------------------------------------------
+
+describe("draftHasContent", () => {
+  it("порожня чернетка нового слова — втрачати нічого", () => {
+    // Найчастіший сценарій: набрав слово, тиснеш ✨. Питати «замінити?» тут
+    // означало б питати про заміну порожнечі.
+    const draft = newDraft([]);
+    draft.word = "run";
+    expect(draftHasContent(draft)).toBe(false);
+  });
+
+  it("коментар сам по собі втратою не є — його пропозиція не заміняє", () => {
+    const draft = newDraft([]);
+    draft.comment = "моя нотатка";
+    expect(draftHasContent(draft)).toBe(false);
+  });
+
+  it("одне заповнене значення — є що втрачати", () => {
+    const draft = newDraft([]);
+    draft.senses[0]!.translation = "бігти";
+    expect(draftHasContent(draft)).toBe(true);
+  });
+
+  it("сама лише форма — теж", () => {
+    const draft = newDraft([]);
+    draft.forms = [{ id: null, label: "Past", value: "ran", transcription: "" }];
+    expect(draftHasContent(draft)).toBe(true);
+  });
+});
+
+describe("applyProposal", () => {
+  const proposal = {
+    senses: [
+      {
+        part_of_speech: "v" as const,
+        translation: "бігти",
+        transcription: "/rʌn/",
+        examples: [{ text_en: "He runs.", text_uk: "Він біжить." }],
+      },
+    ],
+    forms: [{ label: "Past", value: "ran", transcription: "/ræn/" }],
+    comment: "ШІ: не плутати з rung",
+  };
+
+  it("заміняє значення й форми цілком, а не зливає", () => {
+    // ШІ картки не бачив і пропонує з нуля. Злиття вимагало б відповіді на
+    // питання «чи це те саме значення, що твоє», якої немає (ADR-0027).
+    const draft = toDraft(
+      card({
+        word: "run",
+        senses: [sense({ id: 7, translation: "моє старе" })],
+        forms: [{ id: 9, label: "P.P.", value: "моє", transcription: null }],
+      }),
+    );
+
+    const next = applyProposal(draft, proposal);
+
+    expect(next.senses).toHaveLength(1);
+    expect(next.senses[0]!.translation).toBe("бігти");
+    expect(next.forms[0]!.value).toBe("ran");
+  });
+
+  it("скидає id дітей — старі рядки зникають, нові створюються", () => {
+    const draft = toDraft(
+      card({ senses: [sense({ id: 7, translation: "старе" })] }),
+    );
+
+    const next = applyProposal(draft, proposal);
+
+    expect(next.senses[0]!.id).toBeNull();
+    expect(next.senses[0]!.examples[0]!.id).toBeNull();
+    expect(next.forms[0]!.id).toBeNull();
+  });
+
+  it("коментар заповнює лише порожній", () => {
+    const mine = newDraft([]);
+    mine.comment = "моя нотатка";
+    expect(applyProposal(mine, proposal).comment).toBe("моя нотатка");
+
+    const empty = newDraft([]);
+    expect(applyProposal(empty, proposal).comment).toBe("ШІ: не плутати з rung");
+  });
+
+  it("пробіли в коментарі порожнечею й лишаються", () => {
+    const draft = newDraft([]);
+    draft.comment = "   ";
+    expect(applyProposal(draft, proposal).comment).toBe("ШІ: не плутати з rung");
+  });
+
+  it("слово, списки й перемикач форм не чіпає", () => {
+    const draft = newDraft([4, 7]);
+    draft.word = "run";
+    draft.formsDrillEnabled = false;
+
+    const next = applyProposal(draft, proposal);
+
+    expect(next.word).toBe("run");
+    expect(next.listIds).toEqual([4, 7]);
+    expect(next.formsDrillEnabled).toBe(false);
+  });
+
+  it("пропозиція без форм лишає картку без форм, а не зі старими", () => {
+    // Порожній масив тут означає «форм немає», і це відповідь, а не мовчання:
+    // інакше після підстановки в картці лишились би форми від іншого слова.
+    const draft = toDraft(
+      card({ forms: [{ id: 9, label: "Past", value: "старе", transcription: null }] }),
+    );
+
+    expect(applyProposal(draft, { senses: proposal.senses }).forms).toEqual([]);
   });
 });

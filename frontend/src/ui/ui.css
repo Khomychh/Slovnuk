@@ -2078,17 +2078,6 @@
 
 /* Транскрипція форми ділить рядок із динаміком: він озвучує саму форму, але
    стоїть тут, а не поруч із «×», щоб промах пальця не коштував набраного. */
-.ed-ipa-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.ed-ipa-row > input {
-  flex: 1;
-  min-width: 0;
-}
-
 .ed-word-field > input.ed-word::placeholder,
 .field > input.ed-word::placeholder {
   color: var(--haze-2);
@@ -2100,170 +2089,67 @@
   box-shadow: 0 1px 0 0 color-mix(in srgb, var(--a1) 45%, transparent);
 }
 
-/* Слово — панель, а не гола лінійка (заміна `.ed-word-field` вище: та лишається
-   для редактора нотатки, де підпис над полем є).
+/* --- редактор картки ------------------------------------------------------
 
-   Той самий силует, що в значень і форм нижче: рамка, фон, легкий верхній
-   відблиск. Дублікат каже про себе кольором рамки й другою круглою кнопкою
-   біля динаміка, а не окремим банером під полем — рядок один, предмет один. */
-.ed-word-panel {
+   Панель тут на ГРУПУ, а не на елемент: слово, значення, форми, коментар —
+   чотири предмети замість десяти. До цього кожне значення й кожна форма були
+   власною панеллю, і в стовпчику однакових рамок не було видно, де кінчається
+   одне значення й починається наступне.
+
+   Три правила тримають усе решту:
+
+   1. ПОВЕРХНЯ ОДНА. Панель — `--sheet`, поля всередині без тла й рамки.
+      Раніше поля значень і форм заливались `--night` (дірка кольору сторінки,
+      пробита в панелі), а поля слова й коментаря — ні: однакові на вигляд
+      блоки поводились по-різному, і саме це читалось як «плутано».
+   2. ПРАВА КОЛОНКА ПОСТІЙНА. `⋯` у рядка, `+` у підвалі — усі центри за 34px
+      від правого краю панелі, на будь-якій глибині вкладеності. «×» стояв
+      лише там, де було що прибирати, тож права межа гуляла.
+   3. ШИРИНА ЛІНІЇ ЗНАЧИТЬ. На всю ширину панелі — «далі однорідний рядок»;
+      звужена — «список скінчився, далі підвал»; поза панеллю — «екран
+      скінчився, далі незворотне».
+
+   Ранг підпису дорівнює глибині: моно-капітель — межа панелі, звичайний
+   дрібний текст — підвал усередині значення. Одна панель має один капітельний
+   підвал, скільки б значень у ній не було. */
+
+.ed-block {
+  position: relative;
   border: 1px solid var(--edge);
   border-radius: var(--r-sm);
   background: var(--sheet);
+  /* Той самий верхній відблиск, що в `--lift`, без важкої тіні знизу: панелі
+     стоять у прокрутці одна за одною, і повна тінь між ними розмазалась би. */
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
-  padding: 8px 12px;
-  margin-bottom: 22px;
-  transition: border-color 0.15s ease;
+  margin-bottom: 18px;
 }
 
-.ed-word-panel:focus-within {
-  border-color: color-mix(in srgb, var(--a1) 55%, var(--edge));
+/* Рядок панелі. Відступи тут, а не на панелі, — інакше роздільник не діставав
+   би до її країв і читався б як ще одна вкладена лінія. */
+.ed-item {
+  padding: 12px 14px;
 }
 
-/* Дублікат переважає фокус: перевірка йде на `onBlur`, тобто до цього стану
-   фокус на полі вже нема кому суперечити. */
-.ed-word-dup {
-  border-color: color-mix(in srgb, var(--a0) 55%, var(--edge));
+.ed-item + .ed-item,
+.ed-head + .ed-item {
+  border-top: 1px solid var(--edge-soft);
 }
 
-.ed-word-row {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.ed-word-row > input.ed-word-input {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  background: none;
-  padding: 8px 2px;
-  font-family: var(--display);
-  font-size: 24px;
-  font-weight: 500;
-  letter-spacing: -0.03em;
-  color: var(--frost);
-}
-
-.ed-word-row > input.ed-word-input::placeholder {
-  color: var(--haze-2);
-}
-
-.ed-word-row > input.ed-word-input:focus {
-  outline: none;
-}
-
-/* Посилання на наявну картку — той самий силует кнопки, що динамік поруч,
-   лише кольору дубліката. Речення про «вже у словнику» сидить у
-   aria-label/title: рамка панелі й сама стрілка кажуть досить, щоб не читати
-   його щоразу, а для екранного читача чи довгого натискання воно лишається. */
-.ed-word-dup-link {
-  flex: none;
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: none;
-  padding: 0;
-  color: var(--a0);
-}
-
-.ed-word-dup-link svg {
-  width: 18px;
-  height: 18px;
-}
-
-.ed-word-dup-link:active {
-  color: var(--frost);
-}
-
-/* Значення і форма — панелі однакової ваги. Раніше значення було в рамці, а
-   форма голою лінійкою, хоча за суттю це однорідні блоки картки. */
-.ed-panel {
-  border: 1px solid var(--edge);
-  border-radius: var(--r-sm);
-  background: var(--sheet);
-  /* Той самий верхній відблиск, що в `--lift` — без важкої тіні знизу: панелі
-     стоять у прокрутці впритул одна за одною, і повна тінь між ними
-     розмазалась би в бруд. Це проти пласкості, не проти монотонності кольору —
-     колір тут не по темі. */
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
-  padding: 12px;
-  margin-bottom: 10px;
-}
-
-.ed-panel input,
-.ed-panel select {
-  background: var(--night);
-  border-radius: 11px;
-  padding: 11px 12px;
-  margin-bottom: 8px;
-}
-
-/* Транскрипція набирається тим самим стеком, яким показується: у даних вона
-   буває і справжньою IPA (/ˈhæŋ.kɚ.tʃiːf/), і кирилицею (ін-РOУЛ-мэнт). */
-.ed-panel input.ed-ipa {
-  font-family: var(--ipa);
-}
-
-.ed-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.ed-row > input,
-.ed-row > select {
-  margin-bottom: 0;
-  min-width: 0;
-}
-
-/* Частина мови й транскрипція стоять парою в одному рядку: обидві короткі,
-   обидві необовʼязкові, і поодинці кожна забирала повний рядок висоти заради
-   двох слів. Порівну, а не «на користь довшого слова»: у формі нижче та сама
-   пара (мітка/форма) і так має різні пропорції — коли в кожній парі своя
-   логіка, панелі просто не схожі один на одного. */
-.ed-pos {
-  flex: 1 1 0;
-}
-
-.ed-row > input.ed-ipa {
-  flex: 1 1 0;
-}
-
-/* Переклад — головне поле значення, і воно єдине в панелі стоїть на всю
-   ширину саму по собі. Кегль більший за сусідні: у картці це те, що людина
-   читатиме щодня, а частина мови й транскрипція — приписки до нього. */
-.ed-panel input.ed-tr {
-  font-size: 17px;
-}
-
-/* Коментар — одна панель, а не заголовок над окремим полем. Рамку й фон несе
-   контейнер (той самий силует, що в слова й у значень), заголовок-рядок і
-   textarea всередині — без власних меж, тому це один предмет, не два. Textarea
-   росте, а не однорядковий input: коментарі бувають довші за рядок, і переніс
-   мусить лишатись переносом. */
-.ed-comment-panel {
-  border: 1px solid var(--edge);
-  border-radius: var(--r-sm);
-  background: var(--sheet);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
-  padding: 12px 14px 14px;
-  margin-top: 20px;
-}
-
-.ed-comment-head {
+/* Шапка панелі. Є лише там, де їй є що нести: перемикач у формах, перемикач
+   вигляду в коментарі. Над значеннями шапки немає — селект частини мови й
+   поле перекладу кажуть самі за себе. */
+.ed-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 10px;
+  min-height: 44px;
+  padding: 0 14px;
 }
 
-.ed-comment-label {
+.ed-head-label,
+.ed-foot-label,
+.ed-note-label {
   font-family: var(--mono);
   font-size: 10px;
   letter-spacing: 0.16em;
@@ -2271,48 +2157,506 @@
   color: var(--haze-2);
 }
 
-.ed-comment-panel textarea.ed-comment-input {
-  display: block;
+/* Підвал панелі — останній її рядок, а не окрема кнопка між панелями. До
+   цього «додати» було пунктирним гніздом ЗЗОВНІ, і три таких прямокутники
+   поспіль рвали вертикаль сильніше за все інше на екрані. */
+.ed-foot {
+  position: relative;
   width: 100%;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 14px;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+/* Звужена лінія: вона закриває список, а не розсікає панель. */
+.ed-foot::before,
+.ed-note::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 22px;
+  right: 22px;
+  height: 1px;
+  background: var(--edge-soft);
+}
+
+/* Панель без жодного рядка: підвал — єдине, що в ній є, відділяти нема від чого. */
+.ed-block > .ed-foot:first-child::before {
+  display: none;
+}
+
+.ed-foot:active .ed-foot-label,
+.ed-sub-add:active {
+  color: var(--frost);
+}
+
+/* Права колонка. Один розмір для «прибрати», «додати» й «відкрити» на будь-якій
+   глибині — саме однаковий бокс, а не однакова іконка, робить із них колонку. */
+.ed-more,
+.ed-foot-act {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  padding: 0;
+  color: var(--haze-2);
+}
+
+.ed-more svg,
+.ed-foot-act svg {
+  width: 18px;
+  height: 18px;
+}
+
+.ed-more {
+  cursor: pointer;
+}
+
+.ed-more:active {
+  background: var(--sheet-2);
+  color: var(--frost);
+}
+
+/* Підвал усередині значення. Звичайним дрібним текстом, а не капітеллю:
+   капітель на цій панелі означає її межу, і п'ять капітельних рядків у картці
+   з чотирма значеннями не мали б головного. */
+.ed-sub-add {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 40px;
+  margin-top: 4px;
+  padding: 0 0 0 14px;
+  border: none;
+  background: none;
+  color: var(--haze-2);
+  font-family: var(--sans);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* --- поля ---------------------------------------------------------------- */
+
+/* Ні рамки, ні заливки: поле показує себе плейсхолдером і курсором. Заливка
+   всередині панелі, яка й сама в рамці, читалась як діра, а не як поле. */
+.ed-block input,
+.ed-block select,
+.ed-block textarea {
+  width: 100%;
+  min-width: 0;
   border: none;
   background: none;
   padding: 0;
-  resize: vertical;
-  min-height: 70px;
-  line-height: 1.55;
   font-family: var(--sans);
   font-size: 16px; /* менше 16px — і iOS збільшує сторінку на фокусі */
   color: var(--frost);
 }
 
-.ed-comment-panel textarea.ed-comment-input::placeholder {
+.ed-block input::placeholder,
+.ed-block textarea::placeholder {
   color: var(--haze-2);
 }
 
-.ed-comment-panel textarea.ed-comment-input:focus {
+.ed-block input:focus,
+.ed-block select:focus,
+.ed-block textarea:focus {
   outline: none;
 }
 
-.ed-comment-panel .ed-preview {
+/* Пальцем фокус видно з курсора, клавіатурою — ні: без рамок мандрівка табом
+   інакше йшла б наосліп. */
+.ed-block input:focus-visible,
+.ed-block select:focus-visible,
+.ed-block textarea:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--a1) 55%, transparent);
+  outline-offset: 5px;
+  border-radius: 4px;
+}
+
+/* Стрілка селекта малюється тут, бо системна приходить зі своїм тлом і своєю
+   стрілкою — на панелі без рамок це виглядало б як єдине вціліле поле. */
+.ed-block select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 17px;
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235c6884' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0 center;
+  background-size: 15px 15px;
+}
+
+.ed-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ed-row-tail {
+  margin-top: 6px;
+}
+
+/* Мала пара — і в значенні (частина мови / транскрипція), і у формі (мітка /
+   транскрипція). Пропорція одна на обидві пари: коли в кожній своя, панелі не
+   схожі одна на одну.
+
+   Селект по вмісту, а не порівну з сусідом. Порівну виглядало гірше: стрілка
+   сидить на правому краї контрола, тож на половині рядка вона відривалась від
+   слова й висіла між «дієслово» і транскрипцією як окремий значок. Chrome
+   міряє селект за найдовшим пунктом списку, а не за вибраним, — тобто ширина
+   стала й від вибору не стрибає. */
+.ed-pos,
+.ed-form-lbl,
+.ed-label-field {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 55%;
+}
+
+.ed-row > input.ed-ipa {
+  flex: 1 1 0;
+}
+
+/* Транскрипція набирається тим самим стеком, яким показується: у даних вона
+   буває і справжньою IPA (/ˈhæŋ.kɚ.tʃiːf/), і кирилицею (ін-РOУЛ-мэнт). */
+.ed-block input.ed-ipa {
+  font-family: var(--ipa);
+}
+
+/* Головне поле блоку — переклад у значенні, сама форма у формі. Кегль більший
+   за сусідні: це те, що людина читатиме щодня, а частина мови й транскрипція —
+   приписки до нього. Обидва стоять на всю ширину, обидва в тому самому місці
+   свого блоку — саме це робить значення й форму однією конструкцією. */
+.ed-block input.ed-tr {
+  margin-top: 6px;
+  font-size: 17px;
+}
+
+.ed-form-val {
+  font-size: 17px;
+}
+
+/* Мітка, набрана руками. Одинадцять міток словника не з четвірки підказок
+   («Скорочене заперечення»), тож вільний ввід нікуди не подівся — він просто
+   став останнім пунктом списку, а не окремим рядом чипів під полем. */
+.ed-label-field {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.ed-label-back {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   background: none;
   padding: 0;
-  min-height: 70px;
+  color: var(--haze-2);
+  cursor: pointer;
 }
 
-/* Видалення — остання річ у прокрутці. Далі від «Зберегти» нікуди, і саме це
-   тут головне: промахнутись пальцем неможливо. Простір згори теж працює —
-   кошик не належить до списків над ним, він сам собі кінець екрана. */
+.ed-label-back svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Приклад належить значенню, і каже це відступ, а не лінія: лінія на цій
+   панелі вже означає «наступне значення», і другий її сенс зробив би панель
+   пласким списком. Стара волосінь зліва була третім видом межі на предметі,
+   у якого вже є рамка й горизонтальні роздільники. */
+.ed-example {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding-left: 14px;
+}
+
+.ed-example-fields {
+  flex: 1;
+  min-width: 0;
+}
+
+.ed-example-fields input {
+  font-size: 15px;
+}
+
+.ed-example-fields input + input {
+  margin-top: 2px;
+  color: var(--haze);
+}
+
+/* --- слово --------------------------------------------------------------- */
+
+/* Панель слова — усе, що система знає про це слово: саме слово, озвучення, ШІ,
+   а підвалами — що така картка вже є і що відповів ШІ. Кольору тут немає
+   жодного, і це рішення, а не пропуск: дублікат — знахідка, а не помилка,
+   жодна зупинка рампи не означає «увага» (вона міряє памʼять), а червоного в
+   застосунку немає взагалі (ADR-0012). */
+.ed-word-block {
+  margin-bottom: 22px;
+}
+
+.ed-word-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ed-block input.ed-word-input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  font-family: var(--display);
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+/* Іскри стоять при слові, бо ШІ бачить тільки слово (ADR-0027) — там само, де
+   динамік, який робить те саме, тільки вголос. */
+.ed-ai {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--haze);
+  cursor: pointer;
+}
+
+.ed-ai svg {
+  width: 20px;
+  height: 20px;
+}
+
+.ed-ai:active:not(:disabled) {
+  color: var(--frost);
+}
+
+.ed-ai:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Підвал панелі слова — та сама фігура, що підвал будь-якої іншої: звужена
+   лінія, капітель ліворуч, дія в правій колонці. Тому дублікат, відмова ШІ й
+   очікування не заводять на екрані жодного нового елемента. */
+.ed-note {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px 12px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ed-note-still {
+  cursor: default;
+}
+
+.ed-note-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ed-note-text {
+  font-family: var(--sans);
+  font-size: 15px;
+  color: var(--haze);
+  overflow-wrap: anywhere;
+}
+
+.ed-note-empty {
+  color: var(--haze-2);
+}
+
+.ed-note:active:not(.ed-note-still) {
+  background: var(--sheet-2);
+  border-radius: 0 0 13px 13px;
+}
+
+/* Виправлення описки. Міняє нормалізоване слово, тобто ключ обмеження «раз на
+   слово», тобто дає нове право на звернення (ADR-0028). */
+.ed-note-act {
+  flex: none;
+  border: 1px solid color-mix(in srgb, var(--a1) 40%, var(--edge));
+  border-radius: 999px;
+  background: none;
+  padding: 8px 14px;
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--frost);
+  cursor: pointer;
+}
+
+/* --- перемикач тренування форм ------------------------------------------- */
+
+/* Стан показує не він, а верхній край панелі (`.ed-lit` вище). Сам контрол
+   бере рецепт `.chip-on` — той самий, що будь-яке інше «ввімкнено» в
+   застосунку: якби він фарбувався зупинкою рампи «по-своєму», насичений колір
+   означав би дві різні речі. */
+.ed-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.ed-switch-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+  transition: color 0.16s ease;
+}
+
+.ed-switch[data-on] .ed-switch-label {
+  color: var(--haze);
+}
+
+.ed-switch-track {
+  position: relative;
+  flex: none;
+  width: 36px;
+  height: 21px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--edge);
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.ed-switch[data-on] .ed-switch-track {
+  background: color-mix(in srgb, var(--a1) 14%, transparent);
+  border-color: color-mix(in srgb, var(--a1) 50%, transparent);
+}
+
+.ed-switch-knob {
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  width: 15px;
+  height: 15px;
+  margin-top: -7.5px;
+  border-radius: 50%;
+  background: var(--haze-2);
+  transition:
+    transform 0.16s ease,
+    background 0.16s ease;
+}
+
+.ed-switch[data-on] .ed-switch-knob {
+  transform: translateX(15px);
+  background: var(--frost);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ed-switch-label,
+  .ed-switch-track,
+  .ed-switch-knob {
+    transition: none;
+  }
+}
+
+/* --- коментар ------------------------------------------------------------ */
+
+.ed-block textarea.ed-comment-input {
+  display: block;
+  resize: vertical;
+  min-height: 76px;
+  line-height: 1.55;
+}
+
+.ed-block .ed-preview {
+  border: none;
+  background: none;
+  padding: 0;
+  min-height: 76px;
+}
+
+/* --- списки -------------------------------------------------------------- */
+
+/* Один рядок, а не стіна чипів: та розпадалась на криві рядки, щойно серед
+   коротких назв траплялась одна довга («Прикметники, прислівники і
+   прийменники»). Аркуш дає кожній назві всю ширину. */
+.ed-list-trigger {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  margin-top: 24px;
+  padding: 15px 14px;
+  font-family: var(--sans);
+  font-size: 16px;
+  color: var(--frost);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ed-list-trigger svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--haze);
+}
+
+.ed-list-trigger-empty {
+  color: var(--haze);
+}
+
+/* --- видалення ----------------------------------------------------------- */
+
+/* Остання річ у прокрутці: далі від «Зберегти» нікуди, і саме це головне —
+   промахнутись пальцем неможливо, а догортати сюди заради незворотної дії не
+   ціна, а запобіжник. Відділяє його порожнє місце, а не лінія: панелі вище й
+   так закінчились, і риска через увесь екран була б гучнішою за саму кнопку.
+
+   Кошик мовчазний, але не невидимий, і різниця тут у двох речах, через які
+   його раніше не знаходили: він предмет із рамкою й тлом (а не гола іконка
+   кольору `--haze-2` на порожньому місці), і при `!online` гасне до 0.45, а
+   не до 0.35 поверх найтемнішого сірого. */
 .ed-destroy {
   display: flex;
   justify-content: center;
-  margin: 34px 0 8px;
-  padding-top: 22px;
-  border-top: 1px solid var(--edge-soft);
+  margin: 46px 0 10px;
 }
 
 .ed-trash {
-  color: var(--haze-2);
+  color: var(--haze);
 }
 
 .ed-trash:active:not(:disabled) {
@@ -2321,117 +2665,44 @@
 }
 
 .ed-trash:disabled {
-  opacity: 0.35;
+  opacity: 0.45;
 }
 
-/* «Ще 28» — не список, а кнопка, що його розгортає. Пунктир, як у «+ значення»:
-   у цьому редакторі пунктирна межа означає «тут може стати більше». */
+/* --- спільне з іншими екранами -------------------------------------------- */
+
+/* `.ed-panel` лишається аркушем зміни пароля в профілі: там під ним `.field` з
+   підписами, тобто зовсім інша будова, ніж у редактора картки вище. */
+.ed-panel {
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  background: var(--sheet);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.ed-panel input,
+.ed-panel select {
+  background: var(--night);
+  border: none;
+  border-radius: 11px;
+  padding: 11px 12px;
+  margin-bottom: 8px;
+}
+
+/* «Ще 28» — не список, а кнопка, що його розгортає. */
 .chip-more {
   border-style: dashed;
   color: var(--haze-2);
 }
 
-/* Порівну з парою вище (частина мови/транскрипція) — те саме правило для
-   кожної пари полів у редакторі, а не окрема пропорція для кожної. */
-.ed-form-lbl,
-.ed-form-val {
-  flex: 1 1 0;
-}
-
-/* Чипи-підказки під полем. Відступ згори обовʼязковий: без нього вони
-   притискаються до рамки поля й читаються як його продовження, а не як окремий
-   ряд кнопок. */
+/* Ряд чипів під полем — нотатка граматики, Бібліотека, імпорт. У редакторі
+   картки чипів більше немає: мітка форми стала селектом. */
 .ed-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin: 10px 0 8px;
-}
-
-.ed-example {
-  display: flex;
-  gap: 6px;
-  /* Було flex-start: «×» сидів урівень із першим рядком пари полів, а під ним
-     висів порожній простір на всю висоту другого рядка. По центру кнопка
-     належить обом рядкам одразу, а не одному з них. */
-  align-items: center;
-  border-left: 2px solid var(--edge);
-  padding-left: 9px;
-  margin-bottom: 6px;
-}
-
-.ed-example-fields {
-  flex: 1;
-  min-width: 0;
-}
-
-.ed-example input {
-  margin-bottom: 5px;
-}
-
-/* Дотикова ціль, а не значок: «×» стоїть упритул до полів, і промах тут
-   стирає введене. */
-.ed-drop {
-  flex: none;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 12px;
-  background: none;
-  color: var(--haze-2);
-  font-size: 22px;
-  line-height: 1;
-  padding: 0;
-  cursor: pointer;
-}
-
-.ed-drop:active {
-  background: var(--sheet-2);
-  color: var(--frost);
-}
-
-/* «Додати» — порожнє гніздо, а не підкреслене посилання на 26px висоти. */
-.ed-add {
-  width: 100%;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* Легкий відтінок --a1 замість голого --edge — той самий колір, яким уже
-     позначено вибраний чип: порожнє гніздо для додавання читається як дія, а
-     не як ще одна сіра рамка серед інших. */
-  border: 1px dashed color-mix(in srgb, var(--a1) 30%, var(--edge));
-  border-radius: var(--r-sm);
-  background: none;
-  color: var(--haze);
-  font-family: var(--sans);
-  font-size: 14.5px;
-  padding: 0 14px;
-  cursor: pointer;
-  /* Заголовків між групами повторюваних панелей більше немає (значення →
-     форми → списки) — цей відступ тепер сам відділяє одну групу від
-     наступної, без лінії чи підпису. */
-  margin-bottom: 26px;
-}
-
-.ed-add:active {
-  background: var(--sheet);
-  color: var(--frost);
-}
-
-/* Усередині панелі рамки немає: три пунктирні прямокутники поспіль читаються
-   як сітка порожніх гнізд, хоча вкладене гніздо тут лише одне. */
-.ed-add-inner {
-  min-height: 40px;
-  font-size: 14px;
-  border: none;
-  color: var(--haze-2);
-  /* На відміну від зовнішнього `.ed-add`, це гніздо не закриває групу панелей —
-     воно всередині однієї, і панель сама дає собі нижній відступ. */
-  margin-bottom: 0;
 }
 
 /* Кінцева дія екрана. У шапці, бо низ редактора недосяжний без прокрутки.
@@ -2500,49 +2771,6 @@
   padding: 11px 12px;
 }
 
-.ed-check {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  color: var(--haze);
-  font-size: 14px;
-  margin-top: 8px;
-}
-
-.ed-check input {
-  width: auto;
-  accent-color: var(--a2);
-}
-
-/* Рядок-перемикач аркуша списків. Той самий силует, що в `.ed-comment`
-   (border/фон/радіус/кегль спільні — див. групу нижче), плюс власна іконка й
-   розкладка: це поле для дії, а не для набору тексту. Стіна чипів, яку він
-   замінив, розпадалась на криві рядки, щойно серед коротких назв траплялась
-   довга. */
-.ed-list-trigger {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  margin-top: 26px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.ed-list-trigger svg {
-  width: 20px;
-  height: 20px;
-  flex: none;
-}
-
-.ed-list-trigger-empty {
-  color: var(--haze);
-}
-
-.ed-list-trigger:focus-visible {
-  outline: none;
-  border-color: color-mix(in srgb, var(--a1) 55%, transparent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--a1) 14%, transparent);
-}
 
 .card-label {
   font-family: var(--mono);

@@ -540,6 +540,26 @@ export interface paths {
         patch: operations["update_note_api_v1_grammar_notes__note_id___patch"];
         trace?: never;
     };
+    "/api/v1/ai/proposals/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Propose card content for a word
+         * @description Returns senses, forms and (rarely) a comment for the given word. Nothing is written to the vocabulary — the proposal is filled into the form and saved by the person.
+         */
+        post: operations["propose_card_api_v1_ai_proposals__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/vocabulary/lists/{list_id}/share/": {
         parameters: {
             query?: never;
@@ -832,6 +852,56 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AiExampleSchema */
+        AiExampleSchema: {
+            /** Text En */
+            text_en: string;
+            /** Text Uk */
+            text_uk?: string | null;
+        };
+        /** AiFormSchema */
+        AiFormSchema: {
+            /** Label */
+            label?: string | null;
+            /** Value */
+            value: string;
+            /** Transcription */
+            transcription?: string | null;
+        };
+        /**
+         * AiProposalRequestSchema
+         * @description Слово, для якого просимо пропозицію. Більше роут нічого не приймає.
+         */
+        AiProposalRequestSchema: {
+            /** Word */
+            word: string;
+        };
+        /**
+         * AiProposalSchema
+         * @description Пропозиція — те, що ляже у форму, якщо людина погодиться.
+         *
+         *     `comment` тут майже завжди `None`, і це задумано: коментар з'являється лише
+         *     там, де є конкретна пастка (фальшивий друг, плутанина з близьким словом,
+         *     реєстр). Інакше поле, задумане як попередження, перетворилося б на шум.
+         */
+        AiProposalSchema: {
+            /** Senses */
+            senses?: components["schemas"]["AiSenseSchema"][];
+            /** Forms */
+            forms?: components["schemas"]["AiFormSchema"][];
+            /** Comment */
+            comment?: string | null;
+        };
+        /** AiSenseSchema */
+        AiSenseSchema: {
+            part_of_speech?: components["schemas"]["PartOfSpeechEnum"] | null;
+            /** Translation */
+            translation?: string | null;
+            /** Transcription */
+            transcription?: string | null;
+            /** Examples */
+            examples?: components["schemas"]["AiExampleSchema"][];
+        };
         /** Body_create_profile_api_v1_profiles__user_id___post */
         Body_create_profile_api_v1_profiles__user_id___post: {
             /** First Name */
@@ -998,6 +1068,11 @@ export interface components {
             /** Is Active */
             is_active: boolean;
             role: components["schemas"]["UserGroupEnum"];
+            /**
+             * Ai Enabled
+             * @default false
+             */
+            ai_enabled: boolean;
             /** First Name */
             first_name?: string | null;
             /** Last Name */
@@ -3502,6 +3577,65 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    propose_card_api_v1_ai_proposals__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiProposalRequestSchema"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiProposalSchema"];
+                };
+            };
+            /** @description The user has no AI access. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description This word has already been filled once. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not an English word — nothing to propose. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Claude failed or did not answer. */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No API key on this server: the feature is absent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
