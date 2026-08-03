@@ -1,17 +1,9 @@
-# Оверлей для сервера. Накладається поверх базового:
+# Server overlay. Applied on top of the base layer:
 #
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 #
-# Робить рівно одне: вмикає контейнер фронтенду в зовнішню мережу `web`, де
-# живе спільний Caddy усього сервера (deploy/). Більше нічого — базовий файл
-# уже публікує всі порти на 127.0.0.1, тобто ззовні не видно нічого й без
-# цього оверлея.
-#
-# Портів тут навмисно НЕ прибираємо, і це не недогляд: у docker compose списки
-# при накладанні ДОДАЮТЬСЯ, а не заміняються, тож `ports: []` тут нічого б не
-# скасував. Прибирати їх довелося б через `!reset`, а сенсу нуль — прив'язка до
-# loopback уже дає те, заради чого це робилось би, і додатково лишає Postgres
-# доступним SSH-тунелю оптимізатора (ADR-0002) та консоль MinIO — вам.
+# It does exactly one thing: it exposes the frontend container to the external `web` network, where
+# the server’s shared Caddy instance is located (deploy/).
 
 services:
   frontend:
@@ -20,9 +12,7 @@ services:
       - web
 
 networks:
-  # Створюється один раз, поза цим проектом:
+  # Created once, outside this project:
   #     docker network create web
-  # Спільний Caddy сидить у ній і дістає контейнери на ім'я. Кожен наступний
-  # проект на сервері вмикається так само й нічого не знає про Slovnuk.
   web:
     external: true

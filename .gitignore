@@ -311,7 +311,6 @@ frontend/.vite/
 # видно як брудний `git status`, а не як тихе розходження типів із сервером.
 backend/openapi.json
 
-README.md
 CONTEXT.md
 
 frontend/tsconfig.tsbuildinfo
