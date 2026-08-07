@@ -17,13 +17,18 @@
  * слово» на всю ширину внизу було найпомітнішою дією екрана, на якому дій
  * узагалі не мало бути. Тепер сюди ведуть тільки очі й олівець, а видалення
  * живе в редакторі, за тим самим олівцем.
+ *
+ * Списків, до яких належить картка, тут немає. Вони й так відомі: у словник
+ * заходять через вибраний список, його назва стоїть у шапці екрана списку, і
+ * повторювати її над карткою означало відповідати на питання, якого ніхто не
+ * ставив. Місце картки в словнику видно й правлять у редакторі.
  */
 
 import { useNavigate, useParams } from "react-router-dom";
 import { useOnline } from "../app/useOnline";
 import { distinctTranscriptions } from "../vocabulary/card";
 import { CardBody, Headword, headwordClass } from "../vocabulary/CardFace";
-import { useCard, useLists } from "../vocabulary/queries";
+import { useCard } from "../vocabulary/queries";
 import { cardTemperature } from "../study/temperature";
 import { PencilIcon } from "../ui/parts";
 
@@ -34,7 +39,6 @@ export default function CardScreen() {
   const id = Number(params.id);
 
   const card = useCard(Number.isFinite(id) ? id : null);
-  const lists = useLists();
 
   if (card.isPending) {
     return <div className="sheet-page">Завантаження…</div>;
@@ -51,9 +55,6 @@ export default function CardScreen() {
   }
 
   const item = card.data;
-  const names = (lists.data?.items ?? [])
-    .filter((list) => item.list_ids.includes(list.id))
-    .map((list) => list.name);
   const transcriptions = distinctTranscriptions(item);
 
   return (
@@ -67,18 +68,6 @@ export default function CardScreen() {
         >
           ‹
         </button>
-        {/* Олівець замість слова «Редагувати»: рядок під шапкою вартий слова
-            лише тоді, коли дію без нього не впізнати. */}
-        <button
-          className="icon-btn"
-          type="button"
-          aria-label="Редагувати"
-          disabled={!online}
-          title={online ? "Редагувати" : "Потрібен звʼязок"}
-          onClick={() => navigate(`/vocabulary/cards/${item.id}/edit`)}
-        >
-          <PencilIcon />
-        </button>
       </div>
 
       {/* `card-mid` центрує картку по вертикалі, поки вона в екран уміщається, і
@@ -86,18 +75,26 @@ export default function CardScreen() {
           навчанні: слово в словнику мусить стояти там само, де стояло на
           картці, — інакше два екрани показують ту саму річ по-різному. */}
       <div className="sheet-scroll card-mid">
-        {/* Списки стоять НАД панеллю, а не в ній: у навчанні їх немає, і панель
-            мусить лишатись описом слова, а не його місця в словнику. */}
-        {names.length > 0 ? (
-          <div className="v-lists-line">{names.join(" · ")}</div>
-        ) : (
-          <div className="v-lists-line v-lists-none">Без списку</div>
-        )}
-
         <div
           className="card-panel"
           style={{ "--temp": cardTemperature(item.tracks) } as React.CSSProperties}
         >
+          {/* Олівець у куті панелі — той самий, що в навчанні, і на тому ж
+              місці: правка є дією над КАРТКОЮ, а не над екраном, і рука не
+              повинна вчити для неї друге місце. Офлайн його немає зовсім, а не
+              вимкненим: так поводиться цей олівець у навчанні (ADR-0024), і
+              різна поведінка однакової кнопки читалась би як несправність. */}
+          {online ? (
+            <button
+              className="card-edit"
+              type="button"
+              aria-label="Редагувати"
+              onClick={() => navigate(`/vocabulary/cards/${item.id}/edit`)}
+            >
+              <PencilIcon />
+            </button>
+          ) : null}
+
           <div className="front">
             <Headword word={item.word} className={headwordClass(item.word)} />
             {/* Спільний рядок транскрипції — коли вона в картці одна. Коли їх
