@@ -39,11 +39,27 @@ const POS_LABEL: Record<string, string> = {
   other: "інше",
 };
 
-/** Кегль слова: 61-символьні «слова» в словнику є, і вони цілі речення. */
+/**
+ * Кегль слова: 61-символьні «слова» в словнику є, і вони цілі речення.
+ *
+ * Крок униз робиться РАНІШЕ, ніж слово перестане вміщатись, а не після.
+ * Unbounded — широка гарнітура (близько 0.72em на символ), тож на 38px у панель
+ * влазить приблизно девʼять символів, а `overflow-wrap: anywhere` дозволяє
+ * розрив у будь-якій точці — і десятисимвольне слово ламалось не по складу, а
+ * посеред себе: «Septemb / er». Меншим кеглем те саме слово стоїть цілим.
+ */
 export function headwordClass(word: string): string {
   if (word.length > 34) return "headword tiny";
-  if (word.length > 16) return "headword small";
+  if (word.length > 8) return "headword small";
   return "headword";
+}
+
+/**
+ * Те саме правило для відповіді «укр → англ»: там слово стоїть не заголовком,
+ * а `.ans` — на 30px, тож запас на три символи більший.
+ */
+export function answerClass(word: string): string {
+  return word.length > 11 ? "ans small" : "ans";
 }
 
 /** Слово з динаміком поруч. Кнопка стоїть там, де стоїть слово, — і тільки там. */

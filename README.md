@@ -234,6 +234,31 @@ python -m pytest
 `conftest.py` switches to `slovnuk_test` on its own and refuses to run against
 any database whose name does not end in `_test`.
 
+### 6. Tune the scheduler to a person (optional, and rarely)
+
+FSRS ships with parameters averaged over many learners. Once someone has enough
+of their own review history, those 21 weights can be fitted to them personally.
+The fitting runs from a developer machine, never on the server — it needs
+`torch`, and the API image has no business carrying it
+([ADR-0002](docs/adr/0002-optymizator-poza-serverom.md)):
+
+```bash
+pip install -r requirements-optimizer.txt      # torch and friends, ~2.5 GB
+
+cd backend
+python -m scripts.optimize_parameters --email me@example.com            # report only
+python -m scripts.optimize_parameters --email me@example.com --write    # and save
+```
+
+Without `--write` nothing is written. With it, the script still refuses to save
+a result equal to the library defaults: `fsrs_parameters` being `NULL` honestly
+means "not fitted yet", and defaults sitting there under the guise of personal
+weights would destroy that signal.
+
+Expect the first meaningful run no earlier than a couple of months into daily
+study — the library needs 512 reviews where at least a day passed since the
+previous look at the same track.
+
 ---
 
 ## API

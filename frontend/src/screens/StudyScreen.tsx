@@ -36,7 +36,7 @@ import { useSettings, useStudy, useToday } from "../study/queries";
 import { answer, beginSession, init } from "../study/store";
 import { temperature } from "../study/temperature";
 import { distinctTranscriptions } from "../vocabulary/card";
-import { CardBody, Headword, headwordClass } from "../vocabulary/CardFace";
+import { CardBody, Headword, answerClass, headwordClass } from "../vocabulary/CardFace";
 import CardEditSheet from "../vocabulary/CardEditSheet";
 import { SpeakButton, useTts } from "../tts/SpeakButton";
 import { autoplayText, stopSpeaking } from "../tts/speech";
@@ -123,7 +123,7 @@ function buildFaces({ item, side }: { item: QueueItem; side: "en_uk" | "uk_en" }
       back: (
         <>
           <div className="head-line">
-            <div className="ans">{card.word}</div>
+            <div className={answerClass(card.word)}>{card.word}</div>
             <SpeakButton text={card.word} size="md" />
           </div>
           {transcriptions.length > 0 ? (
