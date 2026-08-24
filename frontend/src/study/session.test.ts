@@ -19,6 +19,7 @@ import {
   emptyProgress,
   mergeIncoming,
   progressValue,
+  pruneStale,
   sameAim,
   syncProgress,
   type QueueItem,
@@ -128,6 +129,42 @@ describe("mergeIncoming", () => {
   it("повертає той самий масив, коли додавати нема чого", () => {
     const buffer = [track(1)];
     expect(mergeIncoming(buffer, [track(1)])).toBe(buffer);
+  });
+});
+
+describe("pruneStale", () => {
+  it("викидає доріжку, якої в повній вибірці більше немає", () => {
+    // Вчорашнє «Важко»: локальне правило лишило картку в буфері, а сервер
+    // переставив її на дні вперед. Сьогодні вона там уже сміття.
+    const buffer = [track(1), track(2)];
+    expect(ids(pruneStale(buffer, [track(2)]))).toEqual([2]);
+  });
+
+  it("не чіпає доріжку, відповідь на яку ще не доїхала", () => {
+    // Сервер про неї не знає, тож і у вибірці її бути не може.
+    const buffer = [track(1), track(2)];
+    expect(ids(pruneStale(buffer, [track(2)], [1]))).toEqual([1, 2]);
+  });
+
+  it("не чіпає доріжку, на яку відповіли в цьому запуску", () => {
+    // Її повернув AGAIN_GAP — вона лежить у буфері навмисно.
+    const buffer = [track(1), track(2)];
+    expect(ids(pruneStale(buffer, [track(2)], [], [1]))).toEqual([1, 2]);
+  });
+
+  it("не переставляє те, що лишилось", () => {
+    const buffer = [track(3), track(1), track(2)];
+    expect(ids(pruneStale(buffer, [track(1), track(3)]))).toEqual([3, 1]);
+  });
+
+  it("повертає той самий масив, коли викидати нема чого", () => {
+    const buffer = [track(1), track(2)];
+    expect(pruneStale(buffer, [track(1), track(2)])).toBe(buffer);
+  });
+
+  it("порожня вибірка спорожняє буфер", () => {
+    // Усе повторено: черга порожня, і буфер мусить це відобразити.
+    expect(ids(pruneStale([track(1), track(2)], []))).toEqual([]);
   });
 });
 

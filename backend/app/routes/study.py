@@ -123,7 +123,7 @@ async def get_queue(
     """
     now = datetime.now(timezone.utc)
 
-    due_count, new_count = await study_crud.count_queue(
+    due_count, new_count, new_forms_count = await study_crud.count_queue(
         db, current_user.id, list_ids, now, unlisted
     )
 
@@ -131,7 +131,12 @@ async def get_queue(
     # саме, але коштував би зайвого запиту й побудови планувальника заради
     # порожнього списку.
     if limit == 0:
-        return QueueResponseSchema(due_count=due_count, new_count=new_count, items=[])
+        return QueueResponseSchema(
+            due_count=due_count,
+            new_count=new_count,
+            new_forms_count=new_forms_count,
+            items=[],
+        )
 
     tracks = await study_crud.fetch_queue(
         db, current_user.id, list_ids, now, limit, unlisted
@@ -160,6 +165,7 @@ async def get_queue(
     return QueueResponseSchema(
         due_count=due_count,
         new_count=new_count,
+        new_forms_count=new_forms_count,
         items=items,
     )
 

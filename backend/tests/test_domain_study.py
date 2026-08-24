@@ -193,6 +193,54 @@ async def test_empty_aim_still_means_every_word(client: AsyncClient, auth_header
     assert queue["new_count"] == 2
 
 
+async def test_new_count_says_how_many_of_it_are_forms(
+    client: AsyncClient, auth_headers
+):
+    """
+    Черга рахує доріжки, а екран «Прогрес» — слова, і без цього поділу два
+    правильні числа виглядали б як помилка.
+
+    Тут це видно буквально: три нові слова, з них одне з формами, дають у черзі
+    чотири нові доріжки. `new_count - new_forms_count` мусить дорівнювати тому,
+    що смуга стабільності назве «не вчив».
+    """
+    await _new_card(client, auth_headers, "table")
+    await _new_card(client, auth_headers, "chair")
+    await _new_card(
+        client, auth_headers, "go", forms=[{"label": "Past", "value": "went"}]
+    )
+
+    queue = (await client.get(f"{STUDY}/queue/", headers=auth_headers)).json()
+    assert queue["new_count"] == 4
+    assert queue["new_forms_count"] == 1
+
+    stats = (await client.get(f"{VOCAB}/stats/", headers=auth_headers)).json()
+    assert queue["new_count"] - queue["new_forms_count"] == stats["stability_bands"]["new"]
+
+
+async def test_forms_left_the_queue_leave_the_forms_counter_too(
+    client: AsyncClient, auth_headers
+):
+    """
+    Вимкнене тренування форм ховає доріжку з черги — і лічильник форм мусить
+    зникнути разом із нею, інакше підпис обіцяв би вправу, якої не буде.
+    """
+    card = await _new_card(
+        client, auth_headers, "go", forms=[{"label": "Past", "value": "went"}]
+    )
+
+    response = await client.patch(
+        f"{VOCAB}/cards/{card['id']}/",
+        json={"forms_drill_enabled": False},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200, response.text
+
+    queue = (await client.get(f"{STUDY}/queue/", headers=auth_headers)).json()
+    assert queue["new_count"] == 1
+    assert queue["new_forms_count"] == 0
+
+
 # --------------------------------------------------------------------------
 # «Крок навчання: слово вертається того ж дня»
 # --------------------------------------------------------------------------

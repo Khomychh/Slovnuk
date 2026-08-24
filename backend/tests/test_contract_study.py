@@ -36,7 +36,12 @@ async def test_queue_is_empty_for_new_user(client: AsyncClient, auth_headers):
     assert response.status_code == 200, response.text
 
     body = response.json()
-    assert body == {"due_count": 0, "new_count": 0, "items": []}
+    assert body == {
+        "due_count": 0,
+        "new_count": 0,
+        "new_forms_count": 0,
+        "items": [],
+    }
 
 
 async def test_queue_returns_both_tracks_of_a_card(client: AsyncClient, auth_headers):

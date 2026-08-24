@@ -113,19 +113,35 @@ async def count_queue(
     list_ids: Sequence[int] | None,
     now: datetime,
     unlisted: bool = False,
-) -> tuple[int, int]:
-    """Скільки всього чекає: (прострочені повторення, нові). Одним запитом."""
+) -> tuple[int, int, int]:
+    """
+    Скільки всього чекає: (прострочені повторення, нові, з них доріжки форм).
+
+    Третє число — ПІДМНОЖИНА другого, а не ще одна купка поруч. Черга рахує
+    доріжки, і нова картка з формами дає їх дві; без цього уточнення підпис
+    «20 нових» на екрані «Сьогодні» не сходився б із «не вчив 15» на
+    «Прогресі», де рахуються самі слова (get_stability_bands у cruds/vocabulary).
+
+    Усі три — одним запитом: FILTER рахує по вже прочитаних рядках, тож три
+    лічильники коштують рівно стільки ж, скільки один.
+    """
     stmt = (
         select(
             func.count().filter(ReviewTrackModel.state != ReviewStateEnum.NEW),
             func.count().filter(ReviewTrackModel.state == ReviewStateEnum.NEW),
+            func.count().filter(
+                and_(
+                    ReviewTrackModel.state == ReviewStateEnum.NEW,
+                    ReviewTrackModel.kind == ReviewKindEnum.FORMS,
+                )
+            ),
         )
         .select_from(ReviewTrackModel)
         .join(CardModel, ReviewTrackModel.card_id == CardModel.id)
         .where(*_queue_conditions(user_id, list_ids, now, unlisted))
     )
-    due_count, new_count = (await db.execute(stmt)).one()
-    return due_count, new_count
+    due_count, new_count, new_forms_count = (await db.execute(stmt)).one()
+    return due_count, new_count, new_forms_count
 
 
 async def fetch_queue(

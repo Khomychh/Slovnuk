@@ -14,7 +14,7 @@ ensure_tracks (services/vocabulary.py), історія повторень про
 а не випадкові числа. Знімок для Бібліотеки зібраний через snapshot_rows
 (services/library.py) — той самий код, яким API готує чужий список.
 
-Запуск — з хоста, як import_legacy.py (див. README, розділ 4): venv бекенда
+Запуск — з хоста: venv бекенда
 вже має всі залежності, а .env лежить у корені репозиторію.
 
     cd backend

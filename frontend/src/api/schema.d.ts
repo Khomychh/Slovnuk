@@ -1562,12 +1562,27 @@ export interface components {
          * @description Лічильники стосуються всієї вибірки, а не поточної порції: екран «N карток
          *     на повторення» має показувати все, що чекає, навіть коли items обрізані
          *     лімітом.
+         *
+         *     Рахуються доріжки, а не картки, і `due_count + new_count` дорівнює довжині
+         *     всієї черги. Картка з формами дає дві одиниці роботи, і занижувати обсяг до
+         *     кількості слів означало б обіцяти коротшу сесію, ніж буде насправді.
          */
         QueueResponseSchema: {
-            /** Due Count */
+            /**
+             * Due Count
+             * @description Прострочені повторення — обидва види доріжок
+             */
             due_count: number;
-            /** New Count */
+            /**
+             * New Count
+             * @description Нові доріжки — і перекладу, і форм
+             */
             new_count: number;
+            /**
+             * New Forms Count
+             * @description Скільки з new_count — доріжки форм. Підмножина, а не окрема купка: нових слів у черзі рівно new_count - new_forms_count.
+             */
+            new_forms_count: number;
             /** Items */
             items: components["schemas"]["QueueItemSchema"][];
         };
