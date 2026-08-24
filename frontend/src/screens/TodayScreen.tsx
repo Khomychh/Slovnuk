@@ -43,6 +43,29 @@ function todayCaption(timeZone: string): string {
 }
 
 /**
+ * Розклад великого числа на частини.
+ *
+ * Числа — доріжки, а не слова: картка з формами дає дві одиниці роботи, і сума
+ * частин мусить сходитись із цифрою на кнопці. Через це «нові» тут не збігались
+ * би з «не вчив N» на «Прогресі», де рахуються самі слова, — тому нові форми
+ * названі окремо, а не сховані в загальному числі.
+ *
+ * Форми показуються лише коли вони є: «· 0 форм» у звичайний день було б
+ * шумом, який пояснює те, чого не сталося.
+ */
+function queueCaption(due: number, newTotal: number, newForms: number): string {
+  const newWords = newTotal - newForms;
+  const parts = [
+    `${due} ${plural(due, "повторення", "повторення", "повторень")}`,
+    `${newWords} ${plural(newWords, "нове", "нових", "нових")}`,
+  ];
+  if (newForms > 0) {
+    parts.push(`${newForms} ${plural(newForms, "форма", "форми", "форм")}`);
+  }
+  return parts.join(" · ");
+}
+
+/**
  * Смужка денної цілі.
  *
  * Ціль 0 означає «вимкнено» — тоді смужки немає взагалі, лишається саме число.
@@ -184,7 +207,7 @@ export default function TodayScreen() {
               <span className="hero-num">{waiting}</span>
               <span className="hero-sub">
                 {online
-                  ? `${study.dueCount} ${plural(study.dueCount, "повторення", "повторення", "повторень")} · ${study.newCount} ${plural(study.newCount, "нове", "нових", "нових")}`
+                  ? queueCaption(study.dueCount, study.newCount, study.newFormsCount)
                   : `${study.buffer.length} ${plural(study.buffer.length, "картка збережена", "картки збережені", "карток збережено")}`}
               </span>
             </>

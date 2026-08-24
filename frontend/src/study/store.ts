@@ -31,6 +31,7 @@ import {
   emptyProgress,
   EMPTY_AIM,
   mergeIncoming,
+  pruneStale,
   sameAim,
   syncProgress,
   type Aim,
@@ -50,6 +51,16 @@ export type StudyState = {
   /** Лічильники всієї черги з останньої вдалої вибірки, а не довжина буфера. */
   dueCount: number;
   newCount: number;
+  /**
+   * Скільки з `newCount` — доріжки форм.
+   *
+   * Підмножина, а не третя купка: нових СЛІВ у черзі рівно
+   * `newCount - newFormsCount`. Тримається окремо саме тому, що екран
+   * «Прогрес» рахує слова, і без цього числа підпис під кнопкою «Вчити»
+   * розходився б із теплою смугою на пʼять-десять одиниць без жодного
+   * пояснення.
+   */
+  newFormsCount: number;
   /** Скільки відповідей чекають на відправку. */
   pending: number;
   progress: Progress;
@@ -85,6 +96,7 @@ let state: StudyState = {
   buffer: [],
   dueCount: 0,
   newCount: 0,
+  newFormsCount: 0,
   pending: 0,
   progress: emptyProgress(localDay(new Date(), "UTC")),
   aim: EMPTY_AIM,
@@ -164,6 +176,10 @@ export function init(): Promise<void> {
       buffer: usable ? buffer.items : [],
       dueCount: usable ? buffer.dueCount : 0,
       newCount: usable ? buffer.newCount : 0,
+      // `?? 0` — запис міг лягти до появи цього поля. Сховище в IndexedDB
+      // безсхемне, тож версію бази піднімати не треба: перша ж вибірка
+      // поставить справжнє число.
+      newFormsCount: usable ? (buffer.newFormsCount ?? 0) : 0,
       // Дельта, що пережила перехід доби, до сьогоднішнього дня не стосується.
       progress: progress && progress.day === day ? progress : emptyProgress(day),
       snapshotToday: snapshotToday ?? null,
@@ -223,7 +239,14 @@ export async function setAim(aim: Aim): Promise<void> {
   // Офлайн лічильників не буде, і чесніше сказати нуль, ніж вічно «Рахую…».
   // Самі рядки вибору офлайн і так недоступні — це запобіжник, не сценарій.
   const online = navigator.onLine;
-  set({ aim, buffer: [], dueCount: 0, newCount: 0, aimCounting: online });
+  set({
+    aim,
+    buffer: [],
+    dueCount: 0,
+    newCount: 0,
+    newFormsCount: 0,
+    aimCounting: online,
+  });
   if (!online) return;
   aimTimer = setTimeout(() => void probeAim(), AIM_SETTLE_MS);
 }
@@ -247,6 +270,7 @@ async function probeAim(): Promise<void> {
     set({
       dueCount: response.due_count,
       newCount: response.new_count,
+      newFormsCount: response.new_forms_count,
       aimCounting: false,
     });
   } catch {
@@ -286,13 +310,20 @@ async function persistBuffer(): Promise<void> {
     items: state.buffer,
     dueCount: state.dueCount,
     newCount: state.newCount,
+    newFormsCount: state.newFormsCount,
     filterKey: aimKey(state.aim),
     fetchedAt: new Date().toISOString(),
   });
 }
 
 /**
- * Долити буфер зі свіжої вибірки.
+ * Долити буфер зі свіжої вибірки — і прибрати з нього те, чого сервер уже не
+ * бачить.
+ *
+ * Чистка (`pruneStale`) робиться ЛИШЕ коли вибірка повна, тобто сервер віддав
+ * менше карток, ніж `QUEUE_LIMIT`. Рівно `QUEUE_LIMIT` означає «це шматок
+ * черги», і чистити буфер за таким шматком означало б викидати доріжки, які
+ * просто не влізли в сторінку.
  *
  * Мовчки нічого не робить без мережі: це не помилка, а звичайний стан
  * застосунку, який вчить у метро. Помилку показує екран — по прапорцю офлайну.
@@ -303,10 +334,15 @@ export async function refill(): Promise<void> {
   try {
     const response = await fetchQueue(state.aim, QUEUE_LIMIT);
     const pending = await db.pendingTrackIds();
+    const complete = response.items.length < QUEUE_LIMIT;
+    const kept = complete
+      ? pruneStale(state.buffer, response.items, pending, answeredHere)
+      : state.buffer;
     set({
-      buffer: mergeIncoming(state.buffer, response.items, pending),
+      buffer: mergeIncoming(kept, response.items, pending),
       dueCount: response.due_count,
       newCount: response.new_count,
+      newFormsCount: response.new_forms_count,
       // Повна вибірка відповідає на те саме питання, що й `probeAim`, тільки
       // ще й картками. Чекати після неї нема на що.
       aimCounting: false,
@@ -359,6 +395,18 @@ export async function beginSession(): Promise<void> {
 // --- відповідь ---
 
 /**
+ * Доріжки, на які відповіли з моменту запуску застосунку.
+ *
+ * Живе в памʼяті й навмисно НЕ переживає перезапуск — у цьому вся суть. Поки
+ * застосунок відкритий, картка після «Важко» лежить у буфері за задумом, і
+ * чистка не має права її чіпати. Після перезапуску той самий запис у буфері —
+ * вже сміття вчорашньої сесії, і його треба прибрати.
+ *
+ * Не чиститься з часом: у найгіршому випадку це кілька сотень чисел за добу.
+ */
+const answeredHere = new Set<number>();
+
+/**
  * Оцінити картку, що стоїть першою в буфері.
  *
  * Порядок дій навмисний: спершу відповідь лягає в чергу відправки, і лише потім
@@ -382,6 +430,8 @@ export async function answer(
     // інакше оптимізатор побачить вигадану історію (ADR-0007).
     reviewedAt: new Date().toISOString(),
   });
+
+  answeredHere.add(trackId);
 
   const progress = countAnswer(state.progress, trackId, day);
   set({

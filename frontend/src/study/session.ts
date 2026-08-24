@@ -117,6 +117,43 @@ export function mergeIncoming(
   return added.length === 0 ? buffer : [...buffer, ...added];
 }
 
+/**
+ * Викинути з буфера те, чого сервер у черзі вже не бачить.
+ *
+ * Пара до `mergeIncoming`, і без неї буфер тільки ріс. Картка потрапляє в нього
+ * назавжди: «Важко» і «Не згадав» лишають її на місці, щоб показати ще раз у
+ * цій сесії, — а сервер тим часом переставив доріжку на дні вперед. Закрив
+ * застосунок, не дійшовши до неї вдруге, — і вона висить у буфері вічно. Завтра
+ * вона випаде першою, отримає відповідь, і планувальник запише повторення
+ * слову, якому було ще не час.
+ *
+ * Три умови, за яких доріжка лишається, попри відсутність у вибірці:
+ *
+ * - `incoming` — сервер її й далі віддає, питань немає;
+ * - `pendingTrackIds` — відповідь ще не доїхала, сервер про неї не знає;
+ * - `answeredHere` — на неї відповіли в цьому запуску застосунку, тобто вона
+ *   лежить у буфері НАВМИСНО (AGAIN_GAP), і викинути її означало б скасувати
+ *   локальне правило показу.
+ *
+ * Викликати можна ЛИШЕ на повній вибірці — коли сервер віддав менше, ніж
+ * попросили. Якщо приїхало рівно `limit` карток, це шматок черги, і те, чого в
+ * ньому немає, цілком може чекати на наступній сторінці; чистка за таким
+ * шматком викинула б половину черги.
+ */
+export function pruneStale(
+  buffer: QueueItem[],
+  incoming: QueueItem[],
+  pendingTrackIds: Iterable<number> = [],
+  answeredHere: Iterable<number> = [],
+): QueueItem[] {
+  const keep = new Set(incoming.map((item) => item.track_id));
+  for (const trackId of pendingTrackIds) keep.add(trackId);
+  for (const trackId of answeredHere) keep.add(trackId);
+
+  const next = buffer.filter((item) => keep.has(item.track_id));
+  return next.length === buffer.length ? buffer : next;
+}
+
 // --- правка картки просто в навчанні ---
 
 /**
