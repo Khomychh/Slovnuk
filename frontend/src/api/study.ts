@@ -18,6 +18,8 @@ export type StudyDay = components["schemas"]["StudyDaySchema"];
 export type StudySettings = components["schemas"]["StudySettingsResponseSchema"];
 export type StudySettingsUpdate = components["schemas"]["StudySettingsUpdateSchema"];
 export type StudyDirection = components["schemas"]["StudyDirectionEnum"];
+/** Спосіб задати денну ціль: окремі цілі чи одна сумарна (ADR-0032). */
+export type GoalMode = components["schemas"]["GoalModeEnum"];
 export type WordListPage = components["schemas"]["WordListPageSchema"];
 
 /**

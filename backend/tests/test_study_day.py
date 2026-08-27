@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
+from app.database.models import GoalModeEnum
 from app.services.study_day import (
     is_goal_met,
     local_day,
@@ -19,6 +20,29 @@ from app.services.study_day import (
 )
 
 KYIV = ZoneInfo("Europe/Kyiv")
+
+
+def met_separate(*, new_added: int, reviews_done: int, new_goal: int, review_goal: int):
+    """Цілі приходять зі знімка дня, тож сумарної в цьому дні просто немає."""
+    return is_goal_met(
+        new_added=new_added,
+        reviews_done=reviews_done,
+        goal_mode=GoalModeEnum.SEPARATE,
+        new_goal=new_goal,
+        review_goal=review_goal,
+        combined_goal=None,
+    )
+
+
+def met_combined(*, new_added: int, reviews_done: int, combined_goal: int):
+    return is_goal_met(
+        new_added=new_added,
+        reviews_done=reviews_done,
+        goal_mode=GoalModeEnum.COMBINED,
+        new_goal=None,
+        review_goal=None,
+        combined_goal=combined_goal,
+    )
 
 
 class TestLocalDay:
@@ -81,18 +105,43 @@ class TestResolveTimezone:
         assert resolve_timezone(value) == ZoneInfo("Europe/Kyiv")
 
 
-class TestIsGoalMet:
+class TestIsGoalMetSeparate:
     def test_both_goals_required(self):
-        assert not is_goal_met(new_added=0, reviews_done=30, new_goal=10, review_goal=30)
-        assert not is_goal_met(new_added=10, reviews_done=5, new_goal=10, review_goal=30)
-        assert is_goal_met(new_added=10, reviews_done=30, new_goal=10, review_goal=30)
+        assert not met_separate(new_added=0, reviews_done=30, new_goal=10, review_goal=30)
+        assert not met_separate(new_added=10, reviews_done=5, new_goal=10, review_goal=30)
+        assert met_separate(new_added=10, reviews_done=30, new_goal=10, review_goal=30)
 
     def test_exceeding_a_goal_still_counts(self):
-        assert is_goal_met(new_added=99, reviews_done=99, new_goal=10, review_goal=30)
+        assert met_separate(new_added=99, reviews_done=99, new_goal=10, review_goal=30)
 
     def test_zero_goal_is_considered_satisfied(self):
-        assert is_goal_met(new_added=0, reviews_done=30, new_goal=0, review_goal=30)
+        assert met_separate(new_added=0, reviews_done=30, new_goal=0, review_goal=30)
 
     def test_both_goals_zero_means_the_day_does_not_count(self):
         """Правило зі старого PWA: без жодної цілі день не зараховується."""
-        assert not is_goal_met(new_added=99, reviews_done=99, new_goal=0, review_goal=0)
+        assert not met_separate(new_added=99, reviews_done=99, new_goal=0, review_goal=0)
+
+
+class TestIsGoalMetCombined:
+    def test_split_between_the_two_counters_does_not_matter(self):
+        """Сто повторень і сто доданих слів закривають ту саму ціль."""
+        assert met_combined(new_added=0, reviews_done=100, combined_goal=100)
+        assert met_combined(new_added=100, reviews_done=0, combined_goal=100)
+        assert met_combined(new_added=45, reviews_done=55, combined_goal=100)
+
+    def test_sum_below_the_goal_does_not_close_the_day(self):
+        assert not met_combined(new_added=45, reviews_done=54, combined_goal=100)
+
+    def test_word_added_and_studied_the_same_day_counts_twice(self):
+        """
+        ADR-0032, і це свідомо: додати слово й повторити слово — різні роботи.
+
+        День із 30 прострочених доріжок плюс 10 доданих і одразу провчених слів
+        дає new_added=10 і reviews_done=40, тобто 50 одиниць при сорока різних
+        картках.
+        """
+        assert met_combined(new_added=10, reviews_done=40, combined_goal=50)
+
+    def test_zero_goal_means_the_day_does_not_count(self):
+        """Те саме правило, що й в окремому режимі: дня без цілі не існує."""
+        assert not met_combined(new_added=999, reviews_done=999, combined_goal=0)

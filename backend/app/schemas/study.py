@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic_core import PydanticCustomError
 
 from app.database.models import (
+    GoalModeEnum,
     ReviewKindEnum,
     ReviewStateEnum,
     StudyDirectionEnum,
@@ -122,9 +123,20 @@ class QueueResponseSchema(BaseModel):
 
 
 class StudyDayResponseSchema(BaseModel):
+    """
+    Сьогоднішній день так, як його судять зараз.
+
+    Цілі приходять зі знімка дня, тож заповнена рівно та трійка, яку вибрав
+    `goal_mode`; решта — null, і це означає «такого виміру сьогодні немає», а
+    не нуль. Обидва лічильники віддаються завжди, незалежно від режиму: у
+    сумарному вони й є розкладкою під смужкою.
+    """
+
     day: date
-    new_goal: int
-    review_goal: int
+    goal_mode: GoalModeEnum
+    new_goal: int | None
+    review_goal: int | None
+    combined_goal: int | None
     new_added: int
     reviews_done: int
     is_goal_met: bool
@@ -135,14 +147,18 @@ class StudyDaySchema(BaseModel):
     Один день у календарі прогресу.
 
     Цілі — знімок, що діяв саме того дня, а не поточні: підвищення планки не
-    має переписувати минуле. Кількості, навпаки, рахуються щоразу заново з
+    має переписувати минуле. Разом із числами зі знімка приходить і спосіб,
+    яким їх задано, — день, порахований як `45 / 100`, не можна показати як
+    «не добрав 30 повторень» (ADR-0032). Кількості, навпаки, рахуються щоразу заново з
     незмінних даних (cards.created_at, review_logs) — у study_days їх немає і
     дублювати їх туди не треба.
     """
 
     day: date
-    new_goal: int
-    review_goal: int
+    goal_mode: GoalModeEnum
+    new_goal: int | None
+    review_goal: int | None
+    combined_goal: int | None
     new_count: int
     review_count: int
     is_goal_met: bool
@@ -169,8 +185,12 @@ class StudySettingsResponseSchema(BaseModel):
     tts_autoplay: bool
     tts_accent: TtsAccentEnum
     tts_slow: bool
+    # Обидва набори цілей віддаються завжди, а не лише активний: перемикач у
+    # профілі показує числа того режиму, який ще не ввімкнено.
+    goal_mode: GoalModeEnum
     daily_new_goal: int
     daily_review_goal: int
+    daily_combined_goal: int
     desired_retention: float
     timezone: str
     # Список за замовчуванням для нових карток. NULL — нормальний стан: жоден не
@@ -203,8 +223,12 @@ class StudySettingsUpdateSchema(BaseModel):
     tts_autoplay: bool | None = None
     tts_accent: TtsAccentEnum | None = None
     tts_slow: bool | None = None
+    goal_mode: GoalModeEnum | None = None
+    # Одна стеля на всі три цілі. Для сумарної вона не «сума двох», бо стеля
+    # тут не про арифметику, а про захист від одруківки в полі вводу.
     daily_new_goal: int | None = Field(default=None, ge=0, le=1000)
     daily_review_goal: int | None = Field(default=None, ge=0, le=1000)
+    daily_combined_goal: int | None = Field(default=None, ge=0, le=1000)
     # Межі тримає схема, бо fsrs.Scheduler їх не перевіряє взагалі: він валідує
     # лише parameters, а desired_retention бере як є.
     desired_retention: float | None = Field(default=None, ge=0.7, le=0.99)

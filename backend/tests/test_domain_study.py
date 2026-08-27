@@ -8,10 +8,13 @@
 
 from datetime import datetime, timedelta, timezone
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 
 from app.database.models import (
+    GoalModeEnum,
     ReviewKindEnum,
     ReviewLogModel,
     ReviewStateEnum,
@@ -482,6 +485,184 @@ async def test_both_goals_must_be_met(client: AsyncClient, auth_headers):
     assert body["new_added"] == 1
     # Ціль повторень виконана, ціль нових слів — ні.
     assert body["is_goal_met"] is False
+
+
+# --------------------------------------------------------------------------
+# «Сумарна ціль — другий спосіб задати ціль, а не третя ціль»
+# --------------------------------------------------------------------------
+
+
+async def test_combined_goal_does_not_care_how_it_was_filled(
+    client: AsyncClient, auth_headers
+):
+    """
+    Головне — сума (ADR-0032).
+
+    Одна картка дає дві одиниці: слово додане (new_added=1) і того ж дня
+    провчене (reviews_done=1). Ціль на 2 цим і закривається, хоча жодної
+    окремої цілі в цьому дні не існує.
+    """
+    await client.patch(
+        f"{STUDY}/settings/",
+        json={"goal_mode": "combined", "daily_combined_goal": 2},
+        headers=auth_headers,
+    )
+    await _new_card(client, auth_headers, "run")
+    await _review(client, auth_headers, await _first_track(client, auth_headers))
+
+    body = (await client.get(f"{STUDY}/today/", headers=auth_headers)).json()
+    assert body["new_added"] == 1
+    assert body["reviews_done"] == 1
+    assert body["is_goal_met"] is True
+    assert body["new_goal"] is None, "у сумарному дні окремих цілей не існує"
+    assert body["review_goal"] is None
+
+
+async def test_combined_goal_is_not_met_by_a_smaller_sum(
+    client: AsyncClient, auth_headers
+):
+    await client.patch(
+        f"{STUDY}/settings/",
+        json={"goal_mode": "combined", "daily_combined_goal": 3},
+        headers=auth_headers,
+    )
+    await _new_card(client, auth_headers, "run")
+    await _review(client, auth_headers, await _first_track(client, auth_headers))
+
+    body = (await client.get(f"{STUDY}/today/", headers=auth_headers)).json()
+    assert body["is_goal_met"] is False
+
+
+async def test_zero_combined_goal_does_not_close_the_day(
+    client: AsyncClient, auth_headers
+):
+    """Те саме правило, що й для окремих цілей: дня без цілі не існує."""
+    await client.patch(
+        f"{STUDY}/settings/",
+        json={"goal_mode": "combined", "daily_combined_goal": 0},
+        headers=auth_headers,
+    )
+    await _new_card(client, auth_headers, "run")
+    await _review(client, auth_headers, await _first_track(client, auth_headers))
+
+    body = (await client.get(f"{STUDY}/today/", headers=auth_headers)).json()
+    assert body["is_goal_met"] is False
+
+
+async def test_switching_mode_midday_retargets_today(client: AsyncClient, auth_headers):
+    """
+    Зміна режиму — така сама зміна цілі, як і зміна числа (ADR-0023 + ADR-0032).
+
+    День, виконаний за окремими цілями 1/1, після перемикання на «разом, 50»
+    гасне: двох одиниць до п'ятдесяти не досить. Перемкнув назад — повернувся.
+    """
+    await client.patch(
+        f"{STUDY}/settings/",
+        json={"daily_new_goal": 1, "daily_review_goal": 1},
+        headers=auth_headers,
+    )
+    await _new_card(client, auth_headers, "run")
+    await _review(client, auth_headers, await _first_track(client, auth_headers))
+
+    closed = (await client.get(f"{STUDY}/today/", headers=auth_headers)).json()
+    assert closed["is_goal_met"] is True, "передумова тесту не виконалась"
+
+    await client.patch(
+        f"{STUDY}/settings/",
+        json={"goal_mode": "combined", "daily_combined_goal": 50},
+        headers=auth_headers,
+    )
+
+    body = (await client.get(f"{STUDY}/today/", headers=auth_headers)).json()
+    assert body["goal_mode"] == "combined"
+    assert body["combined_goal"] == 50
+    assert body["is_goal_met"] is False
+
+    # Календар мусить казати те саме — два джерела однієї доби не розходяться.
+    days = (await client.get(f"{STUDY}/days/", headers=auth_headers)).json()["items"]
+    assert days[-1]["goal_mode"] == "combined"
+    assert days[-1]["new_goal"] is None
+
+    await client.patch(
+        f"{STUDY}/settings/", json={"goal_mode": "separate"}, headers=auth_headers
+    )
+
+    back = (await client.get(f"{STUDY}/today/", headers=auth_headers)).json()
+    assert back["new_goal"] == 1, "окремі цілі мали пережити перемикання"
+    assert back["is_goal_met"] is True
+
+
+async def test_switching_mode_does_not_rewrite_a_past_day(
+    client: AsyncClient, auth_headers, db_session
+):
+    """
+    Межа та сама, що й у ADR-0023, і саме заради неї режим лежить у знімку дня.
+
+    Без `goal_mode` у рядку вчорашній день, зроблений за цілями 1/1, після
+    перемикання рахувався б як «2 зі 100» і перестав би бути виконаним.
+    """
+    await client.patch(
+        f"{STUDY}/settings/",
+        json={"daily_new_goal": 1, "daily_review_goal": 1},
+        headers=auth_headers,
+    )
+    await _new_card(client, auth_headers, "run")
+    await _review(client, auth_headers, await _first_track(client, auth_headers))
+
+    row = (await db_session.execute(select(StudyDayModel))).scalars().one()
+    yesterday = row.day - timedelta(days=1)
+    await db_session.execute(
+        update(StudyDayModel)
+        .where(StudyDayModel.id == row.id)
+        .values(day=yesterday, is_goal_met=True)
+    )
+    await db_session.commit()
+
+    await client.patch(
+        f"{STUDY}/settings/",
+        json={"goal_mode": "combined", "daily_combined_goal": 100},
+        headers=auth_headers,
+    )
+
+    days = (await client.get(f"{STUDY}/days/", headers=auth_headers)).json()["items"]
+    past = [day for day in days if day["day"] == yesterday.isoformat()]
+    assert len(past) == 1
+    assert past[0]["goal_mode"] == "separate", "минулий день змінив спосіб виміру"
+    assert past[0]["new_goal"] == 1
+    assert past[0]["combined_goal"] is None
+    assert past[0]["is_goal_met"] is True
+
+
+async def test_mixed_goal_row_is_impossible(client: AsyncClient, auth_headers, db_session):
+    """
+    Форму знімка тримає `ck_study_days_goal_shape`, а не домовленість (ADR-0032).
+
+    Рядок, у якому є і сумарна ціль, і окремі, означав би день, суджений двома
+    правилами одночасно. База такий не приймає.
+    """
+    user_id = (
+        (await db_session.execute(select(StudyDayModel.user_id))).scalars().first()
+    )
+    if user_id is None:
+        await _new_card(client, auth_headers, "run")
+        user_id = (
+            (await db_session.execute(select(StudyDayModel.user_id))).scalars().one()
+        )
+
+    db_session.add(
+        StudyDayModel(
+            day=datetime.now(timezone.utc).date() - timedelta(days=1),
+            goal_mode=GoalModeEnum.COMBINED,
+            new_goal=10,
+            review_goal=30,
+            combined_goal=100,
+            is_goal_met=False,
+            user_id=user_id,
+        )
+    )
+    with pytest.raises(IntegrityError):
+        await db_session.commit()
+    await db_session.rollback()
 
 
 # --------------------------------------------------------------------------

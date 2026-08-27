@@ -45,6 +45,7 @@ import {
   nameProblem,
   parseGoal,
 } from "../profile/profile";
+import { type GoalMode } from "../api/study";
 import { useSettings, useUpdateSettings } from "../study/queries";
 import { detectTimeZone } from "../study/day";
 import { useVoices } from "../tts/SpeakButton";
@@ -96,8 +97,10 @@ export default function ProfileScreen() {
       <div className="ed-label">Щоденні цілі</div>
       {settings.data ? (
         <GoalsBlock
+          mode={settings.data.goal_mode}
           newGoal={settings.data.daily_new_goal}
           reviewGoal={settings.data.daily_review_goal}
+          combinedGoal={settings.data.daily_combined_goal}
           disabled={!online || updateSettings.isPending}
           onSave={(payload) => updateSettings.mutateAsync(payload)}
         />
@@ -288,69 +291,145 @@ function IdentityBlock() {
   );
 }
 
+/**
+ * Щоденні цілі: спосіб і числа.
+ *
+ * Способів два, і активний завжди один (ADR-0032), тож нагорі доріжка, а під
+ * нею — поля лише того способу, який вибрано. Поля другого не гасяться, а
+ * зникають: сіре поле означає «сюди не можна», а тут воно просто ні до чого.
+ * Числа обох наборів при цьому живуть далі на сервері, тож повернення до
+ * окремих цілей повертає ті самі числа, а не дефолти.
+ *
+ * Доріжка зберігається одразу, поля — по «Зберегти»: перемикання способу є
+ * завершеною дією, а набране в полі число — ще ні.
+ */
 function GoalsBlock({
+  mode,
   newGoal,
   reviewGoal,
+  combinedGoal,
   disabled,
   onSave,
 }: {
+  mode: GoalMode;
   newGoal: number;
   reviewGoal: number;
+  combinedGoal: number;
   disabled: boolean;
   onSave: (payload: {
-    daily_new_goal: number;
-    daily_review_goal: number;
+    goal_mode?: GoalMode;
+    daily_new_goal?: number;
+    daily_review_goal?: number;
+    daily_combined_goal?: number;
   }) => Promise<unknown>;
 }) {
   const [nextNew, setNextNew] = useState(String(newGoal));
   const [nextReview, setNextReview] = useState(String(reviewGoal));
+  const [nextCombined, setNextCombined] = useState(String(combinedGoal));
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
+  const combined = mode === "combined";
+
   const parsedNew = parseGoal(nextNew);
   const parsedReview = parseGoal(nextReview);
-  const valid = parsedNew !== null && parsedReview !== null;
-  const changed = parsedNew !== newGoal || parsedReview !== reviewGoal;
+  const parsedCombined = parseGoal(nextCombined);
+
+  const valid = combined
+    ? parsedCombined !== null
+    : parsedNew !== null && parsedReview !== null;
+  const changed = combined
+    ? parsedCombined !== combinedGoal
+    : parsedNew !== newGoal || parsedReview !== reviewGoal;
 
   const save = async () => {
     if (!valid) return;
     setError(null);
     try {
-      await onSave({ daily_new_goal: parsedNew, daily_review_goal: parsedReview });
+      await onSave(
+        combined
+          ? { daily_combined_goal: parsedCombined as number }
+          : {
+              daily_new_goal: parsedNew as number,
+              daily_review_goal: parsedReview as number,
+            },
+      );
       setSaved(true);
     } catch (problem) {
       setError(messageOf(problem, "Не вдалось зберегти цілі"));
     }
   };
 
+  const switchMode = async (value: GoalMode) => {
+    if (value === mode) return;
+    setError(null);
+    setSaved(false);
+    try {
+      await onSave({ goal_mode: value });
+    } catch (problem) {
+      setError(messageOf(problem, "Не вдалось перемкнути ціль"));
+    }
+  };
+
   return (
     <>
       <div className="p-card p-card-fields">
+        <div className="p-line p-line-stack">
+          <span className="p-line-key">Спосіб</span>
+          <Segmented
+            label="Спосіб цілі"
+            value={mode}
+            disabled={disabled}
+            options={[
+              { value: "separate", label: "Окремо" },
+              { value: "combined", label: "Разом" },
+            ]}
+            onChange={(value) => void switchMode(value)}
+          />
+        </div>
+
         <div className="p-pair">
-          <div className="field">
-            <label htmlFor="goal-new">Нових слів</label>
-            <input
-              id="goal-new"
-              inputMode="numeric"
-              value={nextNew}
-              onChange={(event) => {
-                setNextNew(event.target.value);
-                setSaved(false);
-              }}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="goal-review">Повторень</label>
-            <input
-              id="goal-review"
-              inputMode="numeric"
-              value={nextReview}
-              onChange={(event) => {
-                setNextReview(event.target.value);
-                setSaved(false);
-              }}
-            />
-          </div>
+          {combined ? (
+            <div className="field">
+              <label htmlFor="goal-combined">Одиниць за добу</label>
+              <input
+                id="goal-combined"
+                inputMode="numeric"
+                value={nextCombined}
+                onChange={(event) => {
+                  setNextCombined(event.target.value);
+                  setSaved(false);
+                }}
+              />
+            </div>
+          ) : (
+            <>
+              <div className="field">
+                <label htmlFor="goal-new">Нових слів</label>
+                <input
+                  id="goal-new"
+                  inputMode="numeric"
+                  value={nextNew}
+                  onChange={(event) => {
+                    setNextNew(event.target.value);
+                    setSaved(false);
+                  }}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="goal-review">Повторень</label>
+                <input
+                  id="goal-review"
+                  inputMode="numeric"
+                  value={nextReview}
+                  onChange={(event) => {
+                    setNextReview(event.target.value);
+                    setSaved(false);
+                  }}
+                />
+              </div>
+            </>
+          )}
           <SaveButton
             onClick={save}
             disabled={disabled || !valid || !changed}
@@ -360,10 +439,15 @@ function GoalsBlock({
       </div>
 
       {/* Ціль — орієнтир, а не обмеження: застосунок ніколи не ховає картки,
-          яким настав час. Нуль вимикає ціль. */}
+          яким настав час. Нуль вимикає ціль.
+
+          У сумарному способі одиниця — і додане слово, і повторена доріжка,
+          тож слово, додане й того ж дня провчене, дає дві. Сказати це треба
+          прямо: інакше «100» читається як «100 різних слів». */}
       <div className="p-note">
-        Нуль вимикає ціль. Прострочені картки показуються завжди — ціль їх не
-        обмежує.
+        {combined
+          ? "Одиниця — додане слово або повторена доріжка. Нуль вимикає ціль."
+          : "Нуль вимикає ціль."}
       </div>
 
       {!valid ? (

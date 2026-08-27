@@ -1,6 +1,7 @@
 from app.database.models.base import Base, TimestampMixin
 from app.database.models.enums import (
     GenderEnum,
+    GoalModeEnum,
     ThemeEnum,
     StudyDirectionEnum,
     TtsAccentEnum,
@@ -26,6 +27,7 @@ from app.database.models.user_settings import (
     UserSettingsModel,
     DEFAULT_DAILY_NEW_GOAL,
     DEFAULT_DAILY_REVIEW_GOAL,
+    DEFAULT_DAILY_COMBINED_GOAL,
     DEFAULT_DESIRED_RETENTION,
     DEFAULT_TIMEZONE,
 )
@@ -68,6 +70,7 @@ __all__ = [
     "TimestampMixin",
     # enums
     "GenderEnum",
+    "GoalModeEnum",
     "ThemeEnum",
     "StudyDirectionEnum",
     "TtsAccentEnum",
@@ -91,6 +94,7 @@ __all__ = [
     "UserSettingsModel",
     "DEFAULT_DAILY_NEW_GOAL",
     "DEFAULT_DAILY_REVIEW_GOAL",
+    "DEFAULT_DAILY_COMBINED_GOAL",
     "DEFAULT_DESIRED_RETENTION",
     "DEFAULT_TIMEZONE",
     # vocabulary

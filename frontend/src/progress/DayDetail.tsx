@@ -20,8 +20,11 @@ import { plural } from "../ui/plural";
 import type { DayKey } from "../study/day";
 
 export type DayFacts = {
-  new_goal: number;
-  review_goal: number;
+  /** Спосіб, яким міряли САМЕ ЦЕЙ день, а не поточний (ADR-0032). */
+  goal_mode: "separate" | "combined";
+  new_goal: number | null;
+  review_goal: number | null;
+  combined_goal: number | null;
   new_count: number;
   review_count: number;
   is_goal_met: boolean;
@@ -61,13 +64,26 @@ export default function DayDetail({
 
       {facts ? (
         <>
+          {/* У сумарному дні знаменник один і стоїть у власному рядку: «з 30»
+              поруч із «Повторено» означало б ціль, якої того дня не існувало. */}
+          {facts.goal_mode === "combined" ? (
+            <div className="pd-row">
+              <span className="pd-lbl">Разом</span>
+              <span className="pd-val">
+                {facts.review_count + facts.new_count}
+                {facts.combined_goal ? (
+                  <span className="pd-goal"> з {facts.combined_goal}</span>
+                ) : null}
+              </span>
+            </div>
+          ) : null}
           <div className="pd-row">
             <span className="pd-lbl">Повторено</span>
             <span className="pd-val">
               {facts.review_count}
               {/* Нульова ціль означає «вимкнено», а не «нуль» — знаменника
                   тоді немає, бо не з чим порівнювати. */}
-              {facts.review_goal > 0 ? (
+              {facts.review_goal ? (
                 <span className="pd-goal"> з {facts.review_goal}</span>
               ) : null}
             </span>
@@ -76,7 +92,7 @@ export default function DayDetail({
             <span className="pd-lbl">Додано</span>
             <span className="pd-val">
               {facts.new_count}
-              {facts.new_goal > 0 ? (
+              {facts.new_goal ? (
                 <span className="pd-goal"> з {facts.new_goal}</span>
               ) : null}
               {` ${plural(facts.new_count, "слово", "слова", "слів")}`}

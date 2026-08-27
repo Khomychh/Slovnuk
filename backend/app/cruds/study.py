@@ -17,6 +17,7 @@ from sqlalchemy.orm import selectinload
 from app.database.models import (
     CardListLinkModel,
     CardModel,
+    GoalModeEnum,
     ReviewKindEnum,
     ReviewLogModel,
     ReviewStateEnum,
@@ -179,15 +180,37 @@ async def fetch_queue(
     return (await db.execute(stmt)).scalars().all()
 
 
+def goal_snapshot(settings: UserSettingsModel) -> dict:
+    """
+    Цілі, які підуть у рядок дня, — рівно ті, що судитимуть (ADR-0032).
+
+    Заповнена одна трійка, друга — None: число в колонці означає ціль, яка
+    діяла, а порожня колонка — що такого виміру того дня не було. Форму
+    перевіряє `ck_study_days_goal_shape`, тож помилка тут не тиха.
+    """
+    if settings.goal_mode is GoalModeEnum.COMBINED:
+        return {
+            "goal_mode": GoalModeEnum.COMBINED,
+            "new_goal": None,
+            "review_goal": None,
+            "combined_goal": settings.daily_combined_goal,
+        }
+    return {
+        "goal_mode": GoalModeEnum.SEPARATE,
+        "new_goal": settings.daily_new_goal,
+        "review_goal": settings.daily_review_goal,
+        "combined_goal": None,
+    }
+
+
 async def ensure_study_day(
     db: AsyncSession,
     user_id: int,
     day: date,
-    new_goal: int,
-    review_goal: int,
+    settings: UserSettingsModel,
 ) -> None:
     """
-    Зафіксувати, які цілі діяли цього дня.
+    Зафіксувати, які цілі діяли цього дня і яким способом їх задано.
 
     Робиться жадібно, при першій же дії доби, і навмисно нічого не рахує.
     Якби рядок створювався заднім числом, у нього потрапили б ПОТОЧНІ цілі:
@@ -200,9 +223,8 @@ async def ensure_study_day(
         .values(
             user_id=user_id,
             day=day,
-            new_goal=new_goal,
-            review_goal=review_goal,
             is_goal_met=False,
+            **goal_snapshot(settings),
         )
         .on_conflict_do_nothing(constraint="uq_study_days_user_day")
     )
@@ -213,8 +235,7 @@ async def retarget_study_day(
     db: AsyncSession,
     user_id: int,
     day: date,
-    new_goal: int,
-    review_goal: int,
+    settings: UserSettingsModel,
 ) -> None:
     """
     Переписати цілі ОДНОГО дня — того, який ще триває (ADR-0023).
@@ -223,6 +244,10 @@ async def retarget_study_day(
     зберігає цілі, що діяли тоді, а сьогоднішній живе до півночі й іде за
     поточними. Викликається лише зі зміни налаштувань і лише на сьогодні —
     сусіднього дня ця функція торкнутись не вміє за побудовою.
+
+    Зміна режиму — така сама зміна цілі, як і зміна числа (ADR-0032): рядок
+    переписується цілком, разом із `goal_mode`, тож у ньому знову лишається
+    заповненою рівно одна трійка.
 
     `is_goal_met` скидається навмисно, а не лишається як є. Виконання рахують
     /today/ і /days/, і рахують вони тільки НЕзакриті дні; лишити прапорець
@@ -235,7 +260,7 @@ async def retarget_study_day(
     stmt = (
         update(StudyDayModel)
         .where(StudyDayModel.user_id == user_id, StudyDayModel.day == day)
-        .values(new_goal=new_goal, review_goal=review_goal, is_goal_met=False)
+        .values(is_goal_met=False, **goal_snapshot(settings))
     )
     await db.execute(stmt)
 
