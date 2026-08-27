@@ -2,8 +2,8 @@
  * «Сьогодні» — головний екран.
  *
  * Одна дія, потім підбиття, потім те, що зроблено. Кнопка «Вчити» — єдине, за
- * чим сюди заходять по десять разів на день; під нею тиждень і дві смужки
- * цілей, а в самому низу — слова, додані за добу, тими самими рядками, що в
+ * чим сюди заходять по десять разів на день; під нею тиждень і смужки
+ * цілей — дві або одна, залежно від способу, а в самому низу — слова, додані за добу, тими самими рядками, що в
  * словнику.
  *
  * Заголовків розділів тут немає навмисно. Раніше екран ділився на «Повторення»
@@ -66,6 +66,20 @@ function queueCaption(due: number, newTotal: number, newForms: number): string {
 }
 
 /**
+ * Чим саме добрано сумарну ціль.
+ *
+ * Розкладка, а не друга ціль: без неї день на 100 повторень і день на 100
+ * доданих слів виглядали б однаково, і єдина відповідь на «чим я добирав»
+ * зникла б. Обидва числа вже приходять у `/today/`, тож коштує це нічого.
+ */
+function goalBreakdown(reviews: number, added: number): string {
+  return [
+    `${reviews} ${plural(reviews, "повторення", "повторення", "повторень")}`,
+    `${added} ${plural(added, "нове", "нових", "нових")}`,
+  ].join(" · ");
+}
+
+/**
  * Смужка денної цілі.
  *
  * Ціль 0 означає «вимкнено» — тоді смужки немає взагалі, лишається саме число.
@@ -76,10 +90,12 @@ function GoalBar({
   label,
   done,
   goal,
+  note,
 }: {
   label: string;
   done: number;
   goal: number;
+  note?: string;
 }) {
   const met = goal > 0 && done >= goal;
   const percent = goal > 0 ? Math.min(100, Math.round((done / goal) * 100)) : 0;
@@ -104,6 +120,7 @@ function GoalBar({
           <i className={met ? "on met" : "on"} style={{ width: `${percent}%` }} />
         </div>
       ) : null}
+      {note ? <div className="goal-note">{note}</div> : null}
     </div>
   );
 }
@@ -151,6 +168,10 @@ export default function TodayScreen() {
   const counting = study.aimCounting || (study.refilling && waiting === 0);
 
   const reviewsDone = progressValue(study.progress);
+  const newAdded = todayData?.new_added ?? 0;
+  // Знімок з буфера міг лягти ще до появи режимів — тоді поля немає, і день
+  // показується окремими цілями. Це той самий дефолт, що й на сервері.
+  const combined = todayData?.goal_mode === "combined";
 
   const dots = useMemo(() => {
     const rows = new Map((weekData?.items ?? []).map((row) => [row.day, row]));
@@ -263,17 +284,30 @@ export default function TodayScreen() {
         ))}
       </div>
 
+      {/* Спосіб бере день, а не поточні налаштування: перемикання переписує
+          сьогоднішній рядок, тож обидва завжди кажуть те саме (ADR-0032). */}
       <div className="goals">
-        <GoalBar
-          label="повторення"
-          done={reviewsDone}
-          goal={todayData?.review_goal ?? 0}
-        />
-        <GoalBar
-          label="нові слова"
-          done={todayData?.new_added ?? 0}
-          goal={todayData?.new_goal ?? 0}
-        />
+        {combined ? (
+          <GoalBar
+            label="разом"
+            done={reviewsDone + newAdded}
+            goal={todayData?.combined_goal ?? 0}
+            note={goalBreakdown(reviewsDone, newAdded)}
+          />
+        ) : (
+          <>
+            <GoalBar
+              label="повторення"
+              done={reviewsDone}
+              goal={todayData?.review_goal ?? 0}
+            />
+            <GoalBar
+              label="нові слова"
+              done={newAdded}
+              goal={todayData?.new_goal ?? 0}
+            />
+          </>
+        )}
       </div>
 
       {/* Слова, додані за добу, — усі, і рядками словника. Це хвіст екрана,

@@ -15,6 +15,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.models import Base, TimestampMixin
 from app.database.models.enums import (
+    GoalModeEnum,
     StudyDirectionEnum,
     ThemeEnum,
     TranscriptionVarietyEnum,
@@ -27,6 +28,9 @@ if TYPE_CHECKING:
 
 DEFAULT_DAILY_NEW_GOAL = 10
 DEFAULT_DAILY_REVIEW_GOAL = 30
+# Сума двох попередніх: те, що застосунок уже вважає нормальним днем. Нуль тут
+# був би пасткою — перемикач одразу давав би режим із вимкненою ціллю.
+DEFAULT_DAILY_COMBINED_GOAL = 40
 DEFAULT_DESIRED_RETENTION = 0.9
 DEFAULT_TIMEZONE = "Europe/Kyiv"
 
@@ -79,13 +83,25 @@ class UserSettingsModel(Base, TimestampMixin):
     tts_slow: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Цілі вивчення.
+    #
+    # Спосіб рівно один — той, що вибрав goal_mode (ADR-0032). Обидва набори
+    # чисел живуть тут постійно й не чистяться при перемиканні: повернувся до
+    # окремих цілей — твої 10/30 на місці.
+    #
     # daily_new_goal — скільки слів ДОДАТИ за добу (рахується з cards.created_at),
-    # daily_review_goal — скільки карток ПОВТОРИТИ (рахується з review_logs).
+    # daily_review_goal — скільки доріжок ПОВТОРИТИ (рахується з review_logs),
+    # daily_combined_goal — скільки одиниць разом, байдуже яких.
+    goal_mode: Mapped[GoalModeEnum] = mapped_column(
+        Enum(GoalModeEnum), default=GoalModeEnum.SEPARATE, nullable=False
+    )
     daily_new_goal: Mapped[int] = mapped_column(
         Integer, default=DEFAULT_DAILY_NEW_GOAL, nullable=False
     )
     daily_review_goal: Mapped[int] = mapped_column(
         Integer, default=DEFAULT_DAILY_REVIEW_GOAL, nullable=False
+    )
+    daily_combined_goal: Mapped[int] = mapped_column(
+        Integer, default=DEFAULT_DAILY_COMBINED_GOAL, nullable=False
     )
 
     # --- планувальник FSRS ---

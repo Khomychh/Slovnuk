@@ -228,8 +228,7 @@ async def review_track_endpoint(
         db,
         user_id=current_user.id,
         day=local_day(review_datetime, tz),
-        new_goal=settings.daily_new_goal,
-        review_goal=settings.daily_review_goal,
+        settings=settings,
     )
 
     await db.commit()
@@ -267,8 +266,7 @@ async def get_today(
         db,
         user_id=current_user.id,
         day=today,
-        new_goal=settings.daily_new_goal,
-        review_goal=settings.daily_review_goal,
+        settings=settings,
     )
     today_row = await study_crud.get_study_day(db, current_user.id, today)
 
@@ -292,15 +290,19 @@ async def get_today(
         if is_goal_met(
             new_added=day_new,
             reviews_done=day_reviews,
+            goal_mode=row.goal_mode,
             new_goal=row.new_goal,
             review_goal=row.review_goal,
+            combined_goal=row.combined_goal,
         ):
             row.is_goal_met = True
 
     response = StudyDayResponseSchema(
         day=today,
+        goal_mode=today_row.goal_mode,
         new_goal=today_row.new_goal,
         review_goal=today_row.review_goal,
+        combined_goal=today_row.combined_goal,
         new_added=new_added,
         reviews_done=reviews_done,
         is_goal_met=today_row.is_goal_met,
@@ -347,8 +349,10 @@ async def get_days(
             if is_goal_met(
                 new_added=day_new,
                 reviews_done=day_reviews,
+                goal_mode=row.goal_mode,
                 new_goal=row.new_goal,
                 review_goal=row.review_goal,
+                combined_goal=row.combined_goal,
             ):
                 row.is_goal_met = True
         await db.commit()
@@ -363,8 +367,10 @@ async def get_days(
         items=[
             StudyDaySchema(
                 day=row.day,
+                goal_mode=row.goal_mode,
                 new_goal=row.new_goal,
                 review_goal=row.review_goal,
+                combined_goal=row.combined_goal,
                 new_count=counts.get(row.day, (0, 0))[0],
                 review_count=counts.get(row.day, (0, 0))[1],
                 is_goal_met=row.is_goal_met,
@@ -437,15 +443,23 @@ async def update_settings(
         setattr(settings, field, value)
 
     # Цілі беремо з `settings`, а не з payload: у частковому оновленні могло
-    # приїхати лише одне з двох полів, а в рядок дня мусять піти обидва.
-    if {"daily_new_goal", "daily_review_goal"} & fields.keys():
+    # приїхати лише одне поле, а в рядок дня мусить піти вся трійка.
+    #
+    # `goal_mode` у цьому переліку на тих самих правах, що й числа (ADR-0032):
+    # перемикання способу — така сама зміна цілі, тож сьогоднішня крапка може
+    # і згаснути, і повернутись.
+    if {
+        "goal_mode",
+        "daily_new_goal",
+        "daily_review_goal",
+        "daily_combined_goal",
+    } & fields.keys():
         tz = resolve_timezone(settings.timezone)
         await study_crud.retarget_study_day(
             db,
             user_id=current_user.id,
             day=local_day(datetime.now(timezone.utc), tz),
-            new_goal=settings.daily_new_goal,
-            review_goal=settings.daily_review_goal,
+            settings=settings,
         )
 
     await db.commit()

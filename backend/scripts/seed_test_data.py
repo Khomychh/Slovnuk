@@ -41,9 +41,11 @@ from app.database.database import async_session_maker
 from app.database.models import (
     CardListLinkModel,
     CardModel,
+    DEFAULT_DAILY_COMBINED_GOAL,
     DEFAULT_DAILY_NEW_GOAL,
     DEFAULT_DAILY_REVIEW_GOAL,
     DEFAULT_DESIRED_RETENTION,
+    GoalModeEnum,
     GrammarNoteModel,
     NoteCategoryModel,
     PartOfSpeechEnum,
@@ -260,8 +262,10 @@ def _new_settings() -> UserSettingsModel:
     server_default в базу ще не підставлені й атрибут — просто None.
     """
     return UserSettingsModel(
+        goal_mode=GoalModeEnum.SEPARATE,
         daily_new_goal=DEFAULT_DAILY_NEW_GOAL,
         daily_review_goal=DEFAULT_DAILY_REVIEW_GOAL,
+        daily_combined_goal=DEFAULT_DAILY_COMBINED_GOAL,
         desired_retention=DEFAULT_DESIRED_RETENTION,
     )
 
@@ -403,8 +407,12 @@ async def seed_primary_user(
         user.study_days.append(
             StudyDayModel(
                 day=day,
+                # Сіяні дні всі в окремому режимі: сумарний хай зʼявляється в
+                # даних тільки тоді, коли його справді ввімкнули руками.
+                goal_mode=GoalModeEnum.SEPARATE,
                 new_goal=settings.daily_new_goal,
                 review_goal=settings.daily_review_goal,
+                combined_goal=None,
                 is_goal_met=is_goal_met,
             )
         )

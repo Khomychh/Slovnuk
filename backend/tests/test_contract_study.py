@@ -190,9 +190,13 @@ async def test_today(client: AsyncClient, auth_headers):
     body = response.json()
     assert body["new_added"] == 0
     assert body["reviews_done"] == 0
+    assert body["is_goal_met"] is False
+    # За замовчуванням режим окремий, тож заповнена саме ця пара, а сумарної
+    # цілі в цьому дні немає — це null, а не нуль (ADR-0032).
+    assert body["goal_mode"] == "separate"
     assert body["new_goal"] >= 0
     assert body["review_goal"] >= 0
-    assert body["is_goal_met"] is False
+    assert body["combined_goal"] is None
 
 
 async def test_today_counts_created_card_and_review(client: AsyncClient, auth_headers):
@@ -229,6 +233,8 @@ async def test_days_calendar(client: AsyncClient, auth_headers):
     day = items[0]
     assert day["new_count"] == 1
     assert day["review_count"] == 1
+    assert day["goal_mode"] == "separate"
+    assert day["combined_goal"] is None
 
 
 async def test_days_calendar_is_empty_without_activity(client: AsyncClient, auth_headers):
@@ -248,7 +254,11 @@ async def test_get_settings(client: AsyncClient, auth_headers):
     assert response.status_code == 200, response.text
 
     body = response.json()
+    assert body["goal_mode"] == "separate"
     assert body["daily_review_goal"] == 30
+    # Обидва набори віддаються завжди: перемикач показує числа й того режиму,
+    # який ще не ввімкнено.
+    assert body["daily_combined_goal"] == 40
     assert 0.7 <= body["desired_retention"] <= 0.99
     # Самі ваги назовні не віддаються — лише прапорець «підібрано чи ні».
     assert "fsrs_parameters" not in body
@@ -267,6 +277,31 @@ async def test_patch_settings(client: AsyncClient, auth_headers):
     assert body["theme"] == "dark"
     assert body["daily_new_goal"] == 7
     assert body["timezone"] == "Europe/Kyiv"
+
+
+async def test_patch_settings_switches_goal_mode(client: AsyncClient, auth_headers):
+    """
+    Перемикання режиму міняє форму знімка дня: заповненою лишається рівно одна
+    трійка, друга стає null (ck_study_days_goal_shape).
+    """
+    response = await client.patch(
+        f"{API}/settings/",
+        json={"goal_mode": "combined", "daily_combined_goal": 100},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["goal_mode"] == "combined"
+    # Окремі цілі нікуди не діваються — перемкнувся назад, і вони на місці.
+    assert response.json()["daily_new_goal"] == 10
+
+    today = (await client.get(f"{API}/today/", headers=auth_headers)).json()
+    assert today["goal_mode"] == "combined"
+    assert today["combined_goal"] == 100
+    assert today["new_goal"] is None
+    assert today["review_goal"] is None
+    # Лічильники віддаються в обох режимах: у сумарному вони — розкладка.
+    assert today["new_added"] == 0
+    assert today["reviews_done"] == 0
 
 
 async def test_patch_settings_rejects_bad_timezone(client: AsyncClient, auth_headers):

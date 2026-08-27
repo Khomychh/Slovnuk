@@ -1090,6 +1090,20 @@ export interface components {
             /** Avatar */
             avatar?: string | null;
         };
+        /**
+         * GoalModeEnum
+         * @description Яким способом задана денна ціль (ADR-0032).
+         *
+         *     SEPARATE — дві окремі цілі: скільки додати і скільки повторити.
+         *     COMBINED — одна сумарна ціль, якій байдуже, чим саме її добрали.
+         *
+         *     Способів рівно два, і активний завжди один: це не третя ціль поруч із
+         *     двома. Режим лежить не тільки в налаштуваннях, а й у знімку кожного дня —
+         *     `10 / 30` і `100` не порівнюються між собою, тож день мусить памʼятати, у
+         *     яких одиницях його міряли.
+         * @enum {string}
+         */
+        GoalModeEnum: "separate" | "combined";
         /** GrammarNoteCreateSchema */
         GrammarNoteCreateSchema: {
             /** Title */
@@ -1861,17 +1875,28 @@ export interface components {
             /** Long */
             long: number;
         };
-        /** StudyDayResponseSchema */
+        /**
+         * StudyDayResponseSchema
+         * @description Сьогоднішній день так, як його судять зараз.
+         *
+         *     Цілі приходять зі знімка дня, тож заповнена рівно та трійка, яку вибрав
+         *     `goal_mode`; решта — null, і це означає «такого виміру сьогодні немає», а
+         *     не нуль. Обидва лічильники віддаються завжди, незалежно від режиму: у
+         *     сумарному вони й є розкладкою під смужкою.
+         */
         StudyDayResponseSchema: {
             /**
              * Day
              * Format: date
              */
             day: string;
+            goal_mode: components["schemas"]["GoalModeEnum"];
             /** New Goal */
-            new_goal: number;
+            new_goal: number | null;
             /** Review Goal */
-            review_goal: number;
+            review_goal: number | null;
+            /** Combined Goal */
+            combined_goal: number | null;
             /** New Added */
             new_added: number;
             /** Reviews Done */
@@ -1884,7 +1909,9 @@ export interface components {
          * @description Один день у календарі прогресу.
          *
          *     Цілі — знімок, що діяв саме того дня, а не поточні: підвищення планки не
-         *     має переписувати минуле. Кількості, навпаки, рахуються щоразу заново з
+         *     має переписувати минуле. Разом із числами зі знімка приходить і спосіб,
+         *     яким їх задано, — день, порахований як `45 / 100`, не можна показати як
+         *     «не добрав 30 повторень» (ADR-0032). Кількості, навпаки, рахуються щоразу заново з
          *     незмінних даних (cards.created_at, review_logs) — у study_days їх немає і
          *     дублювати їх туди не треба.
          */
@@ -1894,10 +1921,13 @@ export interface components {
              * Format: date
              */
             day: string;
+            goal_mode: components["schemas"]["GoalModeEnum"];
             /** New Goal */
-            new_goal: number;
+            new_goal: number | null;
             /** Review Goal */
-            review_goal: number;
+            review_goal: number | null;
+            /** Combined Goal */
+            combined_goal: number | null;
             /** New Count */
             new_count: number;
             /** Review Count */
@@ -1936,10 +1966,13 @@ export interface components {
             tts_accent: components["schemas"]["TtsAccentEnum"];
             /** Tts Slow */
             tts_slow: boolean;
+            goal_mode: components["schemas"]["GoalModeEnum"];
             /** Daily New Goal */
             daily_new_goal: number;
             /** Daily Review Goal */
             daily_review_goal: number;
+            /** Daily Combined Goal */
+            daily_combined_goal: number;
             /** Desired Retention */
             desired_retention: number;
             /** Timezone */
@@ -1968,10 +2001,13 @@ export interface components {
             tts_accent?: components["schemas"]["TtsAccentEnum"] | null;
             /** Tts Slow */
             tts_slow?: boolean | null;
+            goal_mode?: components["schemas"]["GoalModeEnum"] | null;
             /** Daily New Goal */
             daily_new_goal?: number | null;
             /** Daily Review Goal */
             daily_review_goal?: number | null;
+            /** Daily Combined Goal */
+            daily_combined_goal?: number | null;
             /** Desired Retention */
             desired_retention?: number | null;
             /** Timezone */

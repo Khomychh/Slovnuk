@@ -632,8 +632,7 @@ async def take_publication(
         db,
         user_id=current_user.id,
         day=local_day(now, resolve_timezone(settings.timezone)),
-        new_goal=settings.daily_new_goal,
-        review_goal=settings.daily_review_goal,
+        settings=settings,
     )
 
     await db.commit()

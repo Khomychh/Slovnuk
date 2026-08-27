@@ -19,7 +19,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.models import Base, TimestampMixin
-from app.database.models.enums import ReviewKindEnum, ReviewStateEnum
+from app.database.models.enums import GoalModeEnum, ReviewKindEnum, ReviewStateEnum
 
 
 if TYPE_CHECKING:
@@ -163,6 +163,11 @@ class StudyDayModel(Base, TimestampMixin):
     Зберігає цілі, які діяли САМЕ ЦЬОГО ДНЯ. Без цього знімка підвищення
     щоденної цілі заднім числом «скасувало б» усі раніше виконані дні.
 
+    Разом із цілями сюди їде і СПОСІБ, яким їх задано (ADR-0032): `10 / 30` і
+    `100` не порівнюються між собою взагалі, тож без `goal_mode` у рядку
+    перемикання режиму переглядало б минулі дні за правилом, якого тоді не
+    існувало.
+
     Знімок мінливий рівно доти, доки день триває (ADR-0023): зміна цілі
     переписує рядок сьогоднішньої доби й скидає `is_goal_met`, а завтра той
     самий рядок стає незмінним фактом. Пишуть його дві функції, і різниця між
@@ -178,8 +183,16 @@ class StudyDayModel(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     day: Mapped[date] = mapped_column(Date, nullable=False)
 
-    new_goal: Mapped[int] = mapped_column(Integer, nullable=False)
-    review_goal: Mapped[int] = mapped_column(Integer, nullable=False)
+    # Заповнена рівно та трійка, що судила цей день; решта — NULL. Число в
+    # колонці означає ціль, яка діяла, порожня колонка — що такої цілі не
+    # існувало. Інакше «не добрав 30 повторень» не відрізнити від «цілі на
+    # повторення того дня не було».
+    goal_mode: Mapped[GoalModeEnum] = mapped_column(
+        Enum(GoalModeEnum), default=GoalModeEnum.SEPARATE, nullable=False
+    )
+    new_goal: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    review_goal: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    combined_goal: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     is_goal_met: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     user_id: Mapped[int] = mapped_column(
@@ -188,7 +201,20 @@ class StudyDayModel(Base, TimestampMixin):
 
     user: Mapped["UserModel"] = relationship("UserModel", back_populates="study_days")
 
-    __table_args__ = (UniqueConstraint("user_id", "day", name="uq_study_days_user_day"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "day", name="uq_study_days_user_day"),
+        # Змішаний рядок неможливий за типом даних, а не за домовленістю: те
+        # саме рішення, що й з єдиним списком за замовчуванням.
+        CheckConstraint(
+            "(goal_mode = 'SEPARATE'"
+            " AND new_goal IS NOT NULL AND review_goal IS NOT NULL"
+            " AND combined_goal IS NULL)"
+            " OR (goal_mode = 'COMBINED'"
+            " AND new_goal IS NULL AND review_goal IS NULL"
+            " AND combined_goal IS NOT NULL)",
+            name="ck_study_days_goal_shape",
+        ),
+    )
 
     def __repr__(self):
         return (

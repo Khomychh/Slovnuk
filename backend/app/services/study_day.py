@@ -11,7 +11,7 @@ import logging
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from app.database.models import DEFAULT_TIMEZONE
+from app.database.models import DEFAULT_TIMEZONE, GoalModeEnum
 
 logger = logging.getLogger(__name__)
 
@@ -59,14 +59,32 @@ def is_goal_met(
     *,
     new_added: int,
     reviews_done: int,
-    new_goal: int,
-    review_goal: int,
+    goal_mode: GoalModeEnum,
+    new_goal: int | None,
+    review_goal: int | None,
+    combined_goal: int | None,
 ) -> bool:
     """
-    Чи закритий день. Правило те саме, що в старому PWA (goalMetToday):
-    виконаними мають бути ОБИДВІ цілі, ціль 0 вважається виконаною, але якщо
-    обидві цілі нульові — день не зараховується взагалі.
+    Чи закритий день — за тим способом, яким його міряли (ADR-0032).
+
+    Цілі приходять зі знімка дня, а не з поточних налаштувань, тож заповнена
+    тут рівно та трійка, що судила той день; решта — None.
+
+    Спільне для обох гілок: нуль означає «ціль вимкнено», а день, у якому не
+    лишилось жодної ввімкненої цілі, не зараховується взагалі — не «виконано
+    автоматично». Дня без цілі не існує.
     """
+    if goal_mode is GoalModeEnum.COMBINED:
+        # Сума двох лічильників, як вони є: слово, додане й того ж дня
+        # провчене, дає дві одиниці. Додати і повторити — різні роботи.
+        if not combined_goal or combined_goal <= 0:
+            return False
+        return new_added + reviews_done >= combined_goal
+
+    # Правило те саме, що в старому PWA (goalMetToday): виконаними мають бути
+    # ОБИДВІ цілі, ціль 0 вважається виконаною.
+    new_goal = new_goal or 0
+    review_goal = review_goal or 0
     if new_goal <= 0 and review_goal <= 0:
         return False
     ok_new = new_goal <= 0 or new_added >= new_goal
