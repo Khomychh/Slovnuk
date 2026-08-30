@@ -1,0 +1,124 @@
+/* ==========================================================================
+   Шеринг
+
+   Два екрани: посилання очима власника і чужий список очима отримувача. Обидва
+   без сяйва — насичений колір тут нічого не означав би, а ADR-0012 дозволяє
+   рампу лише там, де вона щось каже.
+   ========================================================================== */
+
+/* Адреса видна цілком і виділяється пальцем: коли буфер обміну недоступний
+   (старий WebView, відмова в дозволі), це єдиний спосіб її забрати. Тому не
+   `text-overflow: ellipsis` — обрізана адреса не копіюється. */
+.share-url {
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  background: var(--night);
+  color: var(--haze);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 12px 14px;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+/* Посилання лежить усередині блоку «Посиланням», тож дихає тісніше, ніж коли
+   було самотнім вмістом екрана. */
+.give > .share-url {
+  margin-top: 12px;
+}
+
+/* --- чужий список ------------------------------------------------------- */
+
+.sh-author {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+  margin-top: 8px;
+}
+
+/* Головне речення екрана — наслідок натискання, а не назва чужого списку.
+   Дисплейною гарнітурою, бо це найважливіший рядок тут. */
+.sh-headline {
+  font-family: var(--display);
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  margin: 16px 0 6px;
+}
+
+.sh-row {
+  border-bottom: 1px solid var(--edge-soft);
+  padding: 11px 0;
+}
+
+/* Слово, яке в отримувача вже є, приглушене: воно в переліку присутнє (бо це
+   правда про чужий список), але його доля інша — у режимі «Пропустити» воно не
+   додасться. Приглушення, а не сірий колір «вимкнено»: рядок не є органом
+   керування, гасити його нічому. */
+.sh-row-have {
+  opacity: 0.55;
+}
+
+.sh-word-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sh-word {
+  font-size: 15px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.sh-have {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+  padding: 1px 5px;
+}
+
+.sh-tr {
+  color: var(--haze);
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+/* --- реєстрація --------------------------------------------------------- */
+
+/* Вимоги до пароля ліворуч, «показати» праворуч: перше читають до набору,
+   другим перевіряють набране, і обидва стосуються того самого поля. */
+.reg-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -6px 0 18px;
+}
+
+.reg-row > .hint {
+  flex: 1;
+  margin: 0;
+}
+
+.reg-row > .btn-link {
+  flex: none;
+  white-space: nowrap;
+}
+
+.login-links {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 18px;
+}
+

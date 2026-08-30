@@ -1,0 +1,211 @@
+/* ==========================================================================
+   «Віддати список»
+
+   Два способи віддати список — посиланням і в Бібліотеку — стоять тут двома
+   блоками ОДНАКОВОЇ будови: назва, стан-таблетка, одне речення про наслідок,
+   дія. Однакова будова і є поясненням: різницю видно з першого погляду, без
+   трьох абзаців, які раніше стояли між ними (ADR-0022).
+
+   Раніше публікація ховалась за рядком-входом на наступному екрані, тобто
+   вибір між двома способами робили, побачивши лише один.
+   ========================================================================== */
+
+.give {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  background: var(--sheet);
+  box-shadow: var(--lift);
+  padding: 15px;
+  margin-top: 12px;
+  color: inherit;
+  font-family: inherit;
+}
+
+/* Другий блок веде на екран налаштувань, тож він кнопка. Перший лишається
+   div'ом: усередині нього свої кнопки, а кнопка в кнопці недопустима. */
+.give-link {
+  cursor: pointer;
+}
+
+.give-link:active {
+  background: var(--sheet-2);
+}
+
+.give-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.give-title {
+  font-size: 15.5px;
+  font-weight: 500;
+  color: var(--frost);
+}
+
+/* Одне речення про наслідок замість абзаца про механіку. «Кому даси посилання —
+   той візьме собі копію» каже рівно те, що людині треба вирішити; усе інше
+   (безадресність, незворотність вимкнення) переїхало в підтвердження, де від
+   нього є користь. */
+.give-what {
+  display: block;
+  font-size: 13.5px;
+  color: var(--haze);
+  line-height: 1.5;
+  margin: 6px 0 0;
+}
+
+.give-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.give-figures {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 14px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--haze);
+  margin-top: 12px;
+}
+
+.give-figure {
+  white-space: nowrap;
+}
+
+.give-rating {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--frost);
+}
+
+.give-by {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--haze-2);
+  margin-top: 8px;
+}
+
+/* Шеврон світліший за рядок, у якому стоїть: він єдиний знак того, що цей блок
+   кудись веде, а сусідній — ні. У кольорі рядка він губився, і обидва блоки
+   читались як однаково німі. */
+.give-chevron {
+  flex: none;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--haze);
+}
+
+/* Вимкнення посилання незворотне, тож воно не кнопка в смузі дій, а посилання
+   під нею: щоб натиснути його, треба свідомо цілитись. */
+.give-off {
+  margin-top: 10px;
+  color: var(--haze-2);
+}
+
+/* Стан однією таблеткою замість рядка прози. «увімкнено» / «на витрині» —
+   це те, що людина приходить перевірити, і воно мусить читатись, не читаючись. */
+.pill {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--haze-2);
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+
+.pill-on {
+  color: var(--frost);
+  border-color: var(--haze-2);
+}
+
+/* Дія всередині блоку, а не головна дія екрана: тут їх дві поруч, і на всю
+   ширину кожна не йде. */
+.btn-sm {
+  width: auto;
+  flex: 1;
+  padding: 11px 16px;
+  font-size: 14.5px;
+}
+
+/* --- публікація очима власника ----------------------------------------- */
+
+/* Уся правда про копію-на-дату — цей рядок. Він набирається як речення, а не
+   як підрядок: «54 слова · станом на 30 липня» замінило абзац про знімок, тож
+   і важити мусить як абзац (ADR-0022). */
+.state-line {
+  font-size: 15px;
+  color: var(--frost);
+  margin-top: 2px;
+}
+
+.state-figures {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--haze);
+  margin-top: 10px;
+}
+
+.state-figure {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+/* Розбіжність між списком і Бібліотекою — єдине попередження цього екрана, і
+   кнопка, що її прибирає, стоїть у ньому ж. Золота риска ліворуч, а не червона
+   смуга: це не помилка, а факт, який автор мусить побачити (ADR-0012 забороняє
+   семафор). */
+.state-stale {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-left: 2px solid var(--a4);
+  background: var(--sheet);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  padding: 12px 14px;
+  margin-top: 16px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--frost);
+}
+
+.state-stale > span {
+  flex: 1;
+}
+
+.state-stale > .btn-sm {
+  flex: none;
+}
+
+.state-update {
+  width: auto;
+  margin-top: 16px;
+}
+
+/* Опис — багаторядкове поле, але не на пів екрана: три рядки вистачає на те,
+   що читають на витрині двома. */
+.lib-desc-input {
+  min-height: 92px;
+  resize: vertical;
+}
