@@ -1,0 +1,175 @@
+# Перевірка коду на кожен push у develop і на кожен PR у main.
+#
+# Що ця перевірка НЕ робить: не збирає docker-образи й не піднімає compose.
+# Тобто зелений CI означає «код здоровий», а не «застосунок постачається».
+# Помилки в Dockerfile, entrypoint.sh і Caddyfile лишаються на ручні перевірки
+# з docs/DEPLOY.md.
+
+name: CI
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [main]
+
+# Пуш пачкою комітів не мусить лишати позаду хвіст непотрібних запусків.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Лінтер
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      # Тільки requirements-dev.txt — це три пакети. Весь requirements.txt тут
+      # не потрібен: ruff код читає, а не імпортує.
+      - name: Залежності
+        run: pip install -r requirements-dev.txt
+
+      # Набір правил і виключення — у ruff.toml у корені.
+      - name: Правила
+        run: ruff check backend
+
+      - name: Форматування
+        run: ruff format --check backend
+
+  backend:
+    name: Бекенд
+    runs-on: ubuntu-latest
+
+    services:
+      # Набір ходить у справжній Postgres — SQLite тут не запуститься взагалі
+      # (ADR-0006). MinIO не потрібен: conftest.py підміняє сховище фейком.
+      postgres:
+        image: postgres:17-alpine
+        env:
+          # Мусить збігатися з .env.example — саме звідти Settings бере логін
+          # і пароль. База саме `slovnuk_test`: conftest.py:18 відмовляється
+          # працювати з базою, чия назва не закінчується на `_test`.
+          POSTGRES_USER: slovnuk
+          POSTGRES_PASSWORD: slovnuk
+          POSTGRES_DB: slovnuk_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U slovnuk -d slovnuk_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Та сама версія, що в backend/Dockerfile. Розбіжність рантайму — це
+      # рівно той клас поломок, який CI мусить прибирати, а не додавати.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      # У Settings дванадцять полів без дефолту, серед них S3-адреси. Без .env
+      # pytest падає на імпорті, не дійшовши до жодного тесту. Копіюємо приклад,
+      # а не виписуємо змінні тут: інакше цей список розійдеться з .env.example
+      # при першому ж новому полі.
+      - name: Конфіг
+        run: cp .env.example .env
+
+      - name: Залежності
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      # `alembic upgrade head` женить сам conftest.py, окремим кроком не треба.
+      # Smoke-тест і test_day_counts тут скіпнуться — контейнера немає.
+      - name: Тести
+        working-directory: backend
+        run: python -m pytest
+
+  frontend:
+    name: Фронтенд
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Та сама версія, що в frontend/Dockerfile.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Залежності
+        run: npm ci
+
+      - name: Тести
+        run: npm test
+
+      # `npm run build` це `tsc -b && vite build`, тобто типи перевіряються
+      # тут же — окремий npm run typecheck був би тим самим двічі.
+      - name: Збірка
+        run: npm run build
+
+  contract:
+    name: Контракт
+    runs-on: ubuntu-latest
+
+    # frontend/src/api/schema.d.ts згенерований, але лежить у git — без нього
+    # `tsc -b` падає в чистій копії. Тримати його свіжим README доручає людині
+    # («перегенеруйте до коміту»), а нічим не забезпечене правило рано чи пізно
+    # порушиться: типи мовчки розійдуться з тим, що справді віддає сервер.
+    # Ця джоба повторює обидві команди й порівнює результат із комітом.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # Дамп схеми імпортує app.main, тобто теж потребує повного конфігу.
+      - name: Конфіг
+        run: cp .env.example .env
+
+      - name: Залежності
+        run: |
+          pip install -r requirements.txt
+          npm ci --prefix frontend
+
+      # backend/openapi.json ігнорований git — він проміжний.
+      - name: Вивантажити схему
+        working-directory: backend
+        run: python -c "import json, io; from app.main import app; io.open('openapi.json','w',encoding='utf-8').write(json.dumps(app.openapi(), ensure_ascii=False, indent=1))"
+
+      - name: Типи мусять збігатися зі схемами бекенду
+        working-directory: frontend
+        run: |
+          npm run api-types
+          if ! git diff --quiet -- src/api/schema.d.ts; then
+            echo "::error::src/api/schema.d.ts застарів. Перегенеруйте його (frontend/README.md) і закомітьте разом зі зміною Pydantic-схем."
+            git diff -- src/api/schema.d.ts
+            exit 1
+          fi
