@@ -33,7 +33,9 @@ async def _new_card(client: AsyncClient, headers: dict, word: str, **extra) -> d
     return response.json()
 
 
-async def _review(client: AsyncClient, headers: dict, track_id: int, rating: int = 3) -> dict:
+async def _review(
+    client: AsyncClient, headers: dict, track_id: int, rating: int = 3
+) -> dict:
     response = await client.post(
         f"{STUDY}/tracks/{track_id}/review/", json={"rating": rating}, headers=headers
     )
@@ -175,7 +177,11 @@ async def test_unlisted_adds_to_lists_rather_than_narrowing_them(
         )
     ).json()
     assert queue["new_count"] == 3
-    assert {item["card"]["word"] for item in queue["items"]} == {"run", "table", "chair"}
+    assert {item["card"]["word"] for item in queue["items"]} == {
+        "run",
+        "table",
+        "chair",
+    }
 
 
 async def test_empty_aim_still_means_every_word(client: AsyncClient, auth_headers):
@@ -217,7 +223,9 @@ async def test_new_count_says_how_many_of_it_are_forms(
     assert queue["new_forms_count"] == 1
 
     stats = (await client.get(f"{VOCAB}/stats/", headers=auth_headers)).json()
-    assert queue["new_count"] - queue["new_forms_count"] == stats["stability_bands"]["new"]
+    assert (
+        queue["new_count"] - queue["new_forms_count"] == stats["stability_bands"]["new"]
+    )
 
 
 async def test_forms_left_the_queue_leave_the_forms_counter_too(
@@ -248,7 +256,9 @@ async def test_forms_left_the_queue_leave_the_forms_counter_too(
 # --------------------------------------------------------------------------
 
 
-async def test_forgotten_word_comes_back_the_same_day(client: AsyncClient, auth_headers):
+async def test_forgotten_word_comes_back_the_same_day(
+    client: AsyncClient, auth_headers
+):
     """
     «Не згадав» не має відкладати слово на добу — воно повертається за
     хвилини, в межах тієї ж сесії. Через це черга поповнюється сама протягом
@@ -265,7 +275,9 @@ async def test_forgotten_word_comes_back_the_same_day(client: AsyncClient, auth_
     )
 
 
-async def test_good_answer_pushes_the_word_beyond_today(client: AsyncClient, auth_headers):
+async def test_good_answer_pushes_the_word_beyond_today(
+    client: AsyncClient, auth_headers
+):
     await _new_card(client, auth_headers, "run")
     track_id = await _first_track(client, auth_headers)
 
@@ -309,7 +321,9 @@ async def test_two_different_tracks_count_as_two(client: AsyncClient, auth_heade
     assert body["reviews_done"] == 2
 
 
-async def test_new_word_counts_on_the_day_it_was_created(client: AsyncClient, auth_headers):
+async def test_new_word_counts_on_the_day_it_was_created(
+    client: AsyncClient, auth_headers
+):
     """Слово зараховується в ціль «додати» при створенні, а не при першому показі."""
     await _new_card(client, auth_headers, "run")
 
@@ -632,7 +646,9 @@ async def test_switching_mode_does_not_rewrite_a_past_day(
     assert past[0]["is_goal_met"] is True
 
 
-async def test_mixed_goal_row_is_impossible(client: AsyncClient, auth_headers, db_session):
+async def test_mixed_goal_row_is_impossible(
+    client: AsyncClient, auth_headers, db_session
+):
     """
     Форму знімка тримає `ck_study_days_goal_shape`, а не домовленість (ADR-0032).
 
@@ -761,10 +777,14 @@ async def test_review_log_keeps_the_state_before_the_answer(
 
     await db_session.commit()
     log = (
-        await db_session.execute(
-            select(ReviewLogModel).where(ReviewLogModel.track_id == track_id)
+        (
+            await db_session.execute(
+                select(ReviewLogModel).where(ReviewLogModel.track_id == track_id)
+            )
         )
-    ).scalars().one()
+        .scalars()
+        .one()
+    )
 
     assert log.rating == 2
     assert log.state_before == ReviewStateEnum.NEW
@@ -785,10 +805,14 @@ async def test_review_duration_is_stored_when_sent(
 
     await db_session.commit()
     log = (
-        await db_session.execute(
-            select(ReviewLogModel).where(ReviewLogModel.track_id == track_id)
+        (
+            await db_session.execute(
+                select(ReviewLogModel).where(ReviewLogModel.track_id == track_id)
+            )
         )
-    ).scalars().one()
+        .scalars()
+        .one()
+    )
     assert log.review_duration == 4200
 
 

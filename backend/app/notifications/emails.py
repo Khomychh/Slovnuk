@@ -8,7 +8,6 @@ from app.notifications.interfaces import EmailSenderInterface
 
 
 class EmailSender(EmailSenderInterface):
-
     def __init__(
         self,
         api_key: str,
@@ -23,15 +22,21 @@ class EmailSender(EmailSenderInterface):
 
         self._sender_email = sender_email
         self._activation_email_template_name = activation_email_template_name
-        self._activation_complete_email_template_name = activation_complete_email_template_name
+        self._activation_complete_email_template_name = (
+            activation_complete_email_template_name
+        )
         self._password_email_template_name = password_email_template_name
-        self._password_complete_email_template_name = password_complete_email_template_name
+        self._password_complete_email_template_name = (
+            password_complete_email_template_name
+        )
 
         # autoescape увімкнено навмисно: у листи підставляються адреса й посилання,
         # тобто дані ззовні, і без екранування вони потрапляють у розмітку як є.
         self._env = Environment(loader=FileSystemLoader(template_dir), autoescape=True)
 
-    async def _send_email(self, recipient: str, subject: str, html_content: str) -> None:
+    async def _send_email(
+        self, recipient: str, subject: str, html_content: str
+    ) -> None:
         """
         Asynchronously send an email with the given subject and HTML content.
 
@@ -95,7 +100,9 @@ class EmailSender(EmailSenderInterface):
         subject = "Новий пароль у Slovnuk"
         await self._send_email(email, subject, html_content)
 
-    async def send_password_reset_complete_email(self, email: str, login_link: str) -> None:
+    async def send_password_reset_complete_email(
+        self, email: str, login_link: str
+    ) -> None:
         """
         Send a password reset completion email asynchronously.
 

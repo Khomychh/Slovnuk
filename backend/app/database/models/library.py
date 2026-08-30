@@ -138,7 +138,9 @@ class PublicationModel(Base, TimestampMixin):
         order_by="PublicationCardModel.position",
     )
     takes: Mapped[List["PublicationTakeModel"]] = relationship(
-        "PublicationTakeModel", back_populates="publication", cascade="all, delete-orphan"
+        "PublicationTakeModel",
+        back_populates="publication",
+        cascade="all, delete-orphan",
     )
     ratings: Mapped[List["PublicationRatingModel"]] = relationship(
         "PublicationRatingModel",

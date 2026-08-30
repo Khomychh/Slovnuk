@@ -27,13 +27,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(accounts_router, prefix=f"{api_version_prefix}/accounts", tags=["accounts"])
-app.include_router(profiles_router, prefix=f"{api_version_prefix}/profiles", tags=["profiles"])
+app.include_router(
+    accounts_router, prefix=f"{api_version_prefix}/accounts", tags=["accounts"]
+)
+app.include_router(
+    profiles_router, prefix=f"{api_version_prefix}/profiles", tags=["profiles"]
+)
 app.include_router(study_router, prefix=f"{api_version_prefix}/study", tags=["study"])
 app.include_router(
     vocabulary_router, prefix=f"{api_version_prefix}/vocabulary", tags=["vocabulary"]
 )
-app.include_router(grammar_router, prefix=f"{api_version_prefix}/grammar", tags=["grammar"])
+app.include_router(
+    grammar_router, prefix=f"{api_version_prefix}/grammar", tags=["grammar"]
+)
 app.include_router(ai_router, prefix=f"{api_version_prefix}/ai", tags=["ai"])
 # Без власного префікса: шеринг живе у двох адресних просторах одразу —
 # /vocabulary/lists/{id}/share/ для власника і /shares/{token}/ для отримувача.
@@ -42,6 +48,7 @@ app.include_router(sharing_router, prefix=api_version_prefix, tags=["sharing"])
 # /library/… для читача. Реєструється ПІСЛЯ vocabulary_router — інакше його
 # «/lists/{list_id}/…» перехопив би ці адреси першим.
 app.include_router(library_router, prefix=api_version_prefix, tags=["library"])
+
 
 @app.get("/")
 async def root():

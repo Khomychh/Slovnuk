@@ -227,7 +227,9 @@ class FakeEmailSender(EmailSenderInterface):
     async def send_password_reset_email(self, email: str, reset_link: str) -> None:
         self.sent.append(("password_reset", email, reset_link))
 
-    async def send_password_reset_complete_email(self, email: str, login_link: str) -> None:
+    async def send_password_reset_complete_email(
+        self, email: str, login_link: str
+    ) -> None:
         self.sent.append(("password_reset_complete", email, login_link))
 
 
@@ -251,7 +253,9 @@ class FakeS3Storage(S3StorageInterface):
     def __init__(self) -> None:
         self.files: dict[str, bytes] = {}
 
-    async def upload_file(self, file_name, file_data, content_type=None, private=True) -> None:
+    async def upload_file(
+        self, file_name, file_data, content_type=None, private=True
+    ) -> None:
         self.files[file_name] = bytes(file_data)
 
     async def download_file(self, file_name, private=True) -> bytes:
@@ -362,7 +366,9 @@ def grant_ai_access(db_session: AsyncSession):
 
 
 @pytest.fixture
-async def client(email_sender: FakeEmailSender, s3_storage: FakeS3Storage) -> AsyncClient:
+async def client(
+    email_sender: FakeEmailSender, s3_storage: FakeS3Storage
+) -> AsyncClient:
     app.dependency_overrides[get_accounts_email_notificator] = lambda: email_sender
     app.dependency_overrides[get_s3_storage_client] = lambda: s3_storage
     try:
@@ -384,12 +390,18 @@ def _test_password_hash() -> str:
     return hash_password(TEST_PASSWORD)
 
 
-async def _create_user(session: AsyncSession, email: str, is_active: bool = True) -> UserModel:
+async def _create_user(
+    session: AsyncSession, email: str, is_active: bool = True
+) -> UserModel:
     group = (
-        await session.execute(
-            select(UserGroupModel).where(UserGroupModel.name == UserGroupEnum.USER)
+        (
+            await session.execute(
+                select(UserGroupModel).where(UserGroupModel.name == UserGroupEnum.USER)
+            )
         )
-    ).scalars().first()
+        .scalars()
+        .first()
+    )
     if group is None:
         raise RuntimeError(
             "У slovnuk_test немає групи USER. Схему створено не міграцією?"
@@ -428,7 +440,9 @@ def _auth_headers(user: UserModel) -> dict[str, str]:
     тільки bcrypt у логіні.
     """
     manager = get_jwt_auth_manager(get_settings())
-    return {"Authorization": f"Bearer {manager.create_access_token({'user_id': user.id})}"}
+    return {
+        "Authorization": f"Bearer {manager.create_access_token({'user_id': user.id})}"
+    }
 
 
 @pytest.fixture
@@ -457,9 +471,7 @@ def make_user(db_session: AsyncSession):
     async def _make(email: str | None = None) -> tuple[UserModel, dict[str, str]]:
         nonlocal created
         created += 1
-        user = await _create_user(
-            db_session, email or f"extra{created}@example.com"
-        )
+        user = await _create_user(db_session, email or f"extra{created}@example.com")
         return user, _auth_headers(user)
 
     return _make

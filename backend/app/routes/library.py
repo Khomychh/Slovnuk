@@ -136,7 +136,9 @@ def _summary(
     )
 
 
-async def _visible_publication(db: AsyncSession, publication_id: int, user_id: int) -> Row:
+async def _visible_publication(
+    db: AsyncSession, publication_id: int, user_id: int
+) -> Row:
     """
     Публікація, яку читачеві можна показати.
 
@@ -208,9 +210,7 @@ async def _owner_view(
     )
 
 
-async def _write_snapshot(
-    db: AsyncSession, publication_id: int, list_id: int
-) -> None:
+async def _write_snapshot(db: AsyncSession, publication_id: int, list_id: int) -> None:
     """
     Зняти знімок зі списку.
 
@@ -257,9 +257,11 @@ async def publish_list(
         raise _list_not_found()
 
     profile = current_user.profile
-    if not profile or not (profile.first_name or "").strip() or not (
-        profile.last_name or ""
-    ).strip():
+    if (
+        not profile
+        or not (profile.first_name or "").strip()
+        or not (profile.last_name or "").strip()
+    ):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={
@@ -508,17 +510,13 @@ async def get_publication_cards(
     rows = await library_crud.fetch_snapshot(
         db, publication_id, limit=per_page, offset=(page - 1) * per_page
     )
-    mine = await library_crud.own_words(
-        db, current_user.id, [row.word for row in rows]
-    )
+    mine = await library_crud.own_words(db, current_user.id, [row.word for row in rows])
 
     return SnapshotCardPageSchema(
         total=total,
         page=page,
         per_page=per_page,
-        items=[
-            _snapshot_card(row, row.word_normalized in mine) for row in rows
-        ],
+        items=[_snapshot_card(row, row.word_normalized in mine) for row in rows],
     )
 
 
@@ -594,9 +592,7 @@ async def take_publication(
     # популярності не накрутить — і `taken_at` лишається часом ПЕРШОГО взяття.
     if await library_crud.get_take(db, publication_id, current_user.id) is None:
         db.add(
-            PublicationTakeModel(
-                publication_id=publication_id, user_id=current_user.id
-            )
+            PublicationTakeModel(publication_id=publication_id, user_id=current_user.id)
         )
 
     if plan.is_empty:

@@ -42,7 +42,6 @@ class Settings(BaseSettings):
     S3_STORAGE_ENDPOINT: str
     S3_STORAGE_PUBLIC_ENDPOINT: str
 
-
     # Email
     RESEND_API_KEY: str = ""
     EMAIL_SENDER: str = "no-reply@example.com"

@@ -87,7 +87,9 @@ class WordListModel(Base, TimestampMixin):
         nullable=True,
     )
 
-    user: Mapped["UserModel"] = relationship("UserModel", foreign_keys=[user_id], back_populates="word_lists")
+    user: Mapped["UserModel"] = relationship(
+        "UserModel", foreign_keys=[user_id], back_populates="word_lists"
+    )
     imported_from_user: Mapped[Optional["UserModel"]] = relationship(
         "UserModel", foreign_keys=[imported_from_user_id]
     )
@@ -99,13 +101,18 @@ class WordListModel(Base, TimestampMixin):
         "CardListLinkModel", back_populates="word_list", cascade="all, delete-orphan"
     )
     cards: Mapped[List["CardModel"]] = relationship(
-        "CardModel", secondary="card_list_links", back_populates="word_lists", viewonly=True
+        "CardModel",
+        secondary="card_list_links",
+        back_populates="word_lists",
+        viewonly=True,
     )
     shares: Mapped[List["ListShareModel"]] = relationship(
         "ListShareModel", back_populates="word_list", cascade="all, delete-orphan"
     )
 
-    __table_args__ = (UniqueConstraint("user_id", "name", name="uq_word_lists_user_name"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "name", name="uq_word_lists_user_name"),
+    )
 
     def __repr__(self):
         return f"<WordListModel(id={self.id}, name={self.name})>"
@@ -124,12 +131,16 @@ class CardModel(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     word: Mapped[str] = mapped_column(String(100), nullable=False)
-    word_normalized: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    word_normalized: Mapped[str] = mapped_column(
+        String(100), nullable=False, index=True
+    )
     comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Форми показуються завжди; прапорець керує лише тим, чи тренувати їх окремо.
     # Доріжка ReviewKindEnum.FORMS при вимкненні не видаляється — прогрес не губиться.
-    forms_drill_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    forms_drill_enabled: Mapped[bool] = mapped_column(
+        Boolean, default=True, nullable=False
+    )
 
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
@@ -141,7 +152,10 @@ class CardModel(Base, TimestampMixin):
         "CardListLinkModel", back_populates="card", cascade="all, delete-orphan"
     )
     word_lists: Mapped[List["WordListModel"]] = relationship(
-        "WordListModel", secondary="card_list_links", back_populates="cards", viewonly=True
+        "WordListModel",
+        secondary="card_list_links",
+        back_populates="cards",
+        viewonly=True,
     )
 
     senses: Mapped[List["WordSenseModel"]] = relationship(
@@ -190,7 +204,9 @@ class CardListLinkModel(Base):
     )
 
     card: Mapped["CardModel"] = relationship("CardModel", back_populates="list_links")
-    word_list: Mapped["WordListModel"] = relationship("WordListModel", back_populates="card_links")
+    word_list: Mapped["WordListModel"] = relationship(
+        "WordListModel", back_populates="card_links"
+    )
 
     def __repr__(self):
         return f"<CardListLinkModel(card_id={self.card_id}, list_id={self.list_id})>"
@@ -246,7 +262,9 @@ class SenseExampleModel(Base, TimestampMixin):
         ForeignKey("word_senses.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
-    sense: Mapped["WordSenseModel"] = relationship("WordSenseModel", back_populates="examples")
+    sense: Mapped["WordSenseModel"] = relationship(
+        "WordSenseModel", back_populates="examples"
+    )
 
     def __repr__(self):
         return f"<SenseExampleModel(id={self.id}, text_en={self.text_en[:30]!r})>"

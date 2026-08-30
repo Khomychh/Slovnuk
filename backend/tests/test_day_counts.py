@@ -65,7 +65,9 @@ async def test_postgres_and_python_agree_on_day_bounds(session, tz_name, day):
     start, end = local_day_bounds(day, tz)
 
     assert await _postgres_local_day(session, start, tz_name) == day
-    assert await _postgres_local_day(session, end - timedelta(seconds=1), tz_name) == day
+    assert (
+        await _postgres_local_day(session, end - timedelta(seconds=1), tz_name) == day
+    )
     assert await _postgres_local_day(session, end, tz_name) == day + timedelta(days=1)
 
 

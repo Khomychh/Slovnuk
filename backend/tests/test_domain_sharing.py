@@ -151,7 +151,9 @@ async def test_preview_tells_the_truth_before_the_button(
         headers=other_auth_headers,
     )
 
-    preview = (await client.get(f"{SHARES}/{token}/", headers=other_auth_headers)).json()
+    preview = (
+        await client.get(f"{SHARES}/{token}/", headers=other_auth_headers)
+    ).json()
     assert preview["total_cards"] == 3
     assert preview["new_cards"] == 2
 

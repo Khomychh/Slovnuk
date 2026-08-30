@@ -14,7 +14,10 @@ def get_token(request: Request) -> str:
     if not authorization:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "missing_authorization_header", "message": "Authorization header is missing"},
+            detail={
+                "code": "missing_authorization_header",
+                "message": "Authorization header is missing",
+            },
         )
 
     scheme, _, token = authorization.partition(" ")

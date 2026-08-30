@@ -78,7 +78,9 @@ async def test_changing_category_moves_the_note_rather_than_adding_a_label(
 # --------------------------------------------------------------------------
 
 
-async def test_deleting_a_category_keeps_its_notes(client: AsyncClient, auth_headers, db_session):
+async def test_deleting_a_category_keeps_its_notes(
+    client: AsyncClient, auth_headers, db_session
+):
     note = await _note(client, auth_headers, "Present Perfect", category="Часи")
 
     response = await client.delete(
@@ -96,10 +98,14 @@ async def test_deleting_a_category_keeps_its_notes(client: AsyncClient, auth_hea
     assert response.json()["category_name"] is None
 
 
-async def test_notes_reach_uncategorized_by_both_routes(client: AsyncClient, auth_headers):
+async def test_notes_reach_uncategorized_by_both_routes(
+    client: AsyncClient, auth_headers
+):
     """Нотатка потрапляє в «Без розділу» або одразу, або коли її розділ видалили."""
     await _note(client, auth_headers, "Артикль a/an")
-    with_category = await _note(client, auth_headers, "Present Perfect", category="Часи")
+    with_category = await _note(
+        client, auth_headers, "Present Perfect", category="Часи"
+    )
     await client.delete(
         f"{API}/categories/{with_category['category_id']}/", headers=auth_headers
     )
@@ -113,7 +119,9 @@ async def test_uncategorized_filter(client: AsyncClient, auth_headers):
     await _note(client, auth_headers, "Артикль a/an")
     await _note(client, auth_headers, "Present Perfect", category="Часи")
 
-    response = await client.get(f"{API}/notes/?uncategorized=true", headers=auth_headers)
+    response = await client.get(
+        f"{API}/notes/?uncategorized=true", headers=auth_headers
+    )
     assert response.status_code == 200, response.text
     assert response.json()["total"] == 1
     assert response.json()["items"][0]["title"] == "Артикль a/an"
@@ -165,7 +173,9 @@ async def test_another_users_note_is_invisible(
 ):
     note = await _note(client, auth_headers, "Present Perfect", category="Часи")
 
-    response = await client.get(f"{API}/notes/{note['id']}/", headers=other_auth_headers)
+    response = await client.get(
+        f"{API}/notes/{note['id']}/", headers=other_auth_headers
+    )
     assert response.status_code == 404
 
     response = await client.patch(

@@ -23,7 +23,6 @@ DEFAULT_CONTENT_TYPE = "application/octet-stream"
 
 
 class S3StorageClient(S3StorageInterface):
-
     def __init__(
         self,
         endpoint_url: str,
@@ -78,9 +77,7 @@ class S3StorageClient(S3StorageInterface):
         # оскільки генерація пресігн-URL вимагає використання public_endpoint_url,
         # а не внутрішнього endpoint_url, який використовується для звичайних операцій з S3
         return self._session.client(
-            "s3",
-            endpoint_url=self._public_endpoint_url,
-            config=self._client_config
+            "s3", endpoint_url=self._public_endpoint_url, config=self._client_config
         )
 
     def _bucket_name(self, private: bool) -> str:
@@ -178,7 +175,9 @@ class S3StorageClient(S3StorageInterface):
         except ClientError as e:
             raise self._translate_client_error(e, file_name) from e
         except BotoCoreError as e:
-            raise S3FileUploadError(f"Failed to download from S3 storage: {str(e)}") from e
+            raise S3FileUploadError(
+                f"Failed to download from S3 storage: {str(e)}"
+            ) from e
 
     async def delete_file(self, file_name: str, private: bool = True) -> None:
         """
@@ -204,13 +203,15 @@ class S3StorageClient(S3StorageInterface):
         except ClientError as e:
             raise self._translate_client_error(e, file_name) from e
         except BotoCoreError as e:
-            raise S3FileUploadError(f"Failed to delete from S3 storage: {str(e)}") from e
+            raise S3FileUploadError(
+                f"Failed to delete from S3 storage: {str(e)}"
+            ) from e
 
     async def get_file_url(
-            self,
-            file_name: str,
-            private: bool = True,
-            expires_in: int = 3600, # Seconds (1 Hour)
+        self,
+        file_name: str,
+        private: bool = True,
+        expires_in: int = 3600,  # Seconds (1 Hour)
     ) -> str:
         """
         Generate a URL for a file stored in the S3-compatible storage.
@@ -233,7 +234,9 @@ class S3StorageClient(S3StorageInterface):
             S3FileUploadError: If presigned URL generation fails.
         """
         if not private:
-            return f"{self._public_endpoint_url}/{self._bucket_name(private)}/{file_name}"
+            return (
+                f"{self._public_endpoint_url}/{self._bucket_name(private)}/{file_name}"
+            )
 
         try:
             async with self._presign_client() as client:
@@ -243,4 +246,6 @@ class S3StorageClient(S3StorageInterface):
                     ExpiresIn=expires_in,
                 )
         except BotoCoreError as e:
-            raise S3FileUploadError(f"Failed to generate presigned URL: {str(e)}") from e
+            raise S3FileUploadError(
+                f"Failed to generate presigned URL: {str(e)}"
+            ) from e

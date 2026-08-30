@@ -93,7 +93,9 @@ async def _cmd_list(session) -> int:
     return 0
 
 
-async def _cmd_grant(session, email: str, by_email: str | None, note: str | None) -> int:
+async def _cmd_grant(
+    session, email: str, by_email: str | None, note: str | None
+) -> int:
     user_id = await _user_id_by_email(session, email)
     if user_id is None:
         print(f"Користувача {email} немає.", file=sys.stderr)
@@ -186,7 +188,9 @@ def main() -> None:
 
     grant = sub.add_parser("grant", help="Видати доступ до ШІ.")
     grant.add_argument("--email", required=True)
-    grant.add_argument("--by", help="Пошта того, хто видає. Лишається в журналі видачі.")
+    grant.add_argument(
+        "--by", help="Пошта того, хто видає. Лишається в журналі видачі."
+    )
     grant.add_argument("--note", help="Навіщо видано — щоб через рік було зрозуміло.")
 
     revoke = sub.add_parser("revoke", help="Зняти доступ до ШІ.")

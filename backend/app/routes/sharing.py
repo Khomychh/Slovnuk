@@ -232,7 +232,9 @@ async def preview_share_cards(
             SharedCardSchema(
                 word=card.word,
                 comment=card.comment,
-                senses=[SharedSenseSchema.model_validate(sense) for sense in card.senses],
+                senses=[
+                    SharedSenseSchema.model_validate(sense) for sense in card.senses
+                ],
                 forms=[SharedFormSchema.model_validate(form) for form in card.forms],
                 already_have=card.word_normalized in mine,
             )

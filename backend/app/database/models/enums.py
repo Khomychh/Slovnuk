@@ -19,6 +19,7 @@ class StudyDirectionEnum(str, enum.Enum):
     Це лише преференція інтерфейсу — на графік повторень не впливає.
     Обидва напрямки рухають одну й ту саму доріжку ReviewKindEnum.TRANSLATION.
     """
+
     EN_UK = "en_uk"
     UK_EN = "uk_en"
     MIXED = "mixed"
@@ -36,6 +37,7 @@ class GoalModeEnum(str, enum.Enum):
     `10 / 30` і `100` не порівнюються між собою, тож день мусить памʼятати, у
     яких одиницях його міряли.
     """
+
     SEPARATE = "separate"
     COMBINED = "combined"
 
@@ -44,6 +46,7 @@ class TtsAccentEnum(str, enum.Enum):
     """
     Акцент голосу для текстового синтезу.
     """
+
     AUTO = "auto"
     US = "us"
     GB = "gb"
@@ -64,6 +67,7 @@ class TranscriptionVarietyEnum(str, enum.Enum):
     Тому в інтерфейсі це поле зветься просто «Транскрипція», а слово «акцент»
     лишається за голосом.
     """
+
     GB = "gb"
     US = "us"
 
@@ -77,6 +81,7 @@ class AiRequestOutcomeEnum(str, enum.Enum):
     невдача (мережа, 5xx, таймаут); вона теж потрапляє в журнал, бо вхідні
     токени вже оплачені, але слово не палить: людина не винна, що Claude лежав.
     """
+
     PROPOSAL = "proposal"
     REFUSAL = "refusal"
     ERROR = "error"
@@ -99,12 +104,14 @@ class ReviewKindEnum(str, enum.Enum):
     TRANSLATION — слово ↔ переклад.
     FORMS — неправильні форми слова (went / gone), окремий графік.
     """
+
     TRANSLATION = "translation"
     FORMS = "forms"
 
 
 class ReviewStateEnum(str, enum.Enum):
     """Стан доріжки. NEW означає «жодного повтору ще не було»."""
+
     NEW = "new"
     LEARNING = "learning"
     REVIEW = "review"
@@ -121,6 +128,7 @@ class PublicationReportReasonEnum(str, enum.Enum):
     OTHER — не «інше, розкажіть яке», а «щось не так, розберіться». Поля для
     розповіді немає й не планується.
     """
+
     OBSCENE = "obscene"
     SPAM = "spam"
     WRONG = "wrong"
@@ -132,6 +140,7 @@ class ReviewRating(enum.IntEnum):
     Оцінка відповіді. У базі зберігається як SmallInteger 1–4, а не як enum,
     бо саме такі числа очікують планувальники (SM-2, FSRS).
     """
+
     AGAIN = 1
     HARD = 2
     GOOD = 3

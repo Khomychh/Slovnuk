@@ -106,8 +106,12 @@ class TestResolveTimezone:
 
 class TestIsGoalMetSeparate:
     def test_both_goals_required(self):
-        assert not met_separate(new_added=0, reviews_done=30, new_goal=10, review_goal=30)
-        assert not met_separate(new_added=10, reviews_done=5, new_goal=10, review_goal=30)
+        assert not met_separate(
+            new_added=0, reviews_done=30, new_goal=10, review_goal=30
+        )
+        assert not met_separate(
+            new_added=10, reviews_done=5, new_goal=10, review_goal=30
+        )
         assert met_separate(new_added=10, reviews_done=30, new_goal=10, review_goal=30)
 
     def test_exceeding_a_goal_still_counts(self):
@@ -118,7 +122,9 @@ class TestIsGoalMetSeparate:
 
     def test_both_goals_zero_means_the_day_does_not_count(self):
         """Правило зі старого PWA: без жодної цілі день не зараховується."""
-        assert not met_separate(new_added=99, reviews_done=99, new_goal=0, review_goal=0)
+        assert not met_separate(
+            new_added=99, reviews_done=99, new_goal=0, review_goal=0
+        )
 
 
 class TestIsGoalMetCombined:

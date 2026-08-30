@@ -48,7 +48,9 @@ class ListShareModel(Base):
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
-    word_list: Mapped["WordListModel"] = relationship("WordListModel", back_populates="shares")
+    word_list: Mapped["WordListModel"] = relationship(
+        "WordListModel", back_populates="shares"
+    )
     owner: Mapped["UserModel"] = relationship(
         "UserModel", foreign_keys=[owner_id], back_populates="list_shares"
     )

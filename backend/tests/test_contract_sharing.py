@@ -12,8 +12,12 @@ VOCAB = "/api/v1/vocabulary"
 SHARES = "/api/v1/shares"
 
 
-async def _list_with_card(client: AsyncClient, headers: dict, word: str = "run") -> tuple[int, int]:
-    response = await client.post(f"{VOCAB}/lists/", json={"name": "Дієслова"}, headers=headers)
+async def _list_with_card(
+    client: AsyncClient, headers: dict, word: str = "run"
+) -> tuple[int, int]:
+    response = await client.post(
+        f"{VOCAB}/lists/", json={"name": "Дієслова"}, headers=headers
+    )
     assert response.status_code == 201, response.text
     list_id = response.json()["id"]
 
@@ -44,7 +48,9 @@ async def _share(client: AsyncClient, headers: dict, list_id: int) -> str:
 async def test_create_share(client: AsyncClient, auth_headers):
     list_id, _ = await _list_with_card(client, auth_headers)
 
-    response = await client.post(f"{VOCAB}/lists/{list_id}/share/", headers=auth_headers)
+    response = await client.post(
+        f"{VOCAB}/lists/{list_id}/share/", headers=auth_headers
+    )
     assert response.status_code == 200, response.text
 
     body = response.json()
@@ -76,7 +82,9 @@ async def test_delete_share(client: AsyncClient, auth_headers):
     list_id, _ = await _list_with_card(client, auth_headers)
     await _share(client, auth_headers, list_id)
 
-    response = await client.delete(f"{VOCAB}/lists/{list_id}/share/", headers=auth_headers)
+    response = await client.delete(
+        f"{VOCAB}/lists/{list_id}/share/", headers=auth_headers
+    )
     assert response.status_code == 204, response.text
 
     response = await client.get(f"{VOCAB}/lists/", headers=auth_headers)
@@ -146,7 +154,9 @@ async def test_import_share(client: AsyncClient, auth_headers, other_auth_header
     assert all(track["state"] == "new" for track in items[0]["tracks"])
 
 
-async def test_disabled_share_answers_410(client: AsyncClient, auth_headers, other_auth_headers):
+async def test_disabled_share_answers_410(
+    client: AsyncClient, auth_headers, other_auth_headers
+):
     """
     Вимкнене посилання гаситься, а не видаляється: старе посилання мусить
     казати «власник вимкнув доступ», а не «такого не було».

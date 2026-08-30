@@ -3,7 +3,6 @@ from typing import Optional, Union
 
 
 class S3StorageInterface(ABC):
-
     @abstractmethod
     async def upload_file(
         self,

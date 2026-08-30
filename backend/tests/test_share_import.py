@@ -10,7 +10,6 @@
 моделями в пам'яті.
 """
 
-
 from app.database.models import (
     CardModel,
     SenseExampleModel,

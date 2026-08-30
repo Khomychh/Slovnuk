@@ -86,7 +86,9 @@ async def test_update_avatar(client: AsyncClient, auth_headers, user, s3_storage
 
 
 async def test_delete_avatar(client: AsyncClient, auth_headers, user, s3_storage):
-    await client.patch(f"{API}/{user.id}/avatar/", files=_avatar_file(), headers=auth_headers)
+    await client.patch(
+        f"{API}/{user.id}/avatar/", files=_avatar_file(), headers=auth_headers
+    )
     assert len(s3_storage.files) == 1
 
     response = await client.delete(f"{API}/{user.id}/avatar/", headers=auth_headers)

@@ -100,7 +100,7 @@ def _fsrs_major() -> int | None:
     """
     try:
         return int(package_version("fsrs").split(".")[0])
-    except (PackageNotFoundError, ValueError):
+    except PackageNotFoundError, ValueError:
         return None
 
 

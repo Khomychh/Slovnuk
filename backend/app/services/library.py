@@ -52,9 +52,9 @@ def snapshot_content(card: CardModel) -> dict:
     незавантажена колекція падає з MissingGreenlet — причому вже посеред
     публікації, коли рядок publications уже вставлено.
     """
-    return SnapshotContentSchema(
-        senses=card.senses, forms=card.forms
-    ).model_dump(mode="json")
+    return SnapshotContentSchema(senses=card.senses, forms=card.forms).model_dump(
+        mode="json"
+    )
 
 
 def snapshot_rows(cards: Sequence[CardModel]) -> list[PublicationCardModel]:

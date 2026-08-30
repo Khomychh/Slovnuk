@@ -148,8 +148,12 @@ class TestBlankChildrenAreDropped:
                 WordSenseWriteSchema(
                     translation="розмовляти",
                     examples=[
-                        SenseExampleWriteSchema(text_en="Let us talk.", text_uk="Поговорімо."),
-                        SenseExampleWriteSchema(text_en="  ", text_uk="Переклад без речення"),
+                        SenseExampleWriteSchema(
+                            text_en="Let us talk.", text_uk="Поговорімо."
+                        ),
+                        SenseExampleWriteSchema(
+                            text_en="  ", text_uk="Переклад без речення"
+                        ),
                     ],
                 )
             ],
