@@ -3,8 +3,8 @@ from datetime import date
 from io import BytesIO
 
 import phonenumbers
-from PIL import Image
 from fastapi import UploadFile
+from PIL import Image
 from pydantic_core import PydanticCustomError
 
 from app.database.models.accounts import GenderEnum

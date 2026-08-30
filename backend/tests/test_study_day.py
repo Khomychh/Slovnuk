@@ -10,7 +10,6 @@ from datetime import date, datetime, timezone
 from zoneinfo import ZoneInfo
 
 import pytest
-
 from app.database.models import GoalModeEnum
 from app.services.study_day import (
     is_goal_met,

@@ -24,7 +24,6 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.database.models import PartOfSpeechEnum
 from app.schemas.vocabulary import MAX_WORD_LENGTH
 
-
 # --------------------------------------------------------------------------
 # Запит
 # --------------------------------------------------------------------------

@@ -30,8 +30,7 @@ import argparse
 import asyncio
 import sys
 
-from sqlalchemy import delete, select
-
+from app.cruds import ai as ai_crud
 from app.database.database import async_session_maker
 from app.database.models import (
     AiAccessModel,
@@ -39,7 +38,7 @@ from app.database.models import (
     UserModel,
     UserSettingsModel,
 )
-from app.cruds import ai as ai_crud
+from sqlalchemy import delete, select
 
 
 async def _user_id_by_email(session, email: str) -> int | None:

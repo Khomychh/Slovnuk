@@ -19,11 +19,10 @@ GROUP BY на боці Postgres — інакше «за весь час» кош
 from datetime import date, datetime, timedelta, timezone
 
 import pytest
-from sqlalchemy import func, literal, select
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-
 from app.config.dependencies import get_settings
 from app.services.study_day import local_day, local_day_bounds, resolve_timezone
+from sqlalchemy import func, literal, select
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 # Київ переходить на літній час в останню неділю березня (доба 23 години) і на
 # зимовий — в останню неділю жовтня (доба 25 годин).

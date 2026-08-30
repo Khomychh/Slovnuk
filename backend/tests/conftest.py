@@ -51,17 +51,8 @@ import sys  # noqa: E402
 from functools import lru_cache  # noqa: E402
 from pathlib import Path  # noqa: E402
 
-import pytest  # noqa: E402
-from httpx import ASGITransport, AsyncClient  # noqa: E402
-from sqlalchemy import select, text  # noqa: E402
-from sqlalchemy.ext.asyncio import (  # noqa: E402
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
-from sqlalchemy.pool import NullPool  # noqa: E402
-
 import app.database.database as db_module  # noqa: E402
+import pytest  # noqa: E402
 from app.config.dependencies import (  # noqa: E402
     get_accounts_email_notificator,
     get_ai_client,
@@ -77,7 +68,11 @@ from app.database.models import (  # noqa: E402
     UserGroupModel,
     UserModel,
 )
+from app.database.models.accounts import UserGroupEnum  # noqa: E402
+from app.database.models.user_settings import UserSettingsModel  # noqa: E402
 from app.integrations.interfaces import AiCall, AiClientInterface  # noqa: E402
+from app.main import app  # noqa: E402
+from app.notifications.interfaces import EmailSenderInterface  # noqa: E402
 from app.schemas.ai import (  # noqa: E402
     AiExampleSchema,
     AiFormSchema,
@@ -86,12 +81,16 @@ from app.schemas.ai import (  # noqa: E402
     AiResultSchema,
     AiSenseSchema,
 )
-from app.database.models.accounts import UserGroupEnum  # noqa: E402
-from app.database.models.user_settings import UserSettingsModel  # noqa: E402
-from app.main import app  # noqa: E402
-from app.notifications.interfaces import EmailSenderInterface  # noqa: E402
 from app.security.passwords import hash_password  # noqa: E402
 from app.storages.interfaces import S3StorageInterface  # noqa: E402
+from httpx import ASGITransport, AsyncClient  # noqa: E402
+from sqlalchemy import select, text  # noqa: E402
+from sqlalchemy.ext.asyncio import (  # noqa: E402
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.pool import NullPool  # noqa: E402
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 

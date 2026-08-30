@@ -1,25 +1,20 @@
 import enum
-from datetime import datetime, date, timedelta, timezone
-from typing import List, Optional, TYPE_CHECKING
+from datetime import date, datetime, timedelta, timezone
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import (
-    ForeignKey,
-    String,
     Boolean,
+    Date,
     DateTime,
     Enum,
+    ForeignKey,
     Integer,
-    func,
+    String,
     Text,
-    Date,
-    UniqueConstraint
+    UniqueConstraint,
+    func,
 )
-from sqlalchemy.orm import (
-    Mapped,
-    mapped_column,
-    relationship,
-    validates
-)
+from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from app.database.models import Base
 from app.database.models.enums import GenderEnum
@@ -27,14 +22,13 @@ from app.database.validators import accounts as validators
 from app.security.passwords import hash_password, verify_password
 from app.security.utils import generate_secure_token
 
-
 if TYPE_CHECKING:
-    from app.database.models.user_settings import UserSettingsModel
-    from app.database.models.vocabulary import WordListModel, CardModel
-    from app.database.models.study import ReviewLogModel, StudyDayModel
+    from app.database.models.ai import AiAccessModel, AiRequestModel
     from app.database.models.grammar import GrammarNoteModel, NoteCategoryModel
     from app.database.models.sharing import ListShareModel
-    from app.database.models.ai import AiAccessModel, AiRequestModel
+    from app.database.models.study import ReviewLogModel, StudyDayModel
+    from app.database.models.user_settings import UserSettingsModel
+    from app.database.models.vocabulary import CardModel, WordListModel
 
 
 class UserGroupEnum(str, enum.Enum):

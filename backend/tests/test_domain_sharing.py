@@ -7,11 +7,10 @@
 почервоніти першими.
 """
 
-from httpx import AsyncClient
-from sqlalchemy import select, update
-
 from app.database.models import ReviewKindEnum, ReviewTrackModel
 from app.database.models.sharing import ListShareModel
+from httpx import AsyncClient
+from sqlalchemy import select, update
 
 VOCAB = "/api/v1/vocabulary"
 SHARES = "/api/v1/shares"

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import (
     Boolean,
@@ -17,12 +17,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 from app.database.models import Base, TimestampMixin
 from app.database.models.enums import PartOfSpeechEnum
 
-
 if TYPE_CHECKING:
     from app.database.models.accounts import UserModel
-    from app.database.models.study import ReviewTrackModel
-    from app.database.models.sharing import ListShareModel
     from app.database.models.library import PublicationModel
+    from app.database.models.sharing import ListShareModel
+    from app.database.models.study import ReviewTrackModel
 
 
 def normalize_word(word: str) -> str:

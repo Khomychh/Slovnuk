@@ -1,14 +1,14 @@
 from datetime import date
 
-from fastapi import UploadFile, Form, File, HTTPException
-from pydantic import BaseModel, field_validator, ValidationError
+from fastapi import File, Form, HTTPException, UploadFile
+from pydantic import BaseModel, ValidationError, field_validator
 from pydantic_core import PydanticCustomError
 
 from app.validation.profile import (
-    validate_name,
-    validate_image,
-    validate_gender,
     validate_birth_date,
+    validate_gender,
+    validate_image,
+    validate_name,
     validate_phone_number,
 )
 

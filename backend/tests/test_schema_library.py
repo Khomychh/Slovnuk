@@ -25,11 +25,6 @@
 """
 
 import pytest
-
-from sqlalchemy import delete, func, select
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.database.models import (
     CardModel,
     PublicationCardModel,
@@ -39,6 +34,9 @@ from app.database.models import (
     UserModel,
     WordListModel,
 )
+from sqlalchemy import delete, func, select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def _publication(

@@ -7,12 +7,11 @@
 `bcrypt>=5`, повністю й тихо, і саме його першим смикне фронтенд.
 """
 
+from app.database.models import UserModel
+from app.database.models.accounts import ActivationTokenModel
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.database.models import UserModel
-from app.database.models.accounts import ActivationTokenModel
 
 EMAIL = "newcomer@example.com"
 PASSWORD = "Qwerty!23456"

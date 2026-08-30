@@ -10,7 +10,6 @@ exclude_unset, то збереження зміненого заголовка �
 """
 
 import pytest
-
 from app.schemas.grammar import (
     GrammarNoteCreateSchema,
     GrammarNoteUpdateSchema,

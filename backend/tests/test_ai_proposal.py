@@ -7,10 +7,6 @@
 """
 
 import pytest
-from httpx import AsyncClient
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.database.models import (
     AiRequestModel,
     AiRequestOutcomeEnum,
@@ -21,6 +17,9 @@ from app.database.models import (
 )
 from app.exceptions.ai import AiUnavailableError
 from app.schemas.ai import AiRefusalSchema
+from httpx import AsyncClient
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from tests.conftest import FakeAiClient
 
 PROPOSALS_URL = "/api/v1/ai/proposals/"

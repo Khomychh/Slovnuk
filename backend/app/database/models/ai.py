@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import (
     DateTime,
@@ -15,7 +15,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.models import Base
 from app.database.models.enums import AiRequestOutcomeEnum
-
 
 if TYPE_CHECKING:
     from app.database.models.accounts import UserModel

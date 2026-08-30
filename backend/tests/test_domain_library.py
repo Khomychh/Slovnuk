@@ -13,11 +13,10 @@
 першими.
 """
 
+from app.database.models import PublicationModel, UserProfileModel
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.database.models import PublicationModel, UserProfileModel
 
 VOCAB = "/api/v1/vocabulary"
 LIBRARY = "/api/v1/library"

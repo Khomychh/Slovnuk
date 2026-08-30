@@ -6,10 +6,9 @@
 багатозвʼязок «як у списках».
 """
 
+from app.database.models import GrammarNoteModel
 from httpx import AsyncClient
 from sqlalchemy import select
-
-from app.database.models import GrammarNoteModel
 
 API = "/api/v1/grammar"
 

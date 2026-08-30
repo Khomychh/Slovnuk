@@ -5,13 +5,13 @@ from sqlalchemy.orm import joinedload
 
 from app.config.dependencies import get_jwt_auth_manager, get_s3_storage_client
 from app.database.database import get_db
-from app.database.models.accounts import UserModel, UserGroupEnum, UserProfileModel
-from app.exceptions import BaseSecurityError, BaseS3Error, S3FileNotFoundError
+from app.database.models.accounts import UserGroupEnum, UserModel, UserProfileModel
+from app.exceptions import BaseS3Error, BaseSecurityError, S3FileNotFoundError
 from app.schemas.profiles import (
+    AvatarUpdateSchema,
     ProfileCreateSchema,
     ProfileResponseSchema,
     ProfileUpdateSchema,
-    AvatarUpdateSchema,
 )
 from app.security.http import get_token
 from app.security.interfaces import JWTAuthManagerInterface

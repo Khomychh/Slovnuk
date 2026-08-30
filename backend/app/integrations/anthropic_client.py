@@ -22,7 +22,6 @@ from app.integrations.interfaces import AiCall, AiClientInterface
 from app.integrations.prompts import build_system_prompt
 from app.schemas.ai import AiResultSchema
 
-
 # Стеля рахує думання РАЗОМ із відповіддю, а думання тут адаптивне — тобто його
 # обсяг наперед не відомий. Сама пропозиція на три значення з прикладами — це
 # приблизно 800 токенів, але виміряти по ній стелю означало б обрізати відповідь

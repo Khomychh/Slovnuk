@@ -10,7 +10,6 @@
 """
 
 import pytest
-
 from app.schemas.vocabulary import (
     CardCreateSchema,
     CardUpdateSchema,

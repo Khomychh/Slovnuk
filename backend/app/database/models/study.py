@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import (
     BigInteger,
@@ -20,7 +20,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.models import Base, TimestampMixin
 from app.database.models.enums import GoalModeEnum, ReviewKindEnum, ReviewStateEnum
-
 
 if TYPE_CHECKING:
     from app.database.models.accounts import UserModel

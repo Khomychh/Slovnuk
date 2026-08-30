@@ -12,7 +12,6 @@
 Усе без бази: обидва переходи — чисті функції над моделями в пам'яті.
 """
 
-import pytest
 
 from app.database.models import (
     CardModel,

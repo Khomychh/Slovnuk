@@ -26,6 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database.models import (
+    RATING_VISIBILITY_THRESHOLD,
     CardListLinkModel,
     CardModel,
     PublicationCardModel,
@@ -33,11 +34,9 @@ from app.database.models import (
     PublicationRatingModel,
     PublicationReportModel,
     PublicationTakeModel,
-    RATING_VISIBILITY_THRESHOLD,
     UserModel,
     normalize_word,
 )
-
 
 # Автор і провенанс їдуть у кожному рядку витрини, тож вантажаться разом із ним.
 # selectinload, а не joinedload: обидва — many-to-one до різних таблиць, і

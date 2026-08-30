@@ -2,10 +2,10 @@ from fastapi import Depends
 
 from app.config.settings import Settings
 from app.integrations import AiClientInterface, AnthropicAiClient
-from app.notifications import EmailSenderInterface, EmailSender
+from app.notifications import EmailSender, EmailSenderInterface
 from app.security.interfaces import JWTAuthManagerInterface
 from app.security.token_manager import JWTAuthManager
-from app.storages import S3StorageInterface, S3StorageClient
+from app.storages import S3StorageClient, S3StorageInterface
 
 
 def get_settings() -> Settings:

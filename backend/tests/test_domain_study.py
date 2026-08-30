@@ -9,10 +9,6 @@
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from httpx import AsyncClient
-from sqlalchemy import select, update
-from sqlalchemy.exc import IntegrityError
-
 from app.database.models import (
     GoalModeEnum,
     ReviewKindEnum,
@@ -21,6 +17,9 @@ from app.database.models import (
     ReviewTrackModel,
     StudyDayModel,
 )
+from httpx import AsyncClient
+from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 
 STUDY = "/api/v1/study"
 VOCAB = "/api/v1/vocabulary"

@@ -40,11 +40,8 @@
 import argparse
 import asyncio
 import sys
-from importlib.metadata import PackageNotFoundError, version as package_version
-
-from fsrs import Rating, ReviewLog, Scheduler
-from fsrs.scheduler import DEFAULT_PARAMETERS
-from sqlalchemy import select
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as package_version
 
 from app.database.database import async_session_maker
 from app.database.models import (
@@ -52,7 +49,9 @@ from app.database.models import (
     UserModel,
     UserSettingsModel,
 )
-
+from fsrs import Rating, ReviewLog, Scheduler
+from fsrs.scheduler import DEFAULT_PARAMETERS
+from sqlalchemy import select
 
 # Поріг `compute_optimal_retention`: 512 сирих записів і жодного без тривалості
 # (`fsrs/optimizer.py:631-643`). Сам виклик поки не робиться — він повертає одне

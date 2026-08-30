@@ -29,7 +29,6 @@ from app.database.models import (
 from app.schemas.sharing import SharedFormSchema, SharedSenseSchema
 from app.schemas.vocabulary import MAX_LIST_NAME_LENGTH, OptionalText, RequiredText
 
-
 # --------------------------------------------------------------------------
 # Знімок
 # --------------------------------------------------------------------------

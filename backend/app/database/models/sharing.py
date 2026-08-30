@@ -7,7 +7,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.models import Base
 from app.security.utils import generate_secure_token
 
-
 if TYPE_CHECKING:
     from app.database.models.accounts import UserModel
     from app.database.models.vocabulary import WordListModel

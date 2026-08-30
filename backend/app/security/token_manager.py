@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from jose import jwt, JWTError, ExpiredSignatureError
+from jose import ExpiredSignatureError, JWTError, jwt
 
-from app.exceptions import TokenExpiredError, InvalidTokenError
+from app.exceptions import InvalidTokenError, TokenExpiredError
 from app.security.interfaces import JWTAuthManagerInterface
 
 

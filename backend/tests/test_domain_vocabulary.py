@@ -5,10 +5,9 @@
 записано в глосарії». Кожен тест названо правилом, яке він тримає.
 """
 
+from app.database.models import ReviewKindEnum, ReviewStateEnum, ReviewTrackModel
 from httpx import AsyncClient
 from sqlalchemy import delete, select, update
-
-from app.database.models import ReviewKindEnum, ReviewStateEnum, ReviewTrackModel
 
 VOCAB = "/api/v1/vocabulary"
 STUDY = "/api/v1/study"
@@ -277,7 +276,7 @@ async def test_stability_sort_puts_new_words_first_then_coldest(
     """
     warm = await _new_card(client, auth_headers, "warm")
     cold = await _new_card(client, auth_headers, "cold")
-    fresh = await _new_card(client, auth_headers, "fresh")
+    await _new_card(client, auth_headers, "fresh")
 
     await _set_translation_stability(db_session, warm["id"], 200.0)
     await _set_translation_stability(db_session, cold["id"], 0.5)

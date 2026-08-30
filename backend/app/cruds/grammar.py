@@ -14,7 +14,6 @@ from sqlalchemy.orm import selectinload
 
 from app.database.models import GrammarNoteModel, NoteCategoryModel
 
-
 # --------------------------------------------------------------------------
 # Нотатки
 # --------------------------------------------------------------------------

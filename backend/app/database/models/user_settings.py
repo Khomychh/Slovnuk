@@ -1,4 +1,4 @@
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import (
     Boolean,
@@ -21,7 +21,6 @@ from app.database.models.enums import (
     TranscriptionVarietyEnum,
     TtsAccentEnum,
 )
-
 
 if TYPE_CHECKING:
     from app.database.models.accounts import UserModel
