@@ -22,9 +22,11 @@
  *    вертикаль на всю панель. «×» стояв лише там, де було що прибирати, тож
  *    права межа гуляла від рядка до рядка.
  * 3. РАНГ ПІДПИСУ ДОРІВНЮЄ ГЛИБИНІ. Моно-капітель — межа панелі («ЩЕ
- *    ЗНАЧЕННЯ», «ФОРМИ»), звичайний дрібний текст — усередині значення
- *    («приклад»). Одна панель має один капітельний підвал, скільки б значень
- *    у ній не було.
+ *    ЗНАЧЕННЯ», «ФОРМИ»). Одна панель має один капітельний підвал, скільки б
+ *    значень у ній не було. Усередині значення підписів немає взагалі:
+ *    останній із них, «приклад», пішов разом із кнопкою, яку він підписував —
+ *    приклади набираються одним полем, і другий починається з Enter
+ *    (ADR-0033).
  *
  * Ширина лінії теж значить: на всю ширину панелі — «далі однорідний рядок»,
  * звужена — «список скінчився, далі підвал». Поза панелями ліній немає
@@ -35,7 +37,7 @@
  * картки. Там само `applyProposal`: підстановка ШІ знищує роботу так само тихо.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ApiError, OfflineError } from "../api/client";
 import { proposeCard } from "../api/ai";
@@ -59,7 +61,6 @@ import ListPickerSheet from "../vocabulary/ListPickerSheet";
 import { Markdown } from "../grammar/markdown";
 import {
   applyProposal,
-  blankExample,
   blankForm,
   blankSense,
   defaultListFor,
@@ -132,16 +133,19 @@ type AiState =
   /** Заповнити не вийшло з причини, яка від слова не залежить. */
   | { kind: "blocked"; message: string };
 
-/** Що саме прибираємо — питання, яке ставить аркуш після `⋯`. */
+/**
+ * Що саме прибираємо — питання, яке ставить аркуш після `⋯`.
+ *
+ * Прикладів тут немає: вони набираються одним полем, і прибрати приклад означає
+ * стерти рядок. Питати про це означало б питати про кожне натискання Backspace.
+ */
 type Removal =
   | { kind: "sense"; index: number }
-  | { kind: "form"; index: number }
-  | { kind: "example"; index: number; exampleIndex: number };
+  | { kind: "form"; index: number };
 
 const REMOVAL_TITLES: Record<Removal["kind"], string> = {
   sense: "Прибрати значення?",
   form: "Прибрати форму?",
-  example: "Прибрати приклад?",
 };
 
 /**
@@ -261,6 +265,69 @@ function FormLabelField({
         />
       ) : null}
     </>
+  );
+}
+
+/**
+ * Приклади значення — одним полем.
+ *
+ * Рядок — приклад, риска ділить його на англійську й переклад; розбирає це
+ * `parseExamples`, а не цей компонент. Наступний приклад починається з Enter,
+ * тобто рукою, яка вже на клавіатурі, — раніше він починався з кнопки
+ * «приклад +», а потім із двох окремих полів (ADR-0033).
+ *
+ * ВИСОТА ЗА ВМІСТОМ, І ЦЕ НЕ ПРИКРАСА. Приклад — це речення; у полі сталої
+ * висоти воно або ховається під нижнім краєм, або (з `white-space: pre`)
+ * їде вбік просто під час набору. Тому переносимо й ростемо, а браузер
+ * висоту textarea сам не міряє — її ставить цей ефект.
+ *
+ * `rows={1}` навмисно: `scrollHeight` не вміє зменшуватись нижче заданої
+ * висоти, тож перед вимірюванням висота скидається в `auto`. Без цього поле,
+ * що один раз виросло до пʼяти рядків, лишалось би пʼятирядковим назавжди.
+ *
+ * МІРЯЄМО ТРИЧІ, І КОЖЕН РАЗ ПОТРІБНИЙ. Перший — на зміну тексту. Другий — коли
+ * приїхали шрифти: перше вимірювання йде метриками запасного шрифту, і рядок,
+ * якому з Onest треба два рядки, а з системним вистачало одного, лишався б
+ * однорядковим — з `overflow: hidden` це означає обрізаний навпіл приклад, який
+ * видно аж при відкритті картки. Третій — на зміну ширини вікна: перенос
+ * залежить від неї, а поворот телефона її міняє.
+ */
+function ExamplesField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const field = useRef<HTMLTextAreaElement>(null);
+
+  useLayoutEffect(() => {
+    const node = field.current;
+    if (!node) return;
+
+    const fit = () => {
+      node.style.height = "auto";
+      node.style.height = `${node.scrollHeight}px`;
+    };
+
+    fit();
+    void document.fonts?.ready.then(fit);
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [value]);
+
+  return (
+    <textarea
+      ref={field}
+      className="ed-examples"
+      rows={1}
+      /* Плейсхолдер показує формат, а не називає поле: слово «приклад» ліворуч
+         від риски робить обидві роботи одразу — і підписує, і демонструє. */
+      placeholder="приклад | переклад"
+      aria-label="Приклади — по одному в рядку, «приклад | переклад»"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
   );
 }
 
@@ -477,11 +544,7 @@ export default function CardEditScreen({
     const blank =
       removal.kind === "sense"
         ? senseIsBlank(draft.senses[removal.index]!)
-        : removal.kind === "form"
-          ? formIsBlank(draft.forms[removal.index]!)
-          : !draft.senses[removal.index]!.examples[
-              removal.exampleIndex
-            ]!.textEn.trim();
+        : formIsBlank(draft.forms[removal.index]!);
 
     if (blank) {
       applyRemoval(removal);
@@ -493,17 +556,8 @@ export default function CardEditScreen({
   const applyRemoval = (removal: Removal) => {
     if (removal.kind === "sense") {
       patch({ senses: draft.senses.filter((_, i) => i !== removal.index) });
-    } else if (removal.kind === "form") {
-      patch({ forms: draft.forms.filter((_, i) => i !== removal.index) });
     } else {
-      const sense = draft.senses[removal.index];
-      if (sense) {
-        patchSense(removal.index, {
-          examples: sense.examples.filter(
-            (_, i) => i !== removal.exampleIndex,
-          ),
-        });
-      }
+      patch({ forms: draft.forms.filter((_, i) => i !== removal.index) });
     }
     setRemoving(null);
   };
@@ -742,66 +796,15 @@ export default function CardEditScreen({
 
               {/* Приклади відділені від значення відступом, а не лінією:
                 лінія на цій панелі вже означає «наступне значення», і другий
-                її сенс зробив би панель пласким списком. */}
-              {sense.examples.map((example, exampleIndex) => (
-                <div className="ed-example" key={exampleIndex}>
-                  <div className="ed-example-fields">
-                    <input
-                      placeholder="приклад"
-                      aria-label="Приклад англійською"
-                      value={example.textEn}
-                      onChange={(event) => {
-                        const examples = [...sense.examples];
-                        examples[exampleIndex] = {
-                          ...example,
-                          textEn: event.target.value,
-                        };
-                        patchSense(index, { examples });
-                      }}
-                    />
-                    <input
-                      placeholder="переклад"
-                      aria-label="Переклад прикладу"
-                      value={example.textUk}
-                      onChange={(event) => {
-                        const examples = [...sense.examples];
-                        examples[exampleIndex] = {
-                          ...example,
-                          textUk: event.target.value,
-                        };
-                        patchSense(index, { examples });
-                      }}
-                    />
-                  </div>
-                  <button
-                    className="ed-more"
-                    type="button"
-                    aria-label="Дії прикладу"
-                    onClick={() =>
-                      askRemove({ kind: "example", index, exampleIndex })
-                    }
-                  >
-                    <RemoveIcon />
-                  </button>
-                </div>
-              ))}
+                її сенс зробив би панель пласким списком.
 
-              {/* Підвал усередині значення — звичайним дрібним текстом, не
-                капітеллю: капітель на цій панелі означає її межу. */}
-              <button
-                className="ed-sub-add"
-                type="button"
-                onClick={() =>
-                  patchSense(index, {
-                    examples: [...sense.examples, blankExample()],
-                  })
-                }
-              >
-                <span>приклад</span>
-                <span className="ed-foot-act">
-                  <AddIcon />
-                </span>
-              </button>
+                Підвала «приклад +» під ними більше немає — його роботу робить
+                Enter усередині поля. Разом із ним пішов і останній предмет,
+                що стояв усередині значення окремим рядком. */}
+              <ExamplesField
+                value={sense.examples}
+                onChange={(examples) => patchSense(index, { examples })}
+              />
             </div>
           ))}
 

@@ -9,7 +9,9 @@ import {
   deletionLosesHistory,
   distinctTranscriptions,
   draftIsDirty,
+  examplesToText,
   listFraction,
+  parseExamples,
   listStateLine,
   newDraft,
   senseSummary,
@@ -102,12 +104,55 @@ describe("toCardPayload", () => {
     expect(toCardPayload(draft).forms).toEqual([]);
   });
 
-  it("приклад без англійського речення відкидається разом із перекладом", () => {
+  it("рядок без англійського речення відкидається разом із перекладом", () => {
     const draft = newDraft([]);
     draft.senses[0]!.translation = "йти";
-    draft.senses[0]!.examples = [{ id: null, textEn: "  ", textUk: "Я йду." }];
+    draft.senses[0]!.examples = "  | Я йду.";
 
     expect(toCardPayload(draft).senses?.[0]?.examples).toEqual([]);
+  });
+
+  it("id прикладів тримаються номера рядка, а не місця у відповіді", () => {
+    // Порожній рядок посередині — це «набираю далі», а не приклад. Якби
+    // нумерація зсувалась, другий приклад приїхав би з id першого, тобто
+    // сервер оновив би не той рядок.
+    const draft = toDraft(
+      card({
+        senses: [
+          sense({
+            id: 7,
+            examples: [
+              { id: 3, text_en: "I go home.", text_uk: "Я йду додому." },
+              { id: 4, text_en: "Go away.", text_uk: "Іди геть." },
+            ],
+          }),
+        ],
+      }),
+    );
+    draft.senses[0]!.examples = "I go home. | Я йду додому.\n\nGo away. | Іди геть.";
+
+    const examples = toCardPayload(draft).senses?.[0]?.examples;
+    expect(examples?.[0]).toMatchObject({ id: 3, text_en: "I go home." });
+    // Третій рядок — третій id, якого немає: приклад поїде як новий.
+    expect(examples?.[1]).not.toHaveProperty("id");
+  });
+
+  it("дописаний приклад їде без id, а наявний свій зберігає", () => {
+    const draft = toDraft(
+      card({
+        senses: [
+          sense({
+            id: 7,
+            examples: [{ id: 3, text_en: "I go home.", text_uk: "Я йду додому." }],
+          }),
+        ],
+      }),
+    );
+    draft.senses[0]!.examples += "\nGo away. | Іди геть.";
+
+    const examples = toCardPayload(draft).senses?.[0]?.examples;
+    expect(examples?.[0]).toMatchObject({ id: 3 });
+    expect(examples?.[1]).toEqual({ text_en: "Go away.", text_uk: "Іди геть." });
   });
 
   it("стерті всі значення дають порожній масив, а не відсутнє поле", () => {
@@ -129,6 +174,75 @@ describe("toCardPayload", () => {
     const payload = toCardPayload(draft);
     expect(payload.comment).toBeNull();
     expect(payload.senses?.[0]?.translation).toBe("йти");
+  });
+});
+
+// --------------------------------------------------------------------------
+// Приклади одним полем: «I love the girl. | Я люблю цю дівчину.»
+// --------------------------------------------------------------------------
+
+describe("parseExamples", () => {
+  it("ділить рядок першою рискою й знімає пробіли з обох половин", () => {
+    expect(parseExamples("I love the girl.  |  Я люблю цю дівчину.")).toEqual([
+      { line: 0, textEn: "I love the girl.", textUk: "Я люблю цю дівчину." },
+    ]);
+  });
+
+  it("рядок без риски — приклад без перекладу", () => {
+    expect(parseExamples("I love the girl.")).toEqual([
+      { line: 0, textEn: "I love the girl.", textUk: "" },
+    ]);
+  });
+
+  it("друга риска лишається в перекладі", () => {
+    // «він | вона» — жива форма запису варіантів, і ділити по ній нічого.
+    expect(parseExamples("He left. | він пішов | вона пішла")[0]).toEqual({
+      line: 0,
+      textEn: "He left.",
+      textUk: "він пішов | вона пішла",
+    });
+  });
+
+  it("порожні рядки пропускаються, але номерів рядків не зсувають", () => {
+    const parsed = parseExamples("First.\n\n   \nSecond.");
+
+    expect(parsed).toHaveLength(2);
+    expect(parsed[1]!.line).toBe(3);
+  });
+
+  it("рядок із самою рискою прикладом не є", () => {
+    expect(parseExamples("| Я люблю цю дівчину.")).toEqual([]);
+  });
+});
+
+describe("examplesToText", () => {
+  it("кожен приклад — свій рядок", () => {
+    expect(
+      examplesToText([
+        { text_en: "I love the girl.", text_uk: "Я люблю цю дівчину." },
+        { text_en: "The girl left.", text_uk: "Дівчина пішла." },
+      ]),
+    ).toBe("I love the girl. | Я люблю цю дівчину.\nThe girl left. | Дівчина пішла.");
+  });
+
+  it("приклад без перекладу йде без хвостової риски", () => {
+    // Риска, за якою нічого немає, читалась би як недонабране.
+    expect(examplesToText([{ text_en: "I love the girl.", text_uk: null }])).toBe(
+      "I love the girl.",
+    );
+  });
+
+  it("текст поля переживає оберт у базу й назад", () => {
+    const text = "I love the girl. | Я люблю цю дівчину.\nThe girl left.";
+
+    expect(
+      examplesToText(
+        parseExamples(text).map((example) => ({
+          text_en: example.textEn,
+          text_uk: example.textUk || null,
+        })),
+      ),
+    ).toBe(text);
   });
 });
 
@@ -403,7 +517,7 @@ describe("applyProposal", () => {
     const next = applyProposal(draft, proposal);
 
     expect(next.senses[0]!.id).toBeNull();
-    expect(next.senses[0]!.examples[0]!.id).toBeNull();
+    expect(next.senses[0]!.exampleIds).toEqual([]);
     expect(next.forms[0]!.id).toBeNull();
   });
 
