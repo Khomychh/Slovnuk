@@ -630,39 +630,39 @@ export default function CardEditScreen({
       </div>
 
       <div className="sheet-scroll ed">
-        <div className="ed-block ed-word-block">
-          {/* Слово підпису не має: порожнє поле дисплейною гарнітурою в 22px
-              ні з чим не сплутати, а капітель над героєм була б зайвим рядком
-              шуму над найпершим, що видно на екрані. */}
-          <div className="ed-item">
-            <div className="ed-word-row">
-              <input
-                id="word"
-                className="ed-word-input"
-                aria-label="Слово"
-                value={draft.word}
-                placeholder="слово"
-                autoCapitalize="none"
-                autoComplete="off"
-                autoCorrect="off"
-                spellCheck={false}
-                onChange={(event) => patchWord(event.target.value)}
-                onBlur={checkDuplicate}
-              />
-              <SpeakButton text={draft.word} size="md" />
-              {aiEnabled ? (
-                <button
-                  type="button"
-                  className="ed-ai"
-                  aria-label="Заповнити з ШІ"
-                  title="Заповнити з ШІ"
-                  disabled={!online || ai.kind === "asking"}
-                  onClick={pressAi}
-                >
-                  <AiIcon />
-                </button>
-              ) : null}
-            </div>
+        {/* Слово — окреме поле, без панелі: групувати один контрол нема сенсу,
+            а коробка з рамкою й тінню довкола нього була масивним порожнім
+            відступом. Підпису теж нема: порожнє поле дисплейною гарнітурою в
+            22px ні з чим не сплутати, а капітель над героєм була б зайвим
+            рядком шуму над найпершим, що видно на екрані. */}
+        <div className="ed-word-block">
+          <div className="ed-word-row">
+            <input
+              id="word"
+              className="ed-word-input"
+              aria-label="Слово"
+              value={draft.word}
+              placeholder="слово"
+              autoCapitalize="none"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              onChange={(event) => patchWord(event.target.value)}
+              onBlur={checkDuplicate}
+            />
+            <SpeakButton text={draft.word} size="md" />
+            {aiEnabled ? (
+              <button
+                type="button"
+                className="ed-ai"
+                aria-label="Заповнити з ШІ"
+                title="Заповнити з ШІ"
+                disabled={!online || ai.kind === "asking"}
+                onClick={pressAi}
+              >
+                <AiIcon />
+              </button>
+            ) : null}
           </div>
 
           {duplicate ? (
@@ -808,14 +808,12 @@ export default function CardEditScreen({
         </div>
 
         {/* --- форми ---
-            Шапка тут є, поки їй є що нести: перемикач тренування. Над
-            значеннями шапки немає ніколи — там нести нічого. */}
-        <div className="ed-block">
-          {/* Шапки немає, поки немає форм. Перемикач «Тренувати» зʼявляється
-              лише при непорожньому списку, тож у порожньої панелі шапка несла б
-              саме тільки слово «Форми» — те саме, що вже каже підвал «Ще
-              форма» під нею. Два однакові рядки в порожній коробці. */}
-          {draft.forms.length > 0 ? (
+            Панелі немає, поки немає форм: коробка тримала б сама тільки кнопку
+            «Ще форма» — те саме правило, за яким її немає навколо «слова».
+            З появою першої форми розділ дістає і коробку, і шапку з перемикачем
+            тренування (над значеннями шапки немає ніколи — там нести нічого). */}
+        {draft.forms.length > 0 ? (
+          <div className="ed-block">
             <div className="ed-head">
               <span className="ed-head-label">Форми</span>
               <button
@@ -838,64 +836,75 @@ export default function CardEditScreen({
                 </span>
               </button>
             </div>
-          ) : null}
 
-          {draft.forms.map((form, index) => (
-            <div className="ed-item" key={index}>
-              <div className="ed-row">
-                <label className="ed-field">
-                  <span className="ed-field-cap">Форма</span>
-                  <input
-                    className="ed-form-val"
-                    aria-label="Форма"
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    spellCheck={false}
-                    value={form.value}
-                    onChange={(event) =>
-                      patchForm(index, { value: event.target.value })
-                    }
-                  />
-                </label>
-                <SpeakButton text={form.value} />
-                <button
-                  className="ed-more"
-                  type="button"
-                  aria-label="Дії форми"
-                  onClick={() => askRemove({ kind: "form", index })}
-                >
-                  <RemoveIcon />
-                </button>
-              </div>
-
-              {/* Та сама мала пара, що в значенні: мітка й транскрипція. */}
-              <div className="ed-row">
-                <div className="ed-field">
-                  <FormLabelField
-                    value={form.label}
-                    onChange={(label) => patchForm(index, { label })}
-                  />
+            {draft.forms.map((form, index) => (
+              <div className="ed-item" key={index}>
+                <div className="ed-row">
+                  <label className="ed-field">
+                    <span className="ed-field-cap">Форма</span>
+                    <input
+                      className="ed-form-val"
+                      aria-label="Форма"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      value={form.value}
+                      onChange={(event) =>
+                        patchForm(index, { value: event.target.value })
+                      }
+                    />
+                  </label>
+                  <SpeakButton text={form.value} />
+                  <button
+                    className="ed-more"
+                    type="button"
+                    aria-label="Дії форми"
+                    onClick={() => askRemove({ kind: "form", index })}
+                  >
+                    <RemoveIcon />
+                  </button>
                 </div>
-                <label className="ed-field">
-                  <input
-                    className="ed-ipa"
-                    aria-label="Транскрипція форми"
-                    placeholder="транскрипція"
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    spellCheck={false}
-                    value={form.transcription}
-                    onChange={(event) =>
-                      patchForm(index, { transcription: event.target.value })
-                    }
-                  />
-                </label>
-              </div>
-            </div>
-          ))}
 
+                {/* Та сама мала пара, що в значенні: мітка й транскрипція. */}
+                <div className="ed-row">
+                  <div className="ed-field">
+                    <FormLabelField
+                      value={form.label}
+                      onChange={(label) => patchForm(index, { label })}
+                    />
+                  </div>
+                  <label className="ed-field">
+                    <input
+                      className="ed-ipa"
+                      aria-label="Транскрипція форми"
+                      placeholder="транскрипція"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      value={form.transcription}
+                      onChange={(event) =>
+                        patchForm(index, { transcription: event.target.value })
+                      }
+                    />
+                  </label>
+                </div>
+              </div>
+            ))}
+
+            <button
+              className="ed-foot"
+              type="button"
+              onClick={() => patch({ forms: [...draft.forms, blankForm()] })}
+            >
+              <span className="ed-foot-label">Ще форма</span>
+              <span className="ed-foot-act">
+                <AddIcon />
+              </span>
+            </button>
+          </div>
+        ) : (
           <button
-            className="ed-foot"
+            className="ed-foot ed-foot-solo"
             type="button"
             onClick={() => patch({ forms: [...draft.forms, blankForm()] })}
           >
@@ -904,7 +913,7 @@ export default function CardEditScreen({
               <AddIcon />
             </span>
           </button>
-        </div>
+        )}
 
         {/* --- коментар ---
             Перемикач «Текст / Перегляд» — той самий компонент і той самий
