@@ -180,7 +180,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  border-left: 2px solid var(--a4);
+  border-left: 2px solid var(--a3);
   background: var(--sheet);
   border-radius: 0 var(--r-sm) var(--r-sm) 0;
   padding: 12px 14px;

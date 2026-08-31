@@ -12,12 +12,12 @@
  * кожна форма були власною панеллю, і людина бачила стовпчик однакових рамок,
  * у якому не видно, де закінчується одне значення й починається наступне.
  *
- * ПОЛЕ ВИГЛЯДАЄ ЯК ПОЛЕ (ADR-0034). Обрамлений блок, тло на щабель світліше за
- * панель, підпис-капітель над ним, синє кільце на фокусі — та сама модель, що
- * в `.field` решти застосунку (`base.css`). Раніше тут діяло правило «поверхня
+ * ПОЛЕ ВИГЛЯДАЄ ЯК ПОЛЕ. Панель піднята (`--sheet-2`), поле в неї втоплене
+ * (`--sheet`), рамка, радіус і синє кільце на фокусі — та сама модель, що в
+ * `.field` решти застосунку (`base.css`). Раніше тут діяло правило «поверхня
  * одна»: поля без рамки й тла, самі плейсхолдером і курсором, — і на екран не
- * було видно, куди писати. Кожне поле має підпис (`ed-field-cap`); плейсхолдер
- * лишився тільки там, де показує формат («приклад | переклад»).
+ * було видно, куди писати. Підпис поля (`ed-field-cap`) — тихий рядок, не
+ * капітель: капітеллю лишається рубрика розділу. Слово підпису не має.
  *
  * ПРАВА КОЛОНКА ПОСТІЙНА. `−` у кожного рядка, `+` у підвалі — одна вертикаль
  * на всю панель. «×» стояв лише там, де було що прибирати, тож права межа
@@ -203,7 +203,7 @@ function FormLabelField({
         aria-label="Мітка форми"
         onClick={() => setPicking(true)}
       >
-        <span className="ed-pick-val">{value || "без мітки"}</span>
+        <span className="ed-pick-val">{value || "мітка"}</span>
         <ChevronIcon />
       </button>
 
@@ -265,15 +265,20 @@ function FormLabelField({
  * видно аж при відкритті картки. Третій — на зміну ширини вікна: перенос
  * залежить від неї, а поворот телефона її міняє.
  */
-function ExamplesField({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  const field = useRef<HTMLTextAreaElement>(null);
-
+/**
+ * Висота textarea під вміст.
+ *
+ * Спільний для прикладів і коментаря: обидва — поля, у яких прокрутка всередині
+ * гірша за високе поле. Читати набране, гортаючи його у віконці на три рядки,
+ * на телефоні неможливо, а `resize` пальцем не тягнеться.
+ *
+ * `document.fonts.ready` обовʼязковий: перший вимір трапляється на системному
+ * шрифті, і після підміни на Onest висота вже не та.
+ */
+function useAutoHeight(
+  field: React.RefObject<HTMLTextAreaElement | null>,
+  value: string,
+) {
   useLayoutEffect(() => {
     const node = field.current;
     if (!node) return;
@@ -287,7 +292,18 @@ function ExamplesField({
     void document.fonts?.ready.then(fit);
     window.addEventListener("resize", fit);
     return () => window.removeEventListener("resize", fit);
-  }, [value]);
+  }, [field, value]);
+}
+
+function ExamplesField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const field = useRef<HTMLTextAreaElement>(null);
+  useAutoHeight(field, value);
 
   return (
     <label className="ed-field">
@@ -366,6 +382,11 @@ export default function CardEditScreen({
   >(null);
   const [removing, setRemoving] = useState<Removal | null>(null);
   const [commentPreview, setCommentPreview] = useState(false);
+  /* Поле коментаря росте під вміст так само, як поле прикладів. Ref живе тут,
+     а не в окремому компоненті: коментар — єдине поле, і виносити його заради
+     одного хука не було б за що. */
+  const comment = useRef<HTMLTextAreaElement>(null);
+  useAutoHeight(comment, commentPreview ? "" : (draft?.comment ?? ""));
   /** Індекс значення, якому зараз вибирають частину мови. */
   const [posPick, setPosPick] = useState<number | null>(null);
 
@@ -610,36 +631,37 @@ export default function CardEditScreen({
 
       <div className="sheet-scroll ed">
         <div className="ed-block ed-word-block">
+          {/* Слово підпису не має: порожнє поле дисплейною гарнітурою в 22px
+              ні з чим не сплутати, а капітель над героєм була б зайвим рядком
+              шуму над найпершим, що видно на екрані. */}
           <div className="ed-item">
-            <div className="ed-field">
-              <span className="ed-field-cap">Слово</span>
-              <div className="ed-word-row">
-                <input
-                  id="word"
-                  className="ed-word-input"
-                  aria-label="Слово"
-                  value={draft.word}
-                  autoCapitalize="none"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  onChange={(event) => patchWord(event.target.value)}
-                  onBlur={checkDuplicate}
-                />
-                <SpeakButton text={draft.word} size="md" />
-                {aiEnabled ? (
-                  <button
-                    type="button"
-                    className="ed-ai"
-                    aria-label="Заповнити з ШІ"
-                    title="Заповнити з ШІ"
-                    disabled={!online || ai.kind === "asking"}
-                    onClick={pressAi}
-                  >
-                    <AiIcon />
-                  </button>
-                ) : null}
-              </div>
+            <div className="ed-word-row">
+              <input
+                id="word"
+                className="ed-word-input"
+                aria-label="Слово"
+                value={draft.word}
+                placeholder="слово"
+                autoCapitalize="none"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+                onChange={(event) => patchWord(event.target.value)}
+                onBlur={checkDuplicate}
+              />
+              <SpeakButton text={draft.word} size="md" />
+              {aiEnabled ? (
+                <button
+                  type="button"
+                  className="ed-ai"
+                  aria-label="Заповнити з ШІ"
+                  title="Заповнити з ШІ"
+                  disabled={!online || ai.kind === "asking"}
+                  onClick={pressAi}
+                >
+                  <AiIcon />
+                </button>
+              ) : null}
             </div>
           </div>
 
@@ -715,7 +737,6 @@ export default function CardEditScreen({
                 {/* Не рідний `<select>`: на Android система малює його на весь
                     екран, і картка, заради якої його відкрили, зникає (ADR-0031). */}
                 <div className="ed-field">
-                  <span className="ed-field-cap">Частина мови</span>
                   <button
                     type="button"
                     className={
@@ -727,16 +748,16 @@ export default function CardEditScreen({
                     <span className="ed-pick-val">
                       {sense.partOfSpeech
                         ? POS_LABELS[sense.partOfSpeech]
-                        : "не вказана"}
+                        : "частина мови"}
                     </span>
                     <ChevronIcon />
                   </button>
                 </div>
                 <label className="ed-field">
-                  <span className="ed-field-cap">Транскрипція</span>
                   <input
                     className="ed-ipa"
                     aria-label="Транскрипція"
+                    placeholder="транскрипція"
                     autoCapitalize="none"
                     autoCorrect="off"
                     spellCheck={false}
@@ -787,12 +808,16 @@ export default function CardEditScreen({
         </div>
 
         {/* --- форми ---
-            Шапка тут є, бо їй є що нести: перемикач тренування. Над
-            значеннями шапки немає — там нести нічого. */}
+            Шапка тут є, поки їй є що нести: перемикач тренування. Над
+            значеннями шапки немає ніколи — там нести нічого. */}
         <div className="ed-block">
-          <div className="ed-head">
-            <span className="ed-head-label">Форми</span>
-            {draft.forms.length > 0 ? (
+          {/* Шапки немає, поки немає форм. Перемикач «Тренувати» зʼявляється
+              лише при непорожньому списку, тож у порожньої панелі шапка несла б
+              саме тільки слово «Форми» — те саме, що вже каже підвал «Ще
+              форма» під нею. Два однакові рядки в порожній коробці. */}
+          {draft.forms.length > 0 ? (
+            <div className="ed-head">
+              <span className="ed-head-label">Форми</span>
               <button
                 type="button"
                 role="switch"
@@ -812,8 +837,8 @@ export default function CardEditScreen({
                   <i />
                 </span>
               </button>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
 
           {draft.forms.map((form, index) => (
             <div className="ed-item" key={index}>
@@ -846,17 +871,16 @@ export default function CardEditScreen({
               {/* Та сама мала пара, що в значенні: мітка й транскрипція. */}
               <div className="ed-row">
                 <div className="ed-field">
-                  <span className="ed-field-cap">Мітка</span>
                   <FormLabelField
                     value={form.label}
                     onChange={(label) => patchForm(index, { label })}
                   />
                 </div>
                 <label className="ed-field">
-                  <span className="ed-field-cap">Транскрипція</span>
                   <input
                     className="ed-ipa"
                     aria-label="Транскрипція форми"
+                    placeholder="транскрипція"
                     autoCapitalize="none"
                     autoCorrect="off"
                     spellCheck={false}
@@ -921,6 +945,7 @@ export default function CardEditScreen({
             ) : (
               <textarea
                 id="comment"
+                ref={comment}
                 className="ed-comment-input"
                 aria-label="Коментар"
                 rows={3}

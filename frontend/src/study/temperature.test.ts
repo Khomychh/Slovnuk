@@ -31,25 +31,29 @@ describe("temperature", () => {
     expect(temperature(undefined)).toBe("var(--a0)");
   });
 
-  it("розкладає стабільність на шість зупинок", () => {
-    expect(temperature(0.4)).toBe("var(--a1)"); // до 1 дня
-    expect(temperature(3.1)).toBe("var(--a2)"); // 1–6 днів
-    expect(temperature(21)).toBe("var(--a3)"); // 6–30 днів
-    expect(temperature(95)).toBe("var(--a4)"); // 30–180 днів
-    expect(temperature(310)).toBe("var(--a5)"); // понад 180 днів
+  it("розкладає стабільність на чотири зупинки", () => {
+    expect(temperature(0.4)).toBe("var(--a1)"); // до 6 днів — ще не вивчено
+    expect(temperature(3.1)).toBe("var(--a1)"); //  —""—
+    expect(temperature(21)).toBe("var(--a2)"); // 6–30 днів
+    expect(temperature(95)).toBe("var(--a3)"); // понад 30 днів
+    expect(temperature(310)).toBe("var(--a3)"); //  —""—
+  });
+
+  it("склеєні пари не розрізняються за кольором", () => {
+    // Це і є зміст злиття: обидва боки колишньої межі 1 дня — одна зупинка,
+    // обидва боки колишньої межі 180 днів — теж одна.
+    expect(temperature(0.999)).toBe(temperature(1));
+    expect(temperature(179.999)).toBe(temperature(180));
   });
 
   it("межі строгі — рівно на межі слово вже в теплішому діапазоні", () => {
     // Той самий бік, що й у SQL: `stability < edge`. Шість днів — це вже
-    // «вивчено» (LEARNED_STABILITY_DAYS), а не «майже».
-    expect(temperature(0.999)).toBe("var(--a1)");
-    expect(temperature(1)).toBe("var(--a2)");
-    expect(temperature(5.999)).toBe("var(--a2)");
-    expect(temperature(6)).toBe("var(--a3)");
-    expect(temperature(29.999)).toBe("var(--a3)");
-    expect(temperature(30)).toBe("var(--a4)");
-    expect(temperature(179.999)).toBe("var(--a4)");
-    expect(temperature(180)).toBe("var(--a5)");
+    // «вивчено» (LEARNED_STABILITY_DAYS), а не «майже». Саме ця межа мусить
+    // уціліти при будь-якому злитті зупинок: по ній бекенд рахує `learned`.
+    expect(temperature(5.999)).toBe("var(--a1)");
+    expect(temperature(6)).toBe("var(--a2)");
+    expect(temperature(29.999)).toBe("var(--a2)");
+    expect(temperature(30)).toBe("var(--a3)");
   });
 });
 
@@ -57,7 +61,7 @@ describe("cardTemperature", () => {
   it("бере доріжку перекладу, а не форм", () => {
     // Інакше вимкнення тренування форм тихо міняло б колір картки.
     const tracks = [track("forms", 300), track("translation", 2)];
-    expect(cardTemperature(tracks)).toBe("var(--a2)");
+    expect(cardTemperature(tracks)).toBe("var(--a1)");
   });
 
   it("картка без доріжки перекладу вважається новою", () => {

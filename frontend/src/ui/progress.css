@@ -238,7 +238,7 @@
 }
 
 .dd-mark-met {
-  color: var(--a5);
+  color: var(--a3);
 }
 
 /* --- смужка обсягу ------------------------------------------------------- */
@@ -339,7 +339,7 @@ button.cal-c {
 }
 
 .cal-c.met {
-  background: var(--a5);
+  background: var(--a3);
   box-shadow: var(--glow-warm);
 }
 

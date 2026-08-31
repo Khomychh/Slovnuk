@@ -445,7 +445,7 @@
 /* Виконана ціль світиться золотом — тим самим, що й найтепліший кінець
    рампи. Це не «успіх», це «дійшло до гарячого». */
 .goal-track > .on.met {
-  background: var(--a5);
+  background: var(--a3);
   box-shadow: var(--glow-warm);
 }
 
@@ -493,8 +493,8 @@
 }
 
 .dot-met {
-  background: var(--a5);
-  border-color: var(--a5);
+  background: var(--a3);
+  border-color: var(--a3);
   box-shadow: var(--glow-warm);
 }
 

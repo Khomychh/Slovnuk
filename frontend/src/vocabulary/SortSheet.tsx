@@ -14,7 +14,7 @@
 import type { CardSort } from "../api/vocabulary";
 
 /** Шість зупинок рампи — ті самі, що в теплових смугах і в `temperature.ts`. */
-const RAMP = ["--a0", "--a1", "--a2", "--a3", "--a4", "--a5"];
+const RAMP = ["--a0", "--a1", "--a2", "--a3"];
 
 const OPTIONS: { value: CardSort; label: string }[] = [
   { value: "created", label: "нові зверху" },

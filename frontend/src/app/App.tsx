@@ -175,7 +175,7 @@ export default function App() {
           <Route
             element={
               <RequireAuth>
-                <div className="sheet-scrim sheet-scrim-route">
+                <div className="sheet-scrim">
                   <div className="sheet sheet-tall">
                     <Outlet />
                   </div>
