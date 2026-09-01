@@ -4,14 +4,38 @@
  * Адреса зафіксована бекендом: лист будується як
  * {FRONTEND_BASE_URL}/accounts/activate?email=…&token=… (routes/accounts.py).
  * Міняти її можна тільки разом із бекендом — інакше лист веде в нікуди.
+ *
+ * Заголовок каже наслідок, а не назву процесу: «Акаунт активовано» замість
+ * плашки «Пошту підтверджено» під словом «Активація». Це та сама фраза двічі,
+ * і друга з них займала цілий блок посеред екрана, який людина бачить секунду.
+ *
+ * Помилки перекладаються тут, а не показуються як є: `caught.message` — це
+ * англійський рядок бекенду («Invalid or expired activation token.»), і
+ * єдиний екран, куди він потрапляв, — цей.
  */
 
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { apiFetch, OfflineError } from "../api/client";
-import { Message, Screen } from "../ui/parts";
+import { ApiError, apiFetch, OfflineError } from "../api/client";
+import { AuthScreen, Message } from "../ui/parts";
 
 type State = "working" | "done" | "failed";
+
+const TITLE: Record<State, string> = {
+  working: "Активуємо акаунт",
+  done: "Акаунт активовано",
+  failed: "Посилання не спрацювало",
+};
+
+function describe(caught: unknown): string {
+  if (caught instanceof OfflineError) {
+    return "Немає звʼязку. Відкрийте посилання ще раз, коли зʼявиться інтернет.";
+  }
+  if (caught instanceof ApiError && caught.code === "invalid_activation_token") {
+    return "Посилання застаріло або вже спрацювало.";
+  }
+  return "Не вдалося активувати акаунт.";
+}
 
 export default function ActivateScreen() {
   const [params] = useSearchParams();
@@ -31,7 +55,7 @@ export default function ActivateScreen() {
 
     if (!email || !token) {
       setState("failed");
-      setError("Посилання неповне. Відкрий його з листа цілком.");
+      setError("Посилання неповне. Відкрийте його з листа цілком.");
       return;
     }
 
@@ -44,43 +68,42 @@ export default function ActivateScreen() {
         });
         setState("done");
       } catch (caught) {
+        // «Акаунт уже активний» — це успіх, а не відмова: єдиний спосіб його
+        // отримати означає, що пошту вже підтверджено. Так буває щоразу, коли
+        // посилання з листа відкривають удруге або коли його перед тим
+        // підвантажив поштовий клієнт.
+        if (caught instanceof ApiError && caught.code === "account_already_active") {
+          setState("done");
+          return;
+        }
         setState("failed");
-        setError(
-          caught instanceof OfflineError
-            ? "Немає звʼязку. Спробуй ще раз, коли зʼявиться інтернет."
-            : caught instanceof Error
-              ? caught.message
-              : "Не вдалося активувати акаунт",
-        );
+        setError(describe(caught));
       }
     })();
   }, [email, token]);
 
   return (
-    <Screen eyebrow="slovnuk" title="Активація">
-      {state === "working" ? <p className="hint">Перевіряємо посилання…</p> : null}
-
+    <AuthScreen title={TITLE[state]}>
       {state === "done" ? (
-        <>
-          <Message>Пошту підтверджено. Тепер можна увійти.</Message>
-          <Link className="btn" to="/accounts/login" style={{ display: "block", textAlign: "center", textDecoration: "none" }}>
-            Увійти
-          </Link>
-        </>
+        <Link className="btn auth-act" to="/accounts/login" replace>
+          Увійти
+        </Link>
       ) : null}
 
       {state === "failed" ? (
         <>
           <Message kind="error">{error}</Message>
-          <p className="hint">
-            Посилання діє обмежений час. Якщо воно застаріло, спробуй зареєструватись
-            ще раз — прийде новий лист.
-          </p>
-          <Link className="btn-quiet" to="/accounts/login" style={{ display: "block", textAlign: "center", textDecoration: "none" }}>
-            До входу
+          {/* Обіцянки «зареєструйтесь ще раз — прийде новий лист» тут більше
+              немає: реєстрація на ту саму пошту відповідає
+              `email_already_exists`, тобто порада вела в глухий кут. Лишається
+              те, що справді допомагає в найчастішому випадку — посилання вже
+              спрацювало раніше. */}
+          <p className="hint">Якщо акаунт уже активовано, просто увійдіть.</p>
+          <Link className="btn-quiet auth-act" to="/accounts/login">
+            Увійти
           </Link>
         </>
       ) : null}
-    </Screen>
+    </AuthScreen>
   );
 }

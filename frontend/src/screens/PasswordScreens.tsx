@@ -3,16 +3,30 @@
  *
  * Адреса другого зафіксована бекендом:
  * {FRONTEND_BASE_URL}/accounts/reset-password/complete?email=…&token=…
+ *
+ * Обидва звуться так само, як посилання, що на них веде («Скинути пароль»,
+ * «Новий пароль»): дія мусить мати одне ім'я по всьому шляху.
  */
 
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { apiFetch, OfflineError } from "../api/client";
-import { Field, Message, SaveIcon, Screen } from "../ui/parts";
+import { ApiError, apiFetch, OfflineError } from "../api/client";
+import { PASSWORD_HINT, passwordProblem } from "../auth/password";
+import { AuthScreen, Field, Message, SaveIcon } from "../ui/parts";
 
+/**
+ * Помилка людською мовою.
+ *
+ * `caught.message` сюди не потрапляє навмисно: бекенд кладе в нього
+ * англійський рядок («Invalid email or token.»), і показувати його — те саме,
+ * що не показувати нічого.
+ */
 function describe(caught: unknown, fallback: string): string {
-  if (caught instanceof OfflineError) return "Немає звʼязку. Спробуй пізніше.";
-  return caught instanceof Error ? caught.message : fallback;
+  if (caught instanceof OfflineError) return "Немає звʼязку. Спробуйте пізніше.";
+  if (caught instanceof ApiError && caught.code === "invalid_reset_token") {
+    return "Посилання застаріло або вже спрацювало. Попросіть нове.";
+  }
+  return fallback;
 }
 
 export function ForgotPasswordScreen() {
@@ -33,7 +47,7 @@ export function ForgotPasswordScreen() {
       });
       setSent(true);
     } catch (caught) {
-      setError(describe(caught, "Не вдалося надіслати лист"));
+      setError(describe(caught, "Не вдалося надіслати лист."));
     } finally {
       setBusy(false);
     }
@@ -41,27 +55,27 @@ export function ForgotPasswordScreen() {
 
   if (sent) {
     return (
-      <Screen eyebrow="slovnuk" title="Лист надіслано">
+      <AuthScreen title="Перевірте пошту">
         {/* Бекенд навмисно відповідає однаково на відому й невідому пошту —
             інакше форма підказувала б, які акаунти існують. Текст мусить це
             витримувати: він не обіцяє, що лист точно прийшов. */}
-        <Message>
-          Якщо такий акаунт існує, лист із посиланням уже в дорозі. Перевір пошту.
-        </Message>
-        <Link className="btn-quiet" to="/accounts/login" style={{ display: "block", textAlign: "center", textDecoration: "none" }}>
+        <p className="hint auth-note">
+          Якщо такий акаунт існує, лист із посиланням уже в дорозі.
+        </p>
+        <Link className="btn-quiet auth-act" to="/accounts/login">
           До входу
         </Link>
-      </Screen>
+      </AuthScreen>
     );
   }
 
   return (
-    <Screen eyebrow="slovnuk" title="Забув пароль">
-      <p className="hint" style={{ marginTop: 10 }}>
-        Надішлемо посилання, яким можна задати новий пароль.
+    <AuthScreen title="Скинути пароль">
+      <p className="hint auth-note">
+        Надішлемо посилання, яким ви задасте новий пароль.
       </p>
       {error ? <Message kind="error">{error}</Message> : null}
-      <form onSubmit={submit} noValidate>
+      <form className="auth-form" onSubmit={submit} noValidate>
         <Field
           label="Пошта"
           id="email"
@@ -71,13 +85,14 @@ export function ForgotPasswordScreen() {
           autoCapitalize="none"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          placeholder="ivan@example.com"
           required
         />
         <button className="btn" type="submit" disabled={busy || !email}>
           {busy ? "Надсилаємо…" : "Надіслати посилання"}
         </button>
       </form>
-    </Screen>
+    </AuthScreen>
   );
 }
 
@@ -88,17 +103,24 @@ export function ResetPasswordScreen() {
   const token = params.get("token") ?? "";
 
   const [password, setPassword] = useState("");
-  const [repeat, setRepeat] = useState("");
+  const [show, setShow] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const mismatch = repeat.length > 0 && password !== repeat;
-
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (mismatch) return;
-    setBusy(true);
     setError(null);
+
+    // Та сама локальна перевірка, що в новому акаунті. Доти цей екран єдиний
+    // відправляв пароль наосліп і чекав, поки сервер поскаржиться, — а вимоги
+    // під полем при цьому переказував по-своєму й без слова «латинські».
+    const weak = passwordProblem(password);
+    if (weak) {
+      setError(weak);
+      return;
+    }
+
+    setBusy(true);
     try {
       await apiFetch("/accounts/reset-password/complete/", {
         method: "POST",
@@ -107,7 +129,7 @@ export function ResetPasswordScreen() {
       });
       navigate("/accounts/login", { replace: true });
     } catch (caught) {
-      setError(describe(caught, "Не вдалося змінити пароль"));
+      setError(describe(caught, "Не вдалося змінити пароль."));
     } finally {
       setBusy(false);
     }
@@ -115,51 +137,51 @@ export function ResetPasswordScreen() {
 
   if (!email || !token) {
     return (
-      <Screen eyebrow="slovnuk" title="Новий пароль">
+      <AuthScreen title="Посилання не спрацювало">
         <Message kind="error">
-          Посилання неповне. Відкрий його з листа цілком.
+          Посилання неповне. Відкрийте його з листа цілком.
         </Message>
-      </Screen>
+        {/* Вихід звідси був відсутній: екран лишав людину з плашкою й нічим.
+            Нове посилання просять на тому самому екрані, що й перше. */}
+        <Link className="btn-quiet auth-act" to="/accounts/forgot-password">
+          Скинути пароль
+        </Link>
+      </AuthScreen>
     );
   }
 
   return (
-    <Screen eyebrow="slovnuk" title="Новий пароль">
-      <p className="hint" style={{ marginTop: 10 }}>
-        Для {email}. Потрібні великі й малі літери, цифра і спецсимвол.
-      </p>
+    <AuthScreen title="Новий пароль">
+      <p className="hint auth-note">Для {email}.</p>
       {error ? <Message kind="error">{error}</Message> : null}
-      <form onSubmit={submit} noValidate>
+      <form className="auth-form" onSubmit={submit} noValidate>
         <Field
-          label="Новий пароль"
+          label="Пароль"
           id="password"
-          type="password"
+          type={show ? "text" : "password"}
           autoComplete="new-password"
+          autoCapitalize="none"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-        <Field
-          label="Ще раз"
-          id="repeat"
-          type="password"
-          autoComplete="new-password"
-          value={repeat}
-          onChange={(e) => setRepeat(e.target.value)}
-          required
-        />
-        {mismatch ? <Message kind="error">Паролі не збігаються.</Message> : null}
+        <div className="auth-pw-row">
+          <span className="hint">{PASSWORD_HINT}</span>
+          <button
+            className="btn-link"
+            type="button"
+            onClick={() => setShow((current) => !current)}
+          >
+            {show ? "Сховати" : "Показати"}
+          </button>
+        </div>
         {/* Тут кнопка лишається на всю ширину з підписом: це головна дія цілого
             екрана, а не куток панелі. Іконка та сама, що й у решті збережень. */}
-        <button
-          className="btn btn-with-icon"
-          type="submit"
-          disabled={busy || !password || mismatch}
-        >
+        <button className="btn btn-with-icon" type="submit" disabled={busy || !password}>
           <SaveIcon />
           {busy ? "Зберігаємо…" : "Зберегти пароль"}
         </button>
       </form>
-    </Screen>
+    </AuthScreen>
   );
 }

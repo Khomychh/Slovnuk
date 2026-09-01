@@ -5,6 +5,7 @@
    ========================================================================== */
 
 @import "./base.css";
+@import "./auth.css";
 @import "./today.css";
 @import "./study.css";
 @import "./vocabulary.css";
