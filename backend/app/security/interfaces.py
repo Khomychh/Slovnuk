@@ -10,14 +10,18 @@ class JWTAuthManagerInterface(ABC):
     """
 
     @abstractmethod
-    def create_access_token(self, data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    def create_access_token(
+        self, data: dict, expires_delta: Optional[timedelta] = None
+    ) -> str:
         """
         Create a new access token.
         """
         pass
 
     @abstractmethod
-    def create_refresh_token(self, data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    def create_refresh_token(
+        self, data: dict, expires_delta: Optional[timedelta] = None
+    ) -> str:
         """
         Create a new refresh token.
         """

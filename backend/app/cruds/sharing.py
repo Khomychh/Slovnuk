@@ -21,7 +21,6 @@ from app.database.models import (
     normalize_word,
 )
 
-
 # Чужа картка їде назовні вмістом: значення з прикладами і форми. Доріжки й
 # мітки списків не потрібні — це прогрес і структура автора, не вміст слова.
 SHARED_CARD_LOADERS = (
@@ -86,9 +85,7 @@ def _list_cards(list_id: int):
 
 
 async def count_list_cards(db: AsyncSession, list_id: int) -> int:
-    stmt = select(func.count()).select_from(
-        _list_cards(list_id).subquery()
-    )
+    stmt = select(func.count()).select_from(_list_cards(list_id).subquery())
     return (await db.execute(stmt)).scalar_one()
 
 
@@ -121,9 +118,7 @@ async def count_already_have(db: AsyncSession, user_id: int, list_id: int) -> in
     """
     mine = select(CardModel.word_normalized).where(CardModel.user_id == user_id)
     stmt = select(func.count()).select_from(
-        _list_cards(list_id)
-        .where(CardModel.word_normalized.in_(mine))
-        .subquery()
+        _list_cards(list_id).where(CardModel.word_normalized.in_(mine)).subquery()
     )
     return (await db.execute(stmt)).scalar_one()
 
@@ -154,8 +149,7 @@ async def own_cards_by_word(
         )
     )
     return {
-        card.word_normalized: card
-        for card in (await db.execute(stmt)).scalars().all()
+        card.word_normalized: card for card in (await db.execute(stmt)).scalars().all()
     }
 
 

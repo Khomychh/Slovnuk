@@ -12,30 +12,37 @@
  * кожна форма були власною панеллю, і людина бачила стовпчик однакових рамок,
  * у якому не видно, де закінчується одне значення й починається наступне.
  *
- * Звідси три правила, які тримають увесь екран:
+ * ПОЛЕ ВИГЛЯДАЄ ЯК ПОЛЕ. Панель піднята (`--sheet-2`), поле в неї втоплене
+ * (`--sheet`), рамка, радіус і синє кільце на фокусі — та сама модель, що в
+ * `.field` решти застосунку (`base.css`). Раніше тут діяло правило «поверхня
+ * одна»: поля без рамки й тла, самі плейсхолдером і курсором, — і на екран не
+ * було видно, куди писати.
  *
- * 1. ПОВЕРХНЯ ОДНА. Панель — `--sheet`, поля всередині без власного тла й
- *    рамки. Раніше поля значень і форм заливались `--night`, тобто були
- *    дірками кольору сторінки, пробитими в панелі, а поля слова й коментаря —
- *    ні. Однакові на вигляд блоки поводились по-різному.
- * 2. ПРАВА КОЛОНКА ПОСТІЙНА. `⋯` у кожного рядка, `+` у підвалі — одна
- *    вертикаль на всю панель. «×» стояв лише там, де було що прибирати, тож
- *    права межа гуляла від рядка до рядка.
- * 3. РАНГ ПІДПИСУ ДОРІВНЮЄ ГЛИБИНІ. Моно-капітель — межа панелі («ЩЕ
- *    ЗНАЧЕННЯ», «ФОРМИ»), звичайний дрібний текст — усередині значення
- *    («приклад»). Одна панель має один капітельний підвал, скільки б значень
- *    у ній не було.
+ * ОДИН СПОСІБ ПІДПИСАТИ ПОЛЕ. Їх було три одночасно: капітель над розділом,
+ * `ed-field-cap` над половиною полів і плейсхолдер усередині другої половини
+ * («частина мови», «транскрипція», «мітка»). Плейсхолдер зникає при вводі,
+ * тобто заповнена картка лишалась без підписів рівно тоді, коли її відкрили
+ * правити. Тепер `ed-field-cap` стоїть над КОЖНИМ полем, а плейсхолдер —
+ * тільки там, де показує формат, а не називає поле («приклад | переклад»).
+ * Порожній вибір при цьому називає свій стан («не вказана», «без мітки»), а не
+ * поле, бо поле вже підписане зверху.
  *
- * Ширина лінії теж значить: на всю ширину панелі — «далі однорідний рядок»,
- * звужена — «список скінчився, далі підвал». Поза панелями ліній немає
- * жодної: те, що між ними, розділяє порожнє місце.
+ * Слово підпису не має: порожня лінійка дисплейною гарнітурою ні з чим не
+ * сплутати, а капітель над героєм була б зайвим рядком шуму над найпершим, що
+ * видно на екрані.
+ *
+ * ПРАВА КОЛОНКА ПОСТІЙНА. `−` у кожного рядка, `+` у підвалі — одна вертикаль
+ * на всю панель. «×» стояв лише там, де було що прибирати, тож права межа
+ * гуляла від рядка до рядка.
+ *
+ * Поза панелями ліній немає жодної: те, що між ними, розділяє порожнє місце.
  *
  * Перетворення стану форми в тіло запиту тут НЕ живе — воно в `card.ts` під
  * тестами. Причина в тому, що помилка там не падає, а тихо зносить значення
  * картки. Там само `applyProposal`: підстановка ШІ знищує роботу так само тихо.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ApiError, OfflineError } from "../api/client";
 import { proposeCard } from "../api/ai";
@@ -59,7 +66,6 @@ import ListPickerSheet from "../vocabulary/ListPickerSheet";
 import { Markdown } from "../grammar/markdown";
 import {
   applyProposal,
-  blankExample,
   blankForm,
   blankSense,
   defaultListFor,
@@ -132,16 +138,16 @@ type AiState =
   /** Заповнити не вийшло з причини, яка від слова не залежить. */
   | { kind: "blocked"; message: string };
 
-/** Що саме прибираємо — питання, яке ставить аркуш після `⋯`. */
+/**
+ * Що саме прибираємо — питання, яке ставить аркуш після `⋯`.
+ */
 type Removal =
   | { kind: "sense"; index: number }
-  | { kind: "form"; index: number }
-  | { kind: "example"; index: number; exampleIndex: number };
+  | { kind: "form"; index: number };
 
 const REMOVAL_TITLES: Record<Removal["kind"], string> = {
   sense: "Прибрати значення?",
   form: "Прибрати форму?",
-  example: "Прибрати приклад?",
 };
 
 /**
@@ -163,23 +169,6 @@ function aiFailure(problem: unknown): string {
   return "Не вдалось заповнити з ШІ.";
 }
 
-/**
- * Мітка форми.
- *
- * Селект того самого силуету, що частина мови в значенні, — саме це робить
- * рядок форми і рядок значення однією конструкцією, а не двома схожими.
- * Чипів-підказок під полем більше немає: вони були окремим рядом кнопок під
- * полем вводу, тобто третім предметом там, де вистачає одного.
- *
- * Підписи англійською й без перекладу — як і були: підпис мусить збігатися зі
- * збереженим значенням, інакше 78 імпортованих `Past` розійдуться з новими
- * «Мин. час» і не зійдуться ні в пошуку, ні на очах.
- *
- * Вільний ввід нікуди не подівся — одинадцять міток словника не з цих
- * чотирьох («Скорочене заперечення»). Він живе останнім пунктом списку, і
- * стан «набираю свою» видно з самого контролу: поле з курсором проти селекта
- * зі стрілкою.
- */
 function FormLabelField({
   value,
   onChange,
@@ -226,7 +215,7 @@ function FormLabelField({
         aria-label="Мітка форми"
         onClick={() => setPicking(true)}
       >
-        <span className="ed-pick-val">{value || "мітка"}</span>
+        <span className="ed-pick-val">{value || "без мітки"}</span>
         <ChevronIcon />
       </button>
 
@@ -261,6 +250,88 @@ function FormLabelField({
         />
       ) : null}
     </>
+  );
+}
+
+/**
+ * Приклади значення — одним полем.
+ *
+ * Рядок — приклад, риска ділить його на англійську й переклад; розбирає це
+ * `parseExamples`, а не цей компонент. Наступний приклад починається з Enter,
+ * тобто рукою, яка вже на клавіатурі, — раніше він починався з кнопки
+ * «приклад +», а потім із двох окремих полів (ADR-0033).
+ *
+ * ВИСОТА ЗА ВМІСТОМ, І ЦЕ НЕ ПРИКРАСА. Приклад — це речення; у полі сталої
+ * висоти воно або ховається під нижнім краєм, або (з `white-space: pre`)
+ * їде вбік просто під час набору. Тому переносимо й ростемо, а браузер
+ * висоту textarea сам не міряє — її ставить цей ефект.
+ *
+ * `rows={1}` навмисно: `scrollHeight` не вміє зменшуватись нижче заданої
+ * висоти, тож перед вимірюванням висота скидається в `auto`. Без цього поле,
+ * що один раз виросло до пʼяти рядків, лишалось би пʼятирядковим назавжди.
+ *
+ * МІРЯЄМО ТРИЧІ, І КОЖЕН РАЗ ПОТРІБНИЙ. Перший — на зміну тексту. Другий — коли
+ * приїхали шрифти: перше вимірювання йде метриками запасного шрифту, і рядок,
+ * якому з Onest треба два рядки, а з системним вистачало одного, лишався б
+ * однорядковим — з `overflow: hidden` це означає обрізаний навпіл приклад, який
+ * видно аж при відкритті картки. Третій — на зміну ширини вікна: перенос
+ * залежить від неї, а поворот телефона її міняє.
+ */
+/**
+ * Висота textarea під вміст.
+ *
+ * Спільний для прикладів і коментаря: обидва — поля, у яких прокрутка всередині
+ * гірша за високе поле. Читати набране, гортаючи його у віконці на три рядки,
+ * на телефоні неможливо, а `resize` пальцем не тягнеться.
+ *
+ * `document.fonts.ready` обовʼязковий: перший вимір трапляється на системному
+ * шрифті, і після підміни на Onest висота вже не та.
+ */
+function useAutoHeight(
+  field: React.RefObject<HTMLTextAreaElement | null>,
+  value: string,
+) {
+  useLayoutEffect(() => {
+    const node = field.current;
+    if (!node) return;
+
+    const fit = () => {
+      node.style.height = "auto";
+      node.style.height = `${node.scrollHeight}px`;
+    };
+
+    fit();
+    void document.fonts?.ready.then(fit);
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [field, value]);
+}
+
+function ExamplesField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const field = useRef<HTMLTextAreaElement>(null);
+  useAutoHeight(field, value);
+
+  return (
+    <label className="ed-field">
+      <span className="ed-field-cap">Приклади</span>
+      <textarea
+        ref={field}
+        className="ed-examples"
+        rows={1}
+        /* Плейсхолдер показує формат, а не називає поле: слово «приклад»
+           ліворуч від риски і підписує, і демонструє. */
+        placeholder="приклад | переклад"
+        aria-label="Приклади — по одному в рядку, «приклад | переклад»"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </label>
   );
 }
 
@@ -323,6 +394,11 @@ export default function CardEditScreen({
   >(null);
   const [removing, setRemoving] = useState<Removal | null>(null);
   const [commentPreview, setCommentPreview] = useState(false);
+  /* Поле коментаря росте під вміст так само, як поле прикладів. Ref живе тут,
+     а не в окремому компоненті: коментар — єдине поле, і виносити його заради
+     одного хука не було б за що. */
+  const comment = useRef<HTMLTextAreaElement>(null);
+  useAutoHeight(comment, commentPreview ? "" : (draft?.comment ?? ""));
   /** Індекс значення, якому зараз вибирають частину мови. */
   const [posPick, setPosPick] = useState<number | null>(null);
 
@@ -477,11 +553,7 @@ export default function CardEditScreen({
     const blank =
       removal.kind === "sense"
         ? senseIsBlank(draft.senses[removal.index]!)
-        : removal.kind === "form"
-          ? formIsBlank(draft.forms[removal.index]!)
-          : !draft.senses[removal.index]!.examples[
-              removal.exampleIndex
-            ]!.textEn.trim();
+        : formIsBlank(draft.forms[removal.index]!);
 
     if (blank) {
       applyRemoval(removal);
@@ -493,17 +565,8 @@ export default function CardEditScreen({
   const applyRemoval = (removal: Removal) => {
     if (removal.kind === "sense") {
       patch({ senses: draft.senses.filter((_, i) => i !== removal.index) });
-    } else if (removal.kind === "form") {
-      patch({ forms: draft.forms.filter((_, i) => i !== removal.index) });
     } else {
-      const sense = draft.senses[removal.index];
-      if (sense) {
-        patchSense(removal.index, {
-          examples: sense.examples.filter(
-            (_, i) => i !== removal.exampleIndex,
-          ),
-        });
-      }
+      patch({ forms: draft.forms.filter((_, i) => i !== removal.index) });
     }
     setRemoving(null);
   };
@@ -561,8 +624,6 @@ export default function CardEditScreen({
 
   return (
     <div className="sheet-frame">
-      {/* Смуга прибита: у картки з чотирма значеннями редактор довший за екран,
-          і «Зберегти» їхало геть разом із полями. */}
       <div className="sheet-head sheet-bar">
         <button
           className="icon-btn icon-btn-bare"
@@ -581,14 +642,13 @@ export default function CardEditScreen({
       </div>
 
       <div className="sheet-scroll ed">
-        {/* --- слово ---
-            Панель слова — це все, що система знає про це слово: саме слово,
-            озвучення, ШІ, а нижче підвалами — що така картка вже є і що
-            відповів ШІ. Кольору тут немає жодного: дублікат — знахідка, а не
-            помилка, і жодна зупинка рампи не означає «увага», бо рампа міряє
-            памʼять. Червоного в застосунку немає взагалі (ADR-0012). */}
-        <div className="ed-block ed-word-block">
-          <div className="ed-item ed-word-row">
+        {/* Слово — окреме поле, без панелі: групувати один контрол нема сенсу,
+            а коробка з рамкою й тінню довкола нього була масивним порожнім
+            відступом. Підпису теж нема: порожнє поле дисплейною гарнітурою в
+            22px ні з чим не сплутати, а капітель над героєм була б зайвим
+            рядком шуму над найпершим, що видно на екрані. */}
+        <div className="ed-word-block">
+          <div className="ed-word-row">
             <input
               id="word"
               className="ed-word-input"
@@ -679,47 +739,47 @@ export default function CardEditScreen({
         </div>
 
         {/* --- значення ---
-            Шапки немає навмисно: селект частини мови й поле перекладу кажуть
-            самі за себе, а підпис «ЗНАЧЕННЯ» над ними був би другим рядком
-            висоти заради слова, яке й так видно з полів. */}
+            Панельної шапки немає: підпис несла б хіба слово «ЗНАЧЕННЯ», а що це
+            значення, видно з підписів самих полів. Шапка лишається там, де їй є
+            що нести, — перемикач у формах, вкладки в коментарі. */}
         <div className="ed-block">
           {draft.senses.map((sense, index) => (
             <div className="ed-item" key={index}>
               <div className="ed-row">
                 {/* Не рідний `<select>`: на Android система малює його на весь
-                    екран, і картка, заради якої його відкрили, зникає. Заразом
-                    зникає його друга вада — Chrome міряв поле за найдовшим
-                    пунктом («прикметник»), і рядок ділився не навпіл. */}
-                <button
-                  type="button"
-                  className={
-                    sense.partOfSpeech ? "ed-pick" : "ed-pick ed-pick-empty"
-                  }
-                  aria-label="Частина мови"
-                  onClick={() => setPosPick(index)}
-                >
-                  <span className="ed-pick-val">
-                    {sense.partOfSpeech
-                      ? POS_LABELS[sense.partOfSpeech]
-                      : "частина мови"}
-                  </span>
-                  <ChevronIcon />
-                </button>
-                {/* Транскрипція набирається тим самим стеком, яким показується:
-                  у даних вона буває і справжньою IPA, і кирилицею. Стоїть у
-                  парі з частиною мови, бо обидві короткі й обидві необовʼязкові. */}
-                <input
-                  className="ed-ipa"
-                  placeholder="транскрипція"
-                  aria-label="Транскрипція"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  value={sense.transcription}
-                  onChange={(event) =>
-                    patchSense(index, { transcription: event.target.value })
-                  }
-                />
+                    екран, і картка, заради якої його відкрили, зникає (ADR-0031). */}
+                <div className="ed-field">
+                  <span className="ed-field-cap">Частина мови</span>
+                  <button
+                    type="button"
+                    className={
+                      sense.partOfSpeech ? "ed-pick" : "ed-pick ed-pick-empty"
+                    }
+                    aria-label="Частина мови"
+                    onClick={() => setPosPick(index)}
+                  >
+                    <span className="ed-pick-val">
+                      {sense.partOfSpeech
+                        ? POS_LABELS[sense.partOfSpeech]
+                        : "не вказана"}
+                    </span>
+                    <ChevronIcon />
+                  </button>
+                </div>
+                <label className="ed-field">
+                  <span className="ed-field-cap">Транскрипція</span>
+                  <input
+                    className="ed-ipa"
+                    aria-label="Транскрипція"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    value={sense.transcription}
+                    onChange={(event) =>
+                      patchSense(index, { transcription: event.target.value })
+                    }
+                  />
+                </label>
                 <button
                   className="ed-more"
                   type="button"
@@ -730,78 +790,21 @@ export default function CardEditScreen({
                 </button>
               </div>
 
-              <input
-                className="ed-tr"
-                placeholder="переклад"
-                aria-label="Переклад"
-                value={sense.translation}
-                onChange={(event) =>
-                  patchSense(index, { translation: event.target.value })
-                }
+              <label className="ed-field">
+                <span className="ed-field-cap">Переклад</span>
+                <input
+                  className="ed-tr"
+                  aria-label="Переклад"
+                  value={sense.translation}
+                  onChange={(event) =>
+                    patchSense(index, { translation: event.target.value })
+                  }
+                />
+              </label>
+              <ExamplesField
+                value={sense.examples}
+                onChange={(examples) => patchSense(index, { examples })}
               />
-
-              {/* Приклади відділені від значення відступом, а не лінією:
-                лінія на цій панелі вже означає «наступне значення», і другий
-                її сенс зробив би панель пласким списком. */}
-              {sense.examples.map((example, exampleIndex) => (
-                <div className="ed-example" key={exampleIndex}>
-                  <div className="ed-example-fields">
-                    <input
-                      placeholder="приклад"
-                      aria-label="Приклад англійською"
-                      value={example.textEn}
-                      onChange={(event) => {
-                        const examples = [...sense.examples];
-                        examples[exampleIndex] = {
-                          ...example,
-                          textEn: event.target.value,
-                        };
-                        patchSense(index, { examples });
-                      }}
-                    />
-                    <input
-                      placeholder="переклад"
-                      aria-label="Переклад прикладу"
-                      value={example.textUk}
-                      onChange={(event) => {
-                        const examples = [...sense.examples];
-                        examples[exampleIndex] = {
-                          ...example,
-                          textUk: event.target.value,
-                        };
-                        patchSense(index, { examples });
-                      }}
-                    />
-                  </div>
-                  <button
-                    className="ed-more"
-                    type="button"
-                    aria-label="Дії прикладу"
-                    onClick={() =>
-                      askRemove({ kind: "example", index, exampleIndex })
-                    }
-                  >
-                    <RemoveIcon />
-                  </button>
-                </div>
-              ))}
-
-              {/* Підвал усередині значення — звичайним дрібним текстом, не
-                капітеллю: капітель на цій панелі означає її межу. */}
-              <button
-                className="ed-sub-add"
-                type="button"
-                onClick={() =>
-                  patchSense(index, {
-                    examples: [...sense.examples, blankExample()],
-                  })
-                }
-              >
-                <span>приклад</span>
-                <span className="ed-foot-act">
-                  <AddIcon />
-                </span>
-              </button>
             </div>
           ))}
 
@@ -818,12 +821,14 @@ export default function CardEditScreen({
         </div>
 
         {/* --- форми ---
-            Шапка тут є, бо їй є що нести: перемикач тренування. Над
-            значеннями шапки немає — там нести нічого. */}
-        <div className="ed-block">
-          <div className="ed-head">
-            <span className="ed-head-label">Форми</span>
-            {draft.forms.length > 0 ? (
+            Панелі немає, поки немає форм: коробка тримала б сама тільки кнопку
+            «Ще форма» — те саме правило, за яким її немає навколо «слова».
+            З появою першої форми розділ дістає і коробку, і шапку з перемикачем
+            тренування (над значеннями шапки немає ніколи — там нести нічого). */}
+        {draft.forms.length > 0 ? (
+          <div className="ed-block">
+            <div className="ed-head">
+              <span className="ed-head-label">Форми</span>
               <button
                 type="button"
                 role="switch"
@@ -843,70 +848,86 @@ export default function CardEditScreen({
                   <i />
                 </span>
               </button>
-            ) : null}
-          </div>
-
-          {draft.forms.map((form, index) => (
-            <div className="ed-item" key={index}>
-              {/* Динамік стоїть при самій формі, а не в рядку транскрипції:
-                поруч більше немає «×», через який його колись і відсунули. */}
-              <div className="ed-row">
-                <input
-                  className="ed-form-val"
-                  placeholder="форма"
-                  aria-label="Форма"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  value={form.value}
-                  onChange={(event) =>
-                    patchForm(index, { value: event.target.value })
-                  }
-                />
-                <SpeakButton text={form.value} />
-                <button
-                  className="ed-more"
-                  type="button"
-                  aria-label="Дії форми"
-                  onClick={() => askRemove({ kind: "form", index })}
-                >
-                  <RemoveIcon />
-                </button>
-              </div>
-
-              {/* Та сама мала пара, що в значенні: підпис і транскрипція. */}
-              <div className="ed-row ed-row-tail">
-                <FormLabelField
-                  value={form.label}
-                  onChange={(label) => patchForm(index, { label })}
-                />
-                <input
-                  className="ed-ipa"
-                  placeholder="транскрипція"
-                  aria-label="Транскрипція форми"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  value={form.transcription}
-                  onChange={(event) =>
-                    patchForm(index, { transcription: event.target.value })
-                  }
-                />
-              </div>
             </div>
-          ))}
 
+            {draft.forms.map((form, index) => (
+              <div className="ed-item" key={index}>
+                <div className="ed-row">
+                  <label className="ed-field">
+                    <span className="ed-field-cap">Форма</span>
+                    <input
+                      className="ed-form-val"
+                      aria-label="Форма"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      value={form.value}
+                      onChange={(event) =>
+                        patchForm(index, { value: event.target.value })
+                      }
+                    />
+                  </label>
+                  <SpeakButton text={form.value} />
+                  <button
+                    className="ed-more"
+                    type="button"
+                    aria-label="Дії форми"
+                    onClick={() => askRemove({ kind: "form", index })}
+                  >
+                    <RemoveIcon />
+                  </button>
+                </div>
+
+                {/* Та сама мала пара, що в значенні: мітка й транскрипція. */}
+                <div className="ed-row">
+                  <div className="ed-field">
+                    <span className="ed-field-cap">Мітка</span>
+                    <FormLabelField
+                      value={form.label}
+                      onChange={(label) => patchForm(index, { label })}
+                    />
+                  </div>
+                  <label className="ed-field">
+                    <span className="ed-field-cap">Транскрипція</span>
+                    <input
+                      className="ed-ipa"
+                      aria-label="Транскрипція форми"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      value={form.transcription}
+                      onChange={(event) =>
+                        patchForm(index, { transcription: event.target.value })
+                      }
+                    />
+                  </label>
+                </div>
+              </div>
+            ))}
+
+            <button
+              className="ed-foot"
+              type="button"
+              onClick={() => patch({ forms: [...draft.forms, blankForm()] })}
+            >
+              <span className="ed-foot-label">Додати ще</span>
+              <span className="ed-foot-act">
+                <AddIcon />
+              </span>
+            </button>
+          </div>
+        ) : (
           <button
-            className="ed-foot"
+            className="ed-foot ed-foot-solo"
             type="button"
             onClick={() => patch({ forms: [...draft.forms, blankForm()] })}
           >
-            <span className="ed-foot-label">Ще форма</span>
+            <span className="ed-foot-label">Додати іншу форму слова</span>
             <span className="ed-foot-act">
               <AddIcon />
             </span>
           </button>
-        </div>
+        )}
 
         {/* --- коментар ---
             Перемикач «Текст / Перегляд» — той самий компонент і той самий
@@ -947,6 +968,7 @@ export default function CardEditScreen({
             ) : (
               <textarea
                 id="comment"
+                ref={comment}
                 className="ed-comment-input"
                 aria-label="Коментар"
                 rows={3}
@@ -956,36 +978,27 @@ export default function CardEditScreen({
             )}
           </div>
         </div>
-
-        {/* --- списки: останні, бо міняються найрідше ---
-            Раніше тут стояла стіна чипів, яка розпадалась на криві рядки,
-            щойно серед коротких назв траплялась одна довга («Прикметники,
-            прислівники і прийменники»). Тепер це один рядок, як панелі вище, —
-            відкриває аркуш із повним списком, де кожній назві вистачає всієї
-            ширини. */}
-        <button
-          type="button"
-          className="ed-block ed-list-trigger"
-          onClick={() => setPickingLists(true)}
-        >
-          <ListsIcon />
-          <span
-            className={
-              selectedListNames.length ? undefined : "ed-list-trigger-empty"
-            }
+        <div className="ed-field">
+          <span className="ed-field-cap">Списки</span>
+          <button
+            type="button"
+            className="ed-list-trigger"
+            onClick={() => setPickingLists(true)}
           >
-            {selectedListNames.length
-              ? selectedListNames.join(", ")
-              : "Без списку — це нормально"}
-          </span>
-        </button>
+            <ListsIcon />
+            <span
+              className={
+                selectedListNames.length ? undefined : "ed-list-trigger-empty"
+              }
+            >
+              {selectedListNames.length
+                ? selectedListNames.join(", ")
+                : "Без списку"}
+            </span>
+          </button>
+        </div>
 
         {error ? <div className="msg msg-error">{error}</div> : null}
-
-        {/* Видалення — остання річ у прокрутці, відділена порожнім місцем:
-            далі від «Зберегти» нікуди, і саме це тут головне. Промахнутись
-            пальцем неможливо, а догортати сюди заради незворотної дії — не
-            ціна, а запобіжник. */}
         {mode === "edit" ? (
           <div className="ed-destroy">
             <button

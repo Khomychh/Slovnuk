@@ -3,15 +3,15 @@ from datetime import date
 from io import BytesIO
 
 import phonenumbers
-from PIL import Image
 from fastapi import UploadFile
+from PIL import Image
 from pydantic_core import PydanticCustomError
 
 from app.database.models.accounts import GenderEnum
 
 
 def validate_name(name: str):
-    if re.search(r'^[А-Яа-яЁёІіЇїЄєҐґ]*$', name) is None:
+    if re.search(r"^[А-Яа-яЁёІіЇїЄєҐґ]*$", name) is None:
         raise PydanticCustomError(
             "name_invalid_chars",
             "{name} contains non-Ukrainian letters",
@@ -35,7 +35,10 @@ def validate_image(avatar: UploadFile) -> None:
             raise PydanticCustomError(
                 "image_unsupported_format",
                 "Unsupported image format: {image_format}. Use one of next: {supported_image_formats}",
-                {"image_format": image_format, "supported_image_formats": supported_image_formats},
+                {
+                    "image_format": image_format,
+                    "supported_image_formats": supported_image_formats,
+                },
             )
     except IOError:
         raise PydanticCustomError("image_invalid", "Invalid image format")
@@ -53,7 +56,8 @@ def validate_gender(gender: str) -> None:
 def validate_birth_date(birth_date: date) -> None:
     if birth_date.year < 1900:
         raise PydanticCustomError(
-            "birth_date_invalid_year", "Invalid birth date - year must be greater than 1900."
+            "birth_date_invalid_year",
+            "Invalid birth date - year must be greater than 1900.",
         )
 
 
@@ -79,7 +83,9 @@ def validate_phone_number(value: str | None) -> str | None:
         # but the argument is required for phonenumbers.parse
         parsed = phonenumbers.parse(value, None)
     except phonenumbers.NumberParseException:
-        raise PydanticCustomError("phone_unparseable", "Failed to recognize phone number")
+        raise PydanticCustomError(
+            "phone_unparseable", "Failed to recognize phone number"
+        )
 
     if not phonenumbers.is_valid_number(parsed):
         raise PydanticCustomError(

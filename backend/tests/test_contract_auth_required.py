@@ -9,10 +9,9 @@
 """
 
 import pytest
+from app.main import app
 from fastapi.routing import APIRoute
 from httpx import AsyncClient
-
-from app.main import app
 
 # Адреси, які мусять працювати без токена. Кожна тут — свідоме рішення:
 # це вхід до застосунку (реєстрація, активація, логін) або відновлення

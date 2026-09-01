@@ -7,11 +7,10 @@
 почервоніти першими.
 """
 
-from httpx import AsyncClient
-from sqlalchemy import select, update
-
 from app.database.models import ReviewKindEnum, ReviewTrackModel
 from app.database.models.sharing import ListShareModel
+from httpx import AsyncClient
+from sqlalchemy import select, update
 
 VOCAB = "/api/v1/vocabulary"
 SHARES = "/api/v1/shares"
@@ -152,7 +151,9 @@ async def test_preview_tells_the_truth_before_the_button(
         headers=other_auth_headers,
     )
 
-    preview = (await client.get(f"{SHARES}/{token}/", headers=other_auth_headers)).json()
+    preview = (
+        await client.get(f"{SHARES}/{token}/", headers=other_auth_headers)
+    ).json()
     assert preview["total_cards"] == 3
     assert preview["new_cards"] == 2
 

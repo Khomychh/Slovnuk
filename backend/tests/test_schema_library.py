@@ -25,11 +25,6 @@
 """
 
 import pytest
-
-from sqlalchemy import delete, func, select
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.database.models import (
     CardModel,
     PublicationCardModel,
@@ -39,6 +34,9 @@ from app.database.models import (
     UserModel,
     WordListModel,
 )
+from sqlalchemy import delete, func, select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def _publication(
@@ -71,11 +69,11 @@ async def _publication(
             content={"senses": [{"translation": "бігти"}], "forms": []},
         )
     )
-    db_session.add(PublicationTakeModel(publication_id=publication.id, user_id=taker.id))
     db_session.add(
-        PublicationRatingModel(
-            publication_id=publication.id, user_id=taker.id, stars=4
-        )
+        PublicationTakeModel(publication_id=publication.id, user_id=taker.id)
+    )
+    db_session.add(
+        PublicationRatingModel(publication_id=publication.id, user_id=taker.id, stars=4)
     )
     await db_session.commit()
     return publication, word_list
@@ -236,7 +234,9 @@ async def test_list_keeps_only_one_publication(
     publication, word_list = await _publication(db_session, user, other_user)
 
     db_session.add(
-        PublicationModel(title="Та сама, вдруге", list_id=word_list.id, owner_id=user.id)
+        PublicationModel(
+            title="Та сама, вдруге", list_id=word_list.id, owner_id=user.id
+        )
     )
     with pytest.raises(IntegrityError):
         await db_session.commit()

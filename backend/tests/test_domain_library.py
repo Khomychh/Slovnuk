@@ -13,11 +13,10 @@
 першими.
 """
 
+from app.database.models import PublicationModel, UserProfileModel
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.database.models import PublicationModel, UserProfileModel
 
 VOCAB = "/api/v1/vocabulary"
 LIBRARY = "/api/v1/library"
@@ -38,10 +37,14 @@ async def _name_the_author(
     заповнює профіль перед першою публікацією.
     """
     profile = (
-        await db_session.execute(
-            select(UserProfileModel).where(UserProfileModel.user_id == user.id)
+        (
+            await db_session.execute(
+                select(UserProfileModel).where(UserProfileModel.user_id == user.id)
+            )
         )
-    ).scalars().first()
+        .scalars()
+        .first()
+    )
 
     if profile is None:
         profile = UserProfileModel(user_id=user.id)
@@ -55,7 +58,9 @@ async def _name_the_author(
 async def _list_with_words(
     client: AsyncClient, headers: dict, words: list[str], name: str = "Дієслова"
 ) -> int:
-    response = await client.post(f"{VOCAB}/lists/", json={"name": name}, headers=headers)
+    response = await client.post(
+        f"{VOCAB}/lists/", json={"name": name}, headers=headers
+    )
     assert response.status_code == 201, response.text
     list_id = response.json()["id"]
 
@@ -69,7 +74,9 @@ async def _list_with_words(
                     {
                         "translation": f"переклад для {word}",
                         "transcription": f"[{word}]",
-                        "examples": [{"text_en": f"I {word}.", "text_uk": f"Я {word}."}],
+                        "examples": [
+                            {"text_en": f"I {word}.", "text_uk": f"Я {word}."}
+                        ],
                     }
                 ],
                 "forms": [{"label": "Past", "value": f"{word}-ed"}],
@@ -147,7 +154,10 @@ async def test_publishing_requires_first_and_last_name(
 
 
 async def test_author_label_is_name_and_surname_never_email(
-    client: AsyncClient, db_session: AsyncSession, user, auth_headers,
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user,
+    auth_headers,
     other_auth_headers,
 ):
     """
@@ -211,7 +221,10 @@ async def test_list_row_shows_whether_it_is_in_the_library(
 
 
 async def test_new_word_in_a_published_list_does_not_leak(
-    client: AsyncClient, db_session: AsyncSession, user, auth_headers,
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user,
+    auth_headers,
     other_auth_headers,
 ):
     """
@@ -251,7 +264,10 @@ async def test_new_word_in_a_published_list_does_not_leak(
 
 
 async def test_refresh_moves_the_snapshot_and_keeps_the_rating(
-    client: AsyncClient, db_session: AsyncSession, user, auth_headers,
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user,
+    auth_headers,
     other_auth_headers,
 ):
     """
@@ -290,7 +306,10 @@ async def test_refresh_moves_the_snapshot_and_keeps_the_rating(
 
 
 async def test_snapshot_carries_the_whole_content(
-    client: AsyncClient, db_session: AsyncSession, user, auth_headers,
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user,
+    auth_headers,
     other_auth_headers,
 ):
     """
@@ -325,7 +344,10 @@ async def test_snapshot_carries_the_whole_content(
 
 
 async def test_unpublishing_and_publishing_again_keeps_the_rating(
-    client: AsyncClient, db_session: AsyncSession, user, auth_headers,
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user,
+    auth_headers,
     other_auth_headers,
 ):
     """
@@ -393,15 +415,22 @@ async def test_one_publication_per_list(
     assert second["cards_count"] == 1, "повторна публікація перезняла знімок"
 
     rows = (
-        await db_session.execute(
-            select(PublicationModel).where(PublicationModel.list_id == list_id)
+        (
+            await db_session.execute(
+                select(PublicationModel).where(PublicationModel.list_id == list_id)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     assert len(rows) == 1
 
 
 async def test_publication_survives_the_list_and_loses_update(
-    client: AsyncClient, db_session: AsyncSession, user, auth_headers,
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user,
+    auth_headers,
     other_auth_headers,
 ):
     """
@@ -430,7 +459,10 @@ async def test_publication_survives_the_list_and_loses_update(
 
 
 async def test_taking_skips_what_you_have_and_names_it(
-    client: AsyncClient, db_session: AsyncSession, user, auth_headers,
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user,
+    auth_headers,
     other_auth_headers,
 ):
     """
@@ -471,7 +503,10 @@ async def test_taking_skips_what_you_have_and_names_it(
 
 
 async def test_taking_records_the_take_even_when_nothing_is_added(
-    client: AsyncClient, db_session: AsyncSession, user, auth_headers,
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user,
+    auth_headers,
     other_auth_headers,
 ):
     """
@@ -505,7 +540,10 @@ async def test_taking_records_the_take_even_when_nothing_is_added(
 
 
 async def test_taking_twice_counts_one_person(
-    client: AsyncClient, db_session: AsyncSession, user, auth_headers,
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user,
+    auth_headers,
     other_auth_headers,
 ):
     """
@@ -546,7 +584,11 @@ async def test_own_publication_cannot_be_taken(
 
 
 async def test_taken_list_remembers_where_it_came_from(
-    client: AsyncClient, db_session: AsyncSession, user, other_user, auth_headers,
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user,
+    other_user,
+    auth_headers,
     other_auth_headers,
 ):
     """
@@ -559,7 +601,9 @@ async def test_taken_list_remembers_where_it_came_from(
     await _name_the_author(db_session, other_user, "Олена", "Коваль")
 
     list_id = await _list_with_words(client, auth_headers, ["run", "go"])
-    original_id = (await _publish(client, auth_headers, list_id, title="Оригінал"))["id"]
+    original_id = (await _publish(client, auth_headers, list_id, title="Оригінал"))[
+        "id"
+    ]
 
     taken = await _take(client, other_auth_headers, original_id, name="Моя копія")
     derived = await _publish(
@@ -570,9 +614,7 @@ async def test_taken_list_remembers_where_it_came_from(
     row = next(item for item in listing["items"] if item["id"] == derived["id"])
     assert row["derived_from_title"] == "Оригінал"
 
-    original_row = next(
-        item for item in listing["items"] if item["id"] == original_id
-    )
+    original_row = next(item for item in listing["items"] if item["id"] == original_id)
     assert original_row["derived_from_title"] is None
 
 
@@ -649,7 +691,10 @@ async def test_short_list_gives_all_its_words(
 
 
 async def test_only_a_taker_can_rate(
-    client: AsyncClient, db_session: AsyncSession, user, auth_headers,
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user,
+    auth_headers,
     other_auth_headers,
 ):
     """
@@ -679,7 +724,10 @@ async def test_only_a_taker_can_rate(
 
 
 async def test_rating_survives_deleting_the_taken_list(
-    client: AsyncClient, db_session: AsyncSession, user, auth_headers,
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user,
+    auth_headers,
     other_auth_headers,
 ):
     """
@@ -694,7 +742,9 @@ async def test_rating_survives_deleting_the_taken_list(
     publication_id = (await _publish(client, auth_headers, list_id))["id"]
 
     taken = await _take(client, other_auth_headers, publication_id)
-    await client.delete(f"{VOCAB}/lists/{taken['list_id']}/", headers=other_auth_headers)
+    await client.delete(
+        f"{VOCAB}/lists/{taken['list_id']}/", headers=other_auth_headers
+    )
 
     response = await client.put(
         f"{LIBRARY}/publications/{publication_id}/rating/",
@@ -706,7 +756,10 @@ async def test_rating_survives_deleting_the_taken_list(
 
 
 async def test_rating_is_replaced_not_added(
-    client: AsyncClient, db_session: AsyncSession, user, auth_headers,
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user,
+    auth_headers,
     other_auth_headers,
 ):
     """PUT: одна людина — одна оцінка, повторний виклик її замінює."""
@@ -728,7 +781,10 @@ async def test_rating_is_replaced_not_added(
 
 
 async def test_stars_outside_one_to_five_are_rejected(
-    client: AsyncClient, db_session: AsyncSession, user, auth_headers,
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user,
+    auth_headers,
     other_auth_headers,
 ):
     await _name_the_author(db_session, user)
@@ -751,7 +807,10 @@ async def test_stars_outside_one_to_five_are_rejected(
 
 
 async def test_report_does_not_need_a_take_and_weighs_people(
-    client: AsyncClient, db_session: AsyncSession, user, auth_headers,
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user,
+    auth_headers,
     other_auth_headers,
 ):
     """
@@ -789,7 +848,10 @@ async def test_report_does_not_need_a_take_and_weighs_people(
 
 
 async def test_report_reason_is_a_closed_set(
-    client: AsyncClient, db_session: AsyncSession, user, auth_headers,
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user,
+    auth_headers,
     other_auth_headers,
 ):
     """Вільного тексту в скарзі немає — він сам стає тим, що треба модерувати."""
@@ -895,7 +957,9 @@ async def test_unrated_publications_sort_last_by_rating(
     """
     await _name_the_author(db_session, user)
 
-    rated_list = await _list_with_words(client, auth_headers, ["run", "go"], name="Оцінена")
+    rated_list = await _list_with_words(
+        client, auth_headers, ["run", "go"], name="Оцінена"
+    )
     rated_id = (await _publish(client, auth_headers, rated_list, title="Оцінена"))["id"]
 
     single_list = await _list_with_words(
@@ -908,14 +972,14 @@ async def test_unrated_publications_sort_last_by_rating(
     silent_list = await _list_with_words(
         client, auth_headers, ["give", "keep"], name="Без оцінок"
     )
-    silent_id = (await _publish(client, auth_headers, silent_list, title="Без оцінок"))["id"]
+    silent_id = (await _publish(client, auth_headers, silent_list, title="Без оцінок"))[
+        "id"
+    ]
 
     await _rate_by_strangers(client, db_session, make_user, rated_id, [4, 4, 4])
     await _rate_by_strangers(client, db_session, make_user, single_id, [5])
 
-    body = (
-        await client.get(f"{LIBRARY}/?sort=rating", headers=auth_headers)
-    ).json()
+    body = (await client.get(f"{LIBRARY}/?sort=rating", headers=auth_headers)).json()
     order = [item["id"] for item in body["items"]]
 
     assert order[0] == rated_id, "одна п'ятірка обігнала три четвірки"
@@ -959,7 +1023,11 @@ async def test_search_looks_at_title_and_description(
 
     second = await _list_with_words(client, auth_headers, ["go"], name="B")
     await _publish(
-        client, auth_headers, second, title="IELTS Academic", description="слова для іспиту"
+        client,
+        auth_headers,
+        second,
+        title="IELTS Academic",
+        description="слова для іспиту",
     )
 
     by_title = (await client.get(f"{LIBRARY}/?q=фразові", headers=auth_headers)).json()

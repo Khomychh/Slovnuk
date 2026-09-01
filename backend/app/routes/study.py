@@ -34,9 +34,7 @@ from app.services.study_day import (
 router = APIRouter()
 
 
-def _rating_preview(
-    track, scheduler: Scheduler, now: datetime
-) -> RatingPreviewSchema:
+def _rating_preview(track, scheduler: Scheduler, now: datetime) -> RatingPreviewSchema:
     """Прогноз інтервалів на чотири оцінки — підпис під кнопками після відповіді."""
     seconds = preview_intervals(track, scheduler, now)
     return RatingPreviewSchema(

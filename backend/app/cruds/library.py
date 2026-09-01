@@ -26,6 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database.models import (
+    RATING_VISIBILITY_THRESHOLD,
     CardListLinkModel,
     CardModel,
     PublicationCardModel,
@@ -33,11 +34,9 @@ from app.database.models import (
     PublicationRatingModel,
     PublicationReportModel,
     PublicationTakeModel,
-    RATING_VISIBILITY_THRESHOLD,
     UserModel,
     normalize_word,
 )
-
 
 # Автор і провенанс їдуть у кожному рядку витрини, тож вантажаться разом із ним.
 # selectinload, а не joinedload: обидва — many-to-one до різних таблиць, і
@@ -185,11 +184,7 @@ def _summary_select(user_id: int) -> Select:
 
 
 async def count_publications(db: AsyncSession, conditions: Sequence) -> int:
-    stmt = (
-        select(func.count())
-        .select_from(PublicationModel)
-        .where(*conditions)
-    )
+    stmt = select(func.count()).select_from(PublicationModel).where(*conditions)
     return (await db.execute(stmt)).scalar_one()
 
 
@@ -396,9 +391,7 @@ async def fetch_snapshot(
     return (await db.execute(stmt)).scalars().all()
 
 
-async def own_words(
-    db: AsyncSession, user_id: int, words: Sequence[str]
-) -> set[str]:
+async def own_words(db: AsyncSession, user_id: int, words: Sequence[str]) -> set[str]:
     """
     Які з цих слів у людини вже є — лише нормалізовані рядки, без карток.
 

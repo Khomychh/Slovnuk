@@ -29,12 +29,16 @@ export type CardUpdate = components["schemas"]["CardUpdateSchema"];
 export type WordList = components["schemas"]["WordListSchema"];
 export type PartOfSpeech = components["schemas"]["PartOfSpeechEnum"];
 
-/** Стан одного прикладу в редакторі. `id` є лише в того, що вже в базі. */
-export type ExampleDraft = {
-  id: number | null;
-  textEn: string;
-  textUk: string;
-};
+/**
+ * ПРИКЛАДИ ЗНАЧЕННЯ — ОДНЕ ПОЛЕ, А НЕ СПИСОК ПОЛІВ.
+ *
+ * У редакторі приклади живуть суцільним текстом: рядок — приклад, вертикальна
+ * риска ділить його на англійську й переклад.
+ *
+ *     I love the girl. | Я люблю цю дівчину.
+ *     The girl left. | Дівчина пішла.
+ */
+export const EXAMPLE_SEPARATOR = "|";
 
 /**
  * «Уточнення» (`gloss`) тут немає і не було потрібне: у 608 картках експорту
@@ -46,7 +50,17 @@ export type SenseDraft = {
   partOfSpeech: PartOfSpeech | null;
   translation: string;
   transcription: string;
-  examples: ExampleDraft[];
+  /** Приклади суцільним текстом — рівно те, що в полі. */
+  examples: string;
+  /**
+   * `id` прикладів, що вже в базі, — за номером рядка на момент відкриття.
+   *
+   * Окремим масивом, бо в тексті їм місця немає, а без них кожне збереження
+   * перестворювало б рядки прикладів (див. `toCardPayload`). Прив'язка саме за
+   * позицією: найчастіша правка — виправити описку в наявному прикладі, і
+   * рядок при цьому мусить лишитись тим самим.
+   */
+  exampleIds: (number | null)[];
 };
 
 export type FormDraft = {
@@ -113,8 +127,54 @@ const POS_SHORT: Record<string, string> = {
   phr: "фраза",
 };
 
-export function blankExample(): ExampleDraft {
-  return { id: null, textEn: "", textUk: "" };
+/**
+ * Приклади з бази → текст поля.
+ *
+ * Приклад без перекладу лишається самим реченням, без хвостової риски: риска
+ * без нічого за нею читалась би як недонабране, а не як «перекладу немає».
+ *
+ * Якщо саме речення містить `|`, розбір поверне не те, що було збережено. У
+ * власному словнику таких прикладів немає жодного, а екранування зробило б
+ * видимим синтаксис у полі, де людина пише речення.
+ */
+export function examplesToText(
+  examples: readonly { text_en: string; text_uk?: string | null }[],
+): string {
+  return examples
+    .map((example) => {
+      const uk = (example.text_uk ?? "").trim();
+      const en = example.text_en.trim();
+      return uk ? `${en} ${EXAMPLE_SEPARATOR} ${uk}` : en;
+    })
+    .join("\n");
+}
+
+/**
+ * Текст поля → приклади.
+ *
+ * `line` — номер рядка, а не місце у відповіді: за ним `toCardPayload` знаходить
+ * `id` наявного прикладу, і пропущені порожні рядки не мають цю нумерацію
+ * зсувати.
+ *
+ * Ділить ПЕРША риска: переклад цілком може містити ще одну («він | вона»),
+ * англійське речення — майже ніколи.
+ */
+export function parseExamples(
+  text: string,
+): { line: number; textEn: string; textUk: string }[] {
+  return text
+    .split("\n")
+    .map((raw, line) => {
+      const at = raw.indexOf(EXAMPLE_SEPARATOR);
+      return at === -1
+        ? { line, textEn: raw.trim(), textUk: "" }
+        : {
+            line,
+            textEn: raw.slice(0, at).trim(),
+            textUk: raw.slice(at + 1).trim(),
+          };
+    })
+    .filter((example) => example.textEn !== "");
 }
 
 export function blankSense(): SenseDraft {
@@ -123,7 +183,8 @@ export function blankSense(): SenseDraft {
     partOfSpeech: null,
     translation: "",
     transcription: "",
-    examples: [],
+    examples: "",
+    exampleIds: [],
   };
 }
 
@@ -149,11 +210,8 @@ export function toDraft(card: Card): CardDraft {
       partOfSpeech: sense.part_of_speech ?? null,
       translation: sense.translation ?? "",
       transcription: sense.transcription ?? "",
-      examples: sense.examples.map((example) => ({
-        id: example.id,
-        textEn: example.text_en,
-        textUk: example.text_uk ?? "",
-      })),
+      examples: examplesToText(sense.examples),
+      exampleIds: sense.examples.map((example) => example.id),
     })),
     forms: card.forms.map((form) => ({
       id: form.id,
@@ -196,7 +254,7 @@ export function senseIsBlank(sense: SenseDraft): boolean {
     sense.partOfSpeech === null &&
     !sense.translation.trim() &&
     !sense.transcription.trim() &&
-    sense.examples.every((example) => !example.textEn.trim())
+    parseExamples(sense.examples).length === 0
   );
 }
 
@@ -232,13 +290,17 @@ export function toCardPayload(draft: CardDraft): CardCreate & CardUpdate {
       part_of_speech: sense.partOfSpeech,
       translation: orNull(sense.translation),
       transcription: orNull(sense.transcription),
-      examples: sense.examples
-        .filter((example) => example.textEn.trim())
-        .map((example) => ({
-          ...(example.id === null ? {} : { id: example.id }),
-          text_en: trimmed(example.textEn),
-          text_uk: orNull(example.textUk),
-        })),
+      // Рядок без англійського речення до сервера не їде — так само, як не
+      // їхав порожній приклад, коли їх було двоє полів. Порожній рядок серед
+      // прикладів — це «набираю далі», а не приклад.
+      examples: parseExamples(sense.examples).map((example) => {
+        const id = sense.exampleIds[example.line] ?? null;
+        return {
+          ...(id === null ? {} : { id }),
+          text_en: example.textEn,
+          text_uk: example.textUk || null,
+        };
+      }),
     })),
     forms: forms.map((form) => ({
       ...(form.id === null ? {} : { id: form.id }),
@@ -310,11 +372,8 @@ export function applyProposal(
       partOfSpeech: sense.part_of_speech ?? null,
       translation: sense.translation ?? "",
       transcription: sense.transcription ?? "",
-      examples: (sense.examples ?? []).map((example) => ({
-        id: null,
-        textEn: example.text_en,
-        textUk: example.text_uk ?? "",
-      })),
+      examples: examplesToText(sense.examples ?? []),
+      exampleIds: [],
     })),
     forms: (proposal.forms ?? []).map((form) => ({
       id: null,

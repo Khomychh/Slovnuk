@@ -61,9 +61,7 @@ def card_filters(
     if unlisted:
         # «Без списку» — це відсутність зв'язків, а не окремий список, тож і
         # питається воно як відсутність рядків у card_list_links.
-        conditions.append(
-            ~exists().where(CardListLinkModel.card_id == CardModel.id)
-        )
+        conditions.append(~exists().where(CardListLinkModel.card_id == CardModel.id))
 
     if word:
         conditions.append(CardModel.word_normalized == normalize_word(word))
@@ -405,7 +403,9 @@ async def get_stability_bands(db: AsyncSession, user_id: int) -> dict[str, int]:
         .group_by(band)
     )
 
-    counts = {name: 0 for name in ("new", "under_day", "days", "weeks", "months", "long")}
+    counts = {
+        name: 0 for name in ("new", "under_day", "days", "weeks", "months", "long")
+    }
     for name, count in (await db.execute(stmt)).all():
         counts[name] = count
     return counts

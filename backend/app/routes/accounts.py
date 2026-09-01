@@ -2,9 +2,9 @@ import logging
 from datetime import datetime, timezone
 from typing import cast
 
-from fastapi import APIRouter, BackgroundTasks, Depends, status, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from fastapi.concurrency import run_in_threadpool
-from sqlalchemy import select, delete
+from sqlalchemy import delete, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
@@ -12,42 +12,42 @@ from sqlalchemy.orm import joinedload
 from app.config.dependencies import (
     get_accounts_email_notificator,
     get_ai_client,
-    get_settings,
     get_jwt_auth_manager,
     get_s3_storage_client,
+    get_settings,
 )
 from app.config.settings import Settings
 from app.cruds import ai as ai_crud
 from app.database.database import get_db
 from app.database.models import (
-    UserModel,
-    UserGroupModel,
-    UserGroupEnum,
     ActivationTokenModel,
     PasswordResetTokenModel,
     RefreshTokenModel,
+    UserGroupEnum,
+    UserGroupModel,
+    UserModel,
     UserSettingsModel,
 )
 from app.exceptions import BaseEmailError, BaseSecurityError
 from app.integrations import AiClientInterface
 from app.notifications import EmailSenderInterface
 from app.schemas.accounts import (
-    UserRegistrationRequestSchema,
-    UserRegistrationResponseSchema,
+    ChangePasswordRequestSchema,
+    CurrentUserResponseSchema,
     MessageResponseSchema,
-    UserActivationRequestSchema,
-    PasswordResetRequestSchema,
     PasswordResetCompleteRequestSchema,
-    UserLoginResponseSchema,
-    UserLoginRequestSchema,
+    PasswordResetRequestSchema,
     TokenRefreshRequestSchema,
     TokenRefreshResponseSchema,
-    CurrentUserResponseSchema,
-    ChangePasswordRequestSchema,
+    UserActivationRequestSchema,
+    UserLoginRequestSchema,
+    UserLoginResponseSchema,
+    UserRegistrationRequestSchema,
+    UserRegistrationResponseSchema,
 )
 from app.security.dependencies import (
+    get_current_authenticated_user,
     get_current_user_with_profile,
-    get_current_authenticated_user
 )
 from app.security.interfaces import JWTAuthManagerInterface
 from app.storages import S3StorageInterface

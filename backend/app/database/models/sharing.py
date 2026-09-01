@@ -7,7 +7,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.models import Base
 from app.security.utils import generate_secure_token
 
-
 if TYPE_CHECKING:
     from app.database.models.accounts import UserModel
     from app.database.models.vocabulary import WordListModel
@@ -49,7 +48,9 @@ class ListShareModel(Base):
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
-    word_list: Mapped["WordListModel"] = relationship("WordListModel", back_populates="shares")
+    word_list: Mapped["WordListModel"] = relationship(
+        "WordListModel", back_populates="shares"
+    )
     owner: Mapped["UserModel"] = relationship(
         "UserModel", foreign_keys=[owner_id], back_populates="list_shares"
     )

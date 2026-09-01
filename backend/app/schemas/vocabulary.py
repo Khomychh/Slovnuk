@@ -46,9 +46,7 @@ def _not_blank(value: str) -> str:
 # Обрізаємо ДО перевірки довжини, інакше рядок із хвостом пробілів впирався б
 # у max_length там, де насправді вміщується.
 OptionalText = Annotated[str | None, BeforeValidator(_blank_to_none)]
-RequiredText = Annotated[
-    str, BeforeValidator(_stripped), AfterValidator(_not_blank)
-]
+RequiredText = Annotated[str, BeforeValidator(_stripped), AfterValidator(_not_blank)]
 
 Child = TypeVar("Child")
 
@@ -259,9 +257,9 @@ class WordSenseWriteSchema(BaseModel):
     part_of_speech: PartOfSpeechEnum | None = None
     translation: OptionalText = Field(default=None, max_length=255)
     transcription: OptionalText = Field(default=None, max_length=100)
-    examples: Annotated[
-        list[SenseExampleWriteSchema], AfterValidator(_drop_blank)
-    ] = Field(default_factory=list)
+    examples: Annotated[list[SenseExampleWriteSchema], AfterValidator(_drop_blank)] = (
+        Field(default_factory=list)
+    )
 
     model_config = ConfigDict(extra="forbid")
 

@@ -10,8 +10,6 @@
 моделями в пам'яті.
 """
 
-import pytest
-
 from app.database.models import (
     CardModel,
     SenseExampleModel,

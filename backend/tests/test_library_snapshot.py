@@ -12,8 +12,6 @@
 Усе без бази: обидва переходи — чисті функції над моделями в пам'яті.
 """
 
-import pytest
-
 from app.database.models import (
     CardModel,
     PartOfSpeechEnum,
@@ -46,7 +44,9 @@ def rich_card() -> CardModel:
         transcription="rʌn",
     )
     verb.examples.append(
-        SenseExampleModel(position=0, text_en="I run every morning.", text_uk="Я бігаю щоранку.")
+        SenseExampleModel(
+            position=0, text_en="I run every morning.", text_uk="Я бігаю щоранку."
+        )
     )
     # Приклад без перекладу — законний стан, і знімок мусить його зберегти саме
     # порожнім, а не підставляти англійський текст.
@@ -65,7 +65,9 @@ def rich_card() -> CardModel:
         WordFormModel(position=0, label="Past", value="ran", transcription="ræn")
     )
     # Форма без мітки й без транскрипції — теж законна.
-    card.forms.append(WordFormModel(position=1, label=None, value="running", transcription=None))
+    card.forms.append(
+        WordFormModel(position=1, label=None, value="running", transcription=None)
+    )
     return card
 
 
@@ -128,6 +130,7 @@ class TestSnapshotKeepsEverything:
         при вставці — тобто на найдорожчому кроці. Перевіряється рекурсивно, бо
         вкладеність тут на три рівні: senses → examples.
         """
+
         def assert_json_safe(value, path="content"):
             if isinstance(value, dict):
                 for key, item in value.items():
@@ -137,9 +140,9 @@ class TestSnapshotKeepsEverything:
                 for index, item in enumerate(value):
                     assert_json_safe(item, f"{path}[{index}]")
             else:
-                assert value is None or isinstance(
-                    value, (str, int, float, bool)
-                ), f"{path}: {type(value).__name__} не переживе JSONB — {value!r}"
+                assert value is None or isinstance(value, (str, int, float, bool)), (
+                    f"{path}: {type(value).__name__} не переживе JSONB — {value!r}"
+                )
 
         assert_json_safe(as_snapshot_row(rich_card()).content)
 
@@ -208,9 +211,7 @@ class TestSnapshotOrder:
         мусить бачити стабільний порядок, інакше друга сторінка перекривалася б
         із першою.
         """
-        rows = snapshot_rows(
-            [CardModel(word=word) for word in ("run", "go", "take")]
-        )
+        rows = snapshot_rows([CardModel(word=word) for word in ("run", "go", "take")])
         assert [(row.position, row.word) for row in rows] == [
             (0, "run"),
             (1, "go"),
@@ -277,9 +278,7 @@ class TestPlanTake:
         У шері він доречний — там ти знаєш, від кого береш. Тут на іншому кінці
         незнайомець, а ціна помилки — роки власних перекладів.
         """
-        plan = plan_take(
-            snapshot_rows([CardModel(word="run")]), self._existing("run")
-        )
+        plan = plan_take(snapshot_rows([CardModel(word="run")]), self._existing("run"))
         assert plan.overwrites == ()
         assert plan.sources == ()
         assert plan.is_empty

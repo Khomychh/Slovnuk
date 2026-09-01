@@ -267,11 +267,9 @@ export function ListsIcon() {
       <defs>
         <linearGradient id="aurora-lists" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" style={{ stopColor: "var(--a0)" }} />
-          <stop offset="20%" style={{ stopColor: "var(--a1)" }} />
-          <stop offset="40%" style={{ stopColor: "var(--a2)" }} />
-          <stop offset="60%" style={{ stopColor: "var(--a3)" }} />
-          <stop offset="80%" style={{ stopColor: "var(--a4)" }} />
-          <stop offset="100%" style={{ stopColor: "var(--a5)" }} />
+          <stop offset="33%" style={{ stopColor: "var(--a1)" }} />
+          <stop offset="66%" style={{ stopColor: "var(--a2)" }} />
+          <stop offset="100%" style={{ stopColor: "var(--a3)" }} />
         </linearGradient>
       </defs>
       <g

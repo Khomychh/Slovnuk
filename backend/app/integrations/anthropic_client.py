@@ -22,7 +22,6 @@ from app.integrations.interfaces import AiCall, AiClientInterface
 from app.integrations.prompts import build_system_prompt
 from app.schemas.ai import AiResultSchema
 
-
 # Стеля рахує думання РАЗОМ із відповіддю, а думання тут адаптивне — тобто його
 # обсяг наперед не відомий. Сама пропозиція на три значення з прикладами — це
 # приблизно 800 токенів, але виміряти по ній стелю означало б обрізати відповідь
@@ -153,18 +152,20 @@ class AnthropicAiClient(AiClientInterface):
                 "Model declined the request.", code="ai_model_refusal"
             )
         if response.stop_reason == "max_tokens":
-            raise AiInvalidResponseError(
-                "Response was cut off.", code="ai_truncated"
-            )
+            raise AiInvalidResponseError("Response was cut off.", code="ai_truncated")
 
-        text = next((block.text for block in response.content if block.type == "text"), None)
+        text = next(
+            (block.text for block in response.content if block.type == "text"), None
+        )
         if not text:
             raise AiInvalidResponseError("Empty response.", code="ai_empty")
 
         try:
             result = AiResultSchema.model_validate(json.loads(text))
         except (json.JSONDecodeError, ValidationError) as error:
-            raise AiInvalidResponseError(str(error), code="ai_schema_mismatch") from error
+            raise AiInvalidResponseError(
+                str(error), code="ai_schema_mismatch"
+            ) from error
 
         return AiCall(
             result=result,

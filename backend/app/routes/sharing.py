@@ -24,15 +24,14 @@ from app.database.models import (
     WordListModel,
 )
 from app.schemas.sharing import (
-    ImportMode,
-    ShareImportResultSchema,
-    ShareImportSchema,
-    SharePreviewSchema,
-    ShareSchema,
     SharedCardPageSchema,
     SharedCardSchema,
     SharedFormSchema,
     SharedSenseSchema,
+    ShareImportResultSchema,
+    ShareImportSchema,
+    SharePreviewSchema,
+    ShareSchema,
 )
 from app.security.dependencies import get_current_authenticated_user
 from app.services.sharing import copy_content, new_card, plan_import, suggest_name
@@ -233,7 +232,9 @@ async def preview_share_cards(
             SharedCardSchema(
                 word=card.word,
                 comment=card.comment,
-                senses=[SharedSenseSchema.model_validate(sense) for sense in card.senses],
+                senses=[
+                    SharedSenseSchema.model_validate(sense) for sense in card.senses
+                ],
                 forms=[SharedFormSchema.model_validate(form) for form in card.forms],
                 already_have=card.word_normalized in mine,
             )

@@ -14,7 +14,9 @@ API = "/api/v1/study"
 VOCAB = "/api/v1/vocabulary"
 
 
-async def _create_card(client: AsyncClient, headers: dict, word: str = "run", **extra) -> dict:
+async def _create_card(
+    client: AsyncClient, headers: dict, word: str = "run", **extra
+) -> dict:
     payload = {
         "word": word,
         "senses": [{"part_of_speech": "v", "translation": "бігти"}],
@@ -237,7 +239,9 @@ async def test_days_calendar(client: AsyncClient, auth_headers):
     assert day["combined_goal"] is None
 
 
-async def test_days_calendar_is_empty_without_activity(client: AsyncClient, auth_headers):
+async def test_days_calendar_is_empty_without_activity(
+    client: AsyncClient, auth_headers
+):
     """Рядок зʼявляється лише за дні, що мають знімок цілей."""
     response = await client.get(f"{API}/days/", headers=auth_headers)
     assert response.status_code == 200, response.text
@@ -315,7 +319,9 @@ async def test_patch_settings_rejects_bad_timezone(client: AsyncClient, auth_hea
     assert response.status_code == 422
 
 
-async def test_patch_settings_rejects_fsrs_parameters(client: AsyncClient, auth_headers):
+async def test_patch_settings_rejects_fsrs_parameters(
+    client: AsyncClient, auth_headers
+):
     """Ваги пише лише скрипт оптимізатора; через API — 422, а не тихе ігнорування."""
     response = await client.patch(
         f"{API}/settings/", json={"fsrs_parameters": [0.1] * 21}, headers=auth_headers
@@ -339,7 +345,9 @@ async def test_patch_settings_rejects_retention_out_of_range(
 
 
 async def _create_list(client: AsyncClient, headers: dict, name: str) -> dict:
-    response = await client.post(f"{VOCAB}/lists/", json={"name": name}, headers=headers)
+    response = await client.post(
+        f"{VOCAB}/lists/", json={"name": name}, headers=headers
+    )
     assert response.status_code == 201, response.text
     return response.json()
 

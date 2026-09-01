@@ -29,7 +29,9 @@ async def _create_note(client: AsyncClient, headers: dict, **overrides) -> dict:
 # --------------------------------------------------------------------------
 
 
-async def test_create_note_creates_category_on_the_fly(client: AsyncClient, auth_headers):
+async def test_create_note_creates_category_on_the_fly(
+    client: AsyncClient, auth_headers
+):
     body = await _create_note(client, auth_headers)
 
     assert body["title"] == "Present Perfect"
@@ -114,7 +116,9 @@ async def test_patch_note_clearing_category_is_self_consistent(
 async def test_delete_note(client: AsyncClient, auth_headers):
     created = await _create_note(client, auth_headers)
 
-    response = await client.delete(f"{API}/notes/{created['id']}/", headers=auth_headers)
+    response = await client.delete(
+        f"{API}/notes/{created['id']}/", headers=auth_headers
+    )
     assert response.status_code == 204, response.text
 
     response = await client.get(f"{API}/notes/{created['id']}/", headers=auth_headers)

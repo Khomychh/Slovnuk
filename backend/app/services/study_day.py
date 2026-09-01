@@ -28,7 +28,7 @@ def resolve_timezone(name: str | None) -> ZoneInfo:
         return ZoneInfo(DEFAULT_TIMEZONE)
     try:
         return ZoneInfo(name)
-    except (ZoneInfoNotFoundError, ValueError):
+    except ZoneInfoNotFoundError, ValueError:
         logger.warning("Невідомий часовий пояс %r, беремо %s", name, DEFAULT_TIMEZONE)
         return ZoneInfo(DEFAULT_TIMEZONE)
 

@@ -1,0 +1,595 @@
+/* ==========================================================================
+   «Сьогодні»
+   ========================================================================== */
+
+/* --- дві половини ------------------------------------------------------- */
+
+/* Екран ділиться не на «блоки», а на дві цілі, які він і так оголошував:
+   повторювати і додавати. Роздільника між ними немає — його роль грає
+   заголовок половини разом із великим відступом: риска поперек екрана
+   розрізала б колонку на дві сторінки, а це одна сторінка з двома частинами.
+
+   Ім'я з префіксом, бо просто `.half` у застосунку вже зайняте: так зветься
+   половина перемикача на екрані «Списки» (див. нижче, поруч із `.half-on`), і
+   вона `display: flex`. Без префікса обидві половини «Сьогодні» лягали б у
+   рядок. */
+/* Опора для шестерні: та стоїть у правому кінці нижньої полички героя, але
+   кнопкою всередині кнопки бути не може. Відступи героя переїхали сюди —
+   інакше вони пройшли б крізь обгортку наскрізь, і «низ» для шестерні виявився
+   б не там, де низ панелі. */
+.hero-wrap {
+  position: relative;
+  margin: 18px 0 4px;
+}
+
+/* Герой екрана. Не біла плитка з написом, а панель, над якою стоїть сяйво:
+   єдине місце, де стрічка рухається. */
+.hero {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 0;
+  padding: 20px 20px 18px;
+  border: 1px solid var(--edge);
+  border-radius: var(--r);
+  background: var(--sheet);
+  box-shadow: var(--lift-high);
+  color: var(--frost);
+  font-family: var(--sans);
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.hero:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.hero:disabled {
+  cursor: default;
+  box-shadow: var(--lift);
+}
+
+.hero:disabled::before {
+  opacity: 0.12;
+}
+
+/* Текст героя стоїть над сяйвом: без position він лишився б під ::before і
+   велике число читалося б крізь кольорову пляму. */
+.hero > span {
+  position: relative;
+}
+
+.hero-lbl {
+  display: block;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--haze-2);
+}
+
+.hero-num {
+  display: block;
+  font-family: var(--display);
+  font-size: var(--t-num);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: var(--track-num);
+  margin-top: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-word {
+  display: block;
+  font-family: var(--display);
+  font-size: var(--t-hero);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: var(--track-hero);
+  margin-top: 8px;
+}
+
+/* Праворуч лишено місце під шестерню: вона сидить у тому ж куті панелі, і без
+   відступу довгий підпис («Забуті слова повернуться сьогодні ж») заїжджав би
+   під неї. */
+.hero-sub {
+  display: block;
+  font-size: var(--t-sub);
+  color: var(--haze);
+  margin-top: 10px;
+  padding-right: 40px;
+}
+
+/* Шестерня стоїть у куті самої панелі. Мала й тьмяна навмисно — вибір груп
+   міняють раз на тиждень, а кнопку «Вчити» тиснуть щодня, і сперечатись із нею
+   за увагу тут нема чому. Ціль при цьому повнорозмірна: тьмяне не означає
+   дрібне для пальця, тож 44px залазять у поле панелі, а не додають їй висоти. */
+.hero-gear {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--haze-2);
+  cursor: pointer;
+}
+
+.hero-gear > svg {
+  width: 18px;
+  height: 18px;
+}
+
+.hero-gear:active {
+  color: var(--haze);
+}
+
+/* Шестерня повертається на чверть оберту, коли панель під нею розгорнута, —
+   сам жест «крутнув» і є підтвердженням дотику, окрема іконка-шеврон поруч
+   тут зайва. Колір разом із тим яснішає до `--frost`: тьмяний він лише в
+   спокої, а не тоді, коли під ним щось відкрито. */
+.hero-gear.open {
+  color: var(--frost);
+}
+
+.hero-gear > svg {
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hero-gear.open > svg {
+  transform: rotate(90deg);
+}
+
+/* --- налаштування навчання ----------------------------------------------
+   Групи слів і напрямок: обидва відповідають на питання «що я вчу зараз», і
+   людина ходить до них однією думкою. Панель розгортається просто під
+   героєм «Сьогодні» — колишній власний екран (`/study/settings`) відривав
+   від тієї самої думки на цілу навігацію туди й назад.
+   ------------------------------------------------------------------------ */
+
+/* Згортання через grid-template-rows, а не max-height: висота вмісту (список
+   груп) не сталим числом, і лічити його в JS тут нема чого. Вміст лишається
+   змонтованим і згорнутим, і саме тому анімується — умовний рендер обрізав
+   би його миттєво, без переходу. `.aim-panel` ізсередини ховається `inert`
+   (JSX), а не звідси: це питання фокусу й читалок екрана, не вигляду. */
+.aim-panel-shell {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.aim-panel-shell.open {
+  grid-template-rows: 1fr;
+}
+
+.aim-panel-inner {
+  overflow: hidden;
+}
+
+/* Панель — не окрема картка, а продовження героя над нею: та сама тінь,
+   те саме тло, і тонка стрічка сяйва зверху замість своєї рамки-заголовка.
+   Нерухома навмисно (на відміну від `.aurora-live` героя) — це підказка, а
+   не місце, за яким стежать секундами. */
+.aim-panel {
+  position: relative;
+  margin-top: 10px;
+  padding: 6px 20px 18px;
+  border: 1px solid var(--edge);
+  border-radius: var(--r);
+  background: var(--sheet);
+  box-shadow: var(--lift);
+  overflow: hidden;
+}
+
+.aim-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: var(--aurora);
+  opacity: 0.8;
+}
+
+.aim-panel .hint {
+  margin-top: 16px;
+}
+
+/* Перший підпис у панелі стоїть одразу під стрічкою сяйва, тому верхній
+   відступ `.sec-h` (26px, рахований на екран без нічого над розділом) тут
+   вдвічі важчий, ніж треба. */
+.aim-panel-h1 {
+  margin-top: 16px;
+}
+
+.aim-search {
+  width: 100%;
+  margin: 6px 0 8px;
+  padding: 9px 12px;
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  background: var(--night);
+  color: var(--frost);
+  font-family: var(--sans);
+  font-size: var(--t-body);
+}
+
+.aim-search::placeholder {
+  color: var(--haze-2);
+}
+
+/* Рядок висунуто на 10px у поле відступу екрана: власне поле рядка лишається
+   при ньому (воно тримає скруглену підкладку обраного), але текст стає рівно
+   на ту саму вертикаль, що й підписи розділів над ним. У колишній панелі
+   вирівнювати було нічого — там рядки жили в своїй рамці. */
+.aim-pick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: calc(100% + 20px);
+  margin: 0 -10px;
+  padding: 11px 10px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--haze);
+  font-family: var(--sans);
+  font-size: var(--t-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Обраний рядок позначено смугою сяйва по лівому краю, а не галочкою.
+   Смуга — це та сама стрічка, що й скрізь у застосунку, і кілька обраних
+   рядків підряд читаються як один промінь, тобто як ОДИН вибір із кількох
+   груп. Галочки ж рахувались би поштучно. */
+.aim-pick.on {
+  color: var(--frost);
+  background: color-mix(in srgb, var(--a1) 9%, transparent);
+  box-shadow: inset 3px 0 0 0 var(--a2);
+}
+
+.aim-pick-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aim-pick-num {
+  font-family: var(--sans);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-meta);
+  color: var(--haze-2);
+}
+
+/* Список, із якого сьогодні нічого не показати. Не вимкнений: вибрати його
+   можна, просто черга з нього буде порожня — і про це чесно каже нуль. */
+.aim-pick.cold .aim-pick-name {
+  color: var(--haze-2);
+}
+
+/* Офлайн. Вибір лишається видимим — він показує, що ти вчиш зараз, і без
+   звʼязку теж; недоступна тільки зміна, бо нова черга береться з мережі. */
+.aim-pick:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.aim-sep {
+  height: 1px;
+  margin: 8px 0;
+  background: var(--edge-soft);
+}
+
+.aim-tail {
+  width: 100%;
+  padding: 10px 0;
+  border: none;
+  background: none;
+  color: var(--haze-2);
+  font-family: var(--sans);
+  font-size: var(--t-sub);
+  text-align: left;
+  cursor: pointer;
+}
+
+/* --- сегментний перемикач ------------------------------------------------
+   Орган вибору «одне з двох-трьох» на весь застосунок: напрямок показу, акцент
+   голосу, тема, порядок витрини, режим імпорту. Був пристроєм одного екрана,
+   поки вибір деінде робився чипами; тепер чипів-станів немає ніде.
+
+   Чипи виглядають однаково і там, де можна обрати кілька, — доріжка формою
+   каже «одне з трьох». Але вона ж і обмежена: від чотирьох поділок вона знову
+   розсипається на окремі предмети, і тоді потрібен список, а не доріжка.
+   ------------------------------------------------------------------------ */
+
+.seg {
+  display: flex;
+  /* Відступ для доріжки, що стоїть під підписом розділу — так вона живе в
+     панелі «Сьогодні». У рядку профілю він гаситься: там відступи дає рядок. */
+  margin: 6px 0 2px;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  background: var(--sheet-2);
+}
+
+/* Доріжка в рядку панелі стискається під свій вміст, а не займає весь рядок:
+   поруч із нею стоїть підпис («Акцент»), і на всю ширину вона зіштовхнула б
+   його за край. У стовпчику (`.p-line-stack`) обмеження знімається. */
+.p-line > .seg {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+
+.p-line-stack > .seg {
+  flex: none;
+}
+
+.seg > button {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--haze);
+  font-family: var(--sans);
+  font-size: var(--t-sub);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+/* Вибране — той самий `--on`, що в перемикача: два різні «увімкнено» в одному
+   застосунку означали б, що колір стану доводиться впізнавати двічі. Було 16%
+   від `--a1`: на такій заливці позицію доріжки видно, лише коли дивишся
+   впритул, а це орган для бокового зору. */
+.seg > button.on {
+  background: var(--on);
+  color: var(--on-ink);
+}
+
+.seg > button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.seg > button.on:disabled {
+  opacity: 0.6;
+}
+
+/* --- додані за добу ------------------------------------------------------
+   Хвіст «Сьогодні»: ті самі рядки, що в словнику, тими самими класами
+   (`.v-list`, `.v-row`). Свого вигляду тут немає навмисно — слово, додане
+   годину тому, і воно ж у словнику мусять бути одним записом, а не двома
+   схожими. Волосина зверху відділяє зроблене від підбиття: вище — числа про
+   добу, нижче — самі слова.
+   ------------------------------------------------------------------------ */
+
+.today-added {
+  margin-top: 30px;
+  padding-top: 6px;
+  border-top: 1px solid var(--edge-soft);
+  /* Місце під круглу кнопку: без нього вона сідає на останній рядок, а той
+     клікабельний. */
+  padding-bottom: 64px;
+}
+
+/* --- цілі --------------------------------------------------------------- */
+
+/* Смужки й тиждень над ними — одне підбиття доби, тому й тримаються вони
+   купою й відступом, а не заголовком над собою. Слово «Досягнення» тут нічого
+   не додало б: смужки підписані самі, а крапки тижня впізнаються з першого
+   погляду. */
+.goals {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 26px;
+}
+
+.goal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.goal-label {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--haze-2);
+}
+
+.goal-num {
+  font-size: var(--t-sub);
+  color: var(--haze);
+  font-variant-numeric: tabular-nums;
+}
+
+.goal-num b {
+  color: var(--frost);
+  font-weight: 600;
+}
+
+.goal-off {
+  color: var(--haze-2);
+  font-size: var(--t-meta);
+}
+
+.goal-track {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--edge-soft);
+  overflow: hidden;
+}
+
+.goal-track > .on {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--a2);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Виконана ціль світиться золотом — тим самим, що й найтепліший кінець
+   рампи. Це не «успіх», це «дійшло до гарячого». */
+.goal-track > .on.met {
+  background: var(--a3);
+  box-shadow: var(--glow-warm);
+}
+
+/* Розкладка під сумарною смужкою: чим саме добрано. Це подробиця, а не друга
+   ціль, тож вона тихіша за все навколо — і за підпис смужки теж. */
+.goal-note {
+  margin-top: 7px;
+  font-size: var(--t-meta);
+  color: var(--haze-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- тиждень ------------------------------------------------------------ */
+
+/* Перший рядок підбиття, одразу під кнопкою. Тиждень попереду доби навмисно:
+   сім крапок читаються як одна форма, а дві смужки під ними — як подробиця
+   сьогоднішньої з них. Риски зверху немає: від панелі героя тиждень і так
+   відділений, а друга горизонталь поспіль різала б екран на смуги. */
+.week {
+  margin-top: 30px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.week-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--edge-soft);
+  border: 1px solid transparent;
+}
+
+/* Учився, але до цілі не добрав — обведення без заливки. Порожній день і
+   недобраний мусять виглядати різно, інакше крапки нічого не кажуть. */
+.dot-active {
+  background: none;
+  border-color: var(--haze-2);
+}
+
+.dot-met {
+  background: var(--a3);
+  border-color: var(--a3);
+  box-shadow: var(--glow-warm);
+}
+
+.dot-today {
+  box-shadow:
+    0 0 0 2px var(--night),
+    0 0 0 3px var(--haze-2);
+}
+
+.week-lbl {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
+  color: var(--haze-2);
+}
+
+/* --- згорнуті секції ---------------------------------------------------- */
+
+.fold {
+  margin-top: 20px;
+  border-top: 1px solid var(--edge);
+}
+
+.fold > summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 15px 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fold-label {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--haze-2);
+}
+
+.fold-value {
+  font-size: var(--t-body);
+  color: var(--haze);
+}
+
+.fold-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 18px;
+}
+
+/* ЧИП — ЦЕ ДІЯ, А НЕ СТАН.
+   Стану чипів більше немає ніде: вибір «одне з двох-трьох» скрізь робить
+   доріжка (`.seg`), і саме тому тут немає `.chip-on`. Лишились рівно ті чипи,
+   які нічого не тримають, а натискаються один раз і зникають: підказки
+   розділу в нотатці й причини скарги на публікацію.
+
+   Різниця не формальна. Чип-стан і чип-дія виглядали однаково, і в рядку з
+   чотирьох було не видно, котрі з них показують вибране, а котрі щось
+   зроблять. */
+.chip {
+  border: 1px solid var(--edge);
+  background: none;
+  color: var(--haze);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: var(--t-body);
+  font-family: var(--sans);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.chip:active {
+  border-color: color-mix(in srgb, var(--a1) 45%, transparent);
+  color: var(--frost);
+}
+
+/* Підказка мітки форми. Менша за звичайний чип — це не вибір зі списку, а
+   заготовка для поля, яке лишається вільним для набору. */
+.chip-sm {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: var(--t-sub);
+  color: var(--haze-2);
+}
+

@@ -20,7 +20,6 @@
 
 from app.database.models import TranscriptionVarietyEnum
 
-
 _VARIETY_INSTRUCTION = {
     TranscriptionVarietyEnum.GB: (
         "Use British (Received Pronunciation) IPA. For example: /ˈdɑːns/, /ˈletə/."

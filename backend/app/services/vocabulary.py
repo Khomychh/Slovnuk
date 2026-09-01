@@ -103,9 +103,7 @@ def plan_children(
     by_id = {row.id: row for row in existing}
 
     unknown = [
-        item.id
-        for item in incoming
-        if item.id is not None and item.id not in by_id
+        item.id for item in incoming if item.id is not None and item.id not in by_id
     ]
     if unknown:
         raise UnknownChildIdError(unknown)

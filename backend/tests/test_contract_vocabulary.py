@@ -12,7 +12,9 @@ from httpx import AsyncClient
 API = "/api/v1/vocabulary"
 
 
-async def _create_list(client: AsyncClient, headers: dict, name: str = "Загальний") -> dict:
+async def _create_list(
+    client: AsyncClient, headers: dict, name: str = "Загальний"
+) -> dict:
     response = await client.post(f"{API}/lists/", json={"name": name}, headers=headers)
     assert response.status_code == 201, response.text
     return response.json()
@@ -31,7 +33,9 @@ async def _create_card(client: AsyncClient, headers: dict, **overrides) -> dict:
                 "part_of_speech": "v",
                 "translation": "бігти",
                 "transcription": "rʌn",
-                "examples": [{"text_en": "I run every morning.", "text_uk": "Я бігаю щоранку."}],
+                "examples": [
+                    {"text_en": "I run every morning.", "text_uk": "Я бігаю щоранку."}
+                ],
             }
         ],
         "forms": [{"label": "Past", "value": "ran", "transcription": "ræn"}],
@@ -85,7 +89,9 @@ async def test_patch_list(client: AsyncClient, auth_headers):
 async def test_delete_list(client: AsyncClient, auth_headers):
     created = await _create_list(client, auth_headers)
 
-    response = await client.delete(f"{API}/lists/{created['id']}/", headers=auth_headers)
+    response = await client.delete(
+        f"{API}/lists/{created['id']}/", headers=auth_headers
+    )
     assert response.status_code == 204, response.text
 
     response = await client.get(f"{API}/lists/", headers=auth_headers)
@@ -165,7 +171,9 @@ async def test_patch_card(client: AsyncClient, auth_headers):
 async def test_delete_card(client: AsyncClient, auth_headers):
     created = await _create_card(client, auth_headers)
 
-    response = await client.delete(f"{API}/cards/{created['id']}/", headers=auth_headers)
+    response = await client.delete(
+        f"{API}/cards/{created['id']}/", headers=auth_headers
+    )
     assert response.status_code == 204, response.text
 
     response = await client.get(f"{API}/cards/{created['id']}/", headers=auth_headers)

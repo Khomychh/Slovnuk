@@ -22,7 +22,6 @@ from app.database.models import (
 )
 from app.schemas.sharing import ImportMode
 
-
 MAX_LIST_NAME_LENGTH = 100
 
 

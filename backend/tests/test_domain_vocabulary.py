@@ -5,17 +5,18 @@
 записано в глосарії». Кожен тест названо правилом, яке він тримає.
 """
 
+from app.database.models import ReviewKindEnum, ReviewStateEnum, ReviewTrackModel
 from httpx import AsyncClient
 from sqlalchemy import delete, select, update
-
-from app.database.models import ReviewKindEnum, ReviewStateEnum, ReviewTrackModel
 
 VOCAB = "/api/v1/vocabulary"
 STUDY = "/api/v1/study"
 
 
 async def _new_list(client: AsyncClient, headers: dict, name: str) -> int:
-    response = await client.post(f"{VOCAB}/lists/", json={"name": name}, headers=headers)
+    response = await client.post(
+        f"{VOCAB}/lists/", json={"name": name}, headers=headers
+    )
     assert response.status_code == 201, response.text
     return response.json()["id"]
 
@@ -61,7 +62,9 @@ async def test_card_without_a_list_lands_in_unlisted(client: AsyncClient, auth_h
     assert body["unlisted"]["card_count"] == 1
 
 
-async def test_card_can_live_in_several_lists_at_once(client: AsyncClient, auth_headers):
+async def test_card_can_live_in_several_lists_at_once(
+    client: AsyncClient, auth_headers
+):
     first = await _new_list(client, auth_headers, "Дієслова")
     second = await _new_list(client, auth_headers, "Складні")
 
@@ -74,13 +77,17 @@ async def test_card_can_live_in_several_lists_at_once(client: AsyncClient, auth_
     assert counts == {first: 1, second: 1}
 
 
-async def test_removing_from_one_list_keeps_the_other(client: AsyncClient, auth_headers):
+async def test_removing_from_one_list_keeps_the_other(
+    client: AsyncClient, auth_headers
+):
     first = await _new_list(client, auth_headers, "Дієслова")
     second = await _new_list(client, auth_headers, "Складні")
     card = await _new_card(client, auth_headers, "run", list_ids=[first, second])
 
     response = await client.patch(
-        f"{VOCAB}/cards/{card['id']}/", json={"list_ids": [second]}, headers=auth_headers
+        f"{VOCAB}/cards/{card['id']}/",
+        json={"list_ids": [second]},
+        headers=auth_headers,
     )
     assert response.status_code == 200, response.text
     assert response.json()["list_ids"] == [second]
@@ -102,7 +109,9 @@ async def test_duplicate_word_is_rejected(client: AsyncClient, auth_headers):
     assert response.status_code == 409, response.text
 
 
-async def test_duplicate_is_detected_after_normalisation(client: AsyncClient, auth_headers):
+async def test_duplicate_is_detected_after_normalisation(
+    client: AsyncClient, auth_headers
+):
     """
     `word_normalized` — обрізані пробіли плюс нижній регістр. «Run» і «  run »
     це одне слово, інакше словник тихо роздвоївся б, а з ним і прогрес.
@@ -179,7 +188,9 @@ async def test_disabling_forms_drill_keeps_the_track_and_its_progress(
             )
         )
     ).scalar_one()
-    assert stability_after == stability_before, "вимкнення тренування форм скинуло прогрес"
+    assert stability_after == stability_before, (
+        "вимкнення тренування форм скинуло прогрес"
+    )
 
 
 async def test_disabled_forms_track_disappears_from_the_queue(
@@ -206,10 +217,16 @@ async def test_card_without_forms_has_only_the_translation_track(
     card = await _new_card(client, auth_headers, "run")
 
     tracks = (
-        await db_session.execute(
-            select(ReviewTrackModel.kind).where(ReviewTrackModel.card_id == card["id"])
+        (
+            await db_session.execute(
+                select(ReviewTrackModel.kind).where(
+                    ReviewTrackModel.card_id == card["id"]
+                )
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     assert set(tracks) == {ReviewKindEnum.TRANSLATION}
 
 
@@ -235,10 +252,16 @@ async def test_removing_all_forms_keeps_the_forms_track(
 
     await db_session.commit()
     tracks = (
-        await db_session.execute(
-            select(ReviewTrackModel.kind).where(ReviewTrackModel.card_id == card["id"])
+        (
+            await db_session.execute(
+                select(ReviewTrackModel.kind).where(
+                    ReviewTrackModel.card_id == card["id"]
+                )
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     assert ReviewKindEnum.FORMS in set(tracks), "доріжка форм зникла разом із формами"
 
     # А з черги — так, зникає.
@@ -277,7 +300,7 @@ async def test_stability_sort_puts_new_words_first_then_coldest(
     """
     warm = await _new_card(client, auth_headers, "warm")
     cold = await _new_card(client, auth_headers, "cold")
-    fresh = await _new_card(client, auth_headers, "fresh")
+    await _new_card(client, auth_headers, "fresh")
 
     await _set_translation_stability(db_session, warm["id"], 200.0)
     await _set_translation_stability(db_session, cold["id"], 0.5)
@@ -362,7 +385,9 @@ async def test_another_users_card_is_invisible(
 ):
     card = await _new_card(client, auth_headers, "run")
 
-    response = await client.get(f"{VOCAB}/cards/{card['id']}/", headers=other_auth_headers)
+    response = await client.get(
+        f"{VOCAB}/cards/{card['id']}/", headers=other_auth_headers
+    )
     assert response.status_code == 404, response.text
 
 
@@ -372,11 +397,15 @@ async def test_another_users_card_cannot_be_edited_or_deleted(
     card = await _new_card(client, auth_headers, "run")
 
     response = await client.patch(
-        f"{VOCAB}/cards/{card['id']}/", json={"comment": "чуже"}, headers=other_auth_headers
+        f"{VOCAB}/cards/{card['id']}/",
+        json={"comment": "чуже"},
+        headers=other_auth_headers,
     )
     assert response.status_code == 404, response.text
 
-    response = await client.delete(f"{VOCAB}/cards/{card['id']}/", headers=other_auth_headers)
+    response = await client.delete(
+        f"{VOCAB}/cards/{card['id']}/", headers=other_auth_headers
+    )
     assert response.status_code == 404, response.text
 
 

@@ -23,7 +23,9 @@ from app.schemas.vocabulary import (  # noqa: F401  (реекспорт для �
 
 
 class TrackReviewRequestSchema(BaseModel):
-    rating: int = Field(ge=1, le=4, description="1=Не згадав, 2=Важко, 3=Добре, 4=Легко")
+    rating: int = Field(
+        ge=1, le=4, description="1=Не згадав, 2=Важко, 3=Добре, 4=Легко"
+    )
     review_duration: int | None = Field(
         default=None, ge=0, description="Мілісекунди від показу картки до оцінки"
     )
@@ -247,7 +249,7 @@ class StudySettingsUpdateSchema(BaseModel):
             return value
         try:
             ZoneInfo(value)
-        except (ZoneInfoNotFoundError, ValueError):
+        except ZoneInfoNotFoundError, ValueError:
             raise PydanticCustomError(
                 "timezone_unknown",
                 "Unknown IANA timezone name.",

@@ -30,8 +30,7 @@ import argparse
 import asyncio
 import sys
 
-from sqlalchemy import delete, select
-
+from app.cruds import ai as ai_crud
 from app.database.database import async_session_maker
 from app.database.models import (
     AiAccessModel,
@@ -39,7 +38,7 @@ from app.database.models import (
     UserModel,
     UserSettingsModel,
 )
-from app.cruds import ai as ai_crud
+from sqlalchemy import delete, select
 
 
 async def _user_id_by_email(session, email: str) -> int | None:
@@ -94,7 +93,9 @@ async def _cmd_list(session) -> int:
     return 0
 
 
-async def _cmd_grant(session, email: str, by_email: str | None, note: str | None) -> int:
+async def _cmd_grant(
+    session, email: str, by_email: str | None, note: str | None
+) -> int:
     user_id = await _user_id_by_email(session, email)
     if user_id is None:
         print(f"Користувача {email} немає.", file=sys.stderr)
@@ -187,7 +188,9 @@ def main() -> None:
 
     grant = sub.add_parser("grant", help="Видати доступ до ШІ.")
     grant.add_argument("--email", required=True)
-    grant.add_argument("--by", help="Пошта того, хто видає. Лишається в журналі видачі.")
+    grant.add_argument(
+        "--by", help="Пошта того, хто видає. Лишається в журналі видачі."
+    )
     grant.add_argument("--note", help="Навіщо видано — щоб через рік було зрозуміло.")
 
     revoke = sub.add_parser("revoke", help="Зняти доступ до ШІ.")

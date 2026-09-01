@@ -1,0 +1,436 @@
+/* ==========================================================================
+   Компоненти. Правила палітри — у theme.css (ADR-0012): насичений колір лише
+   з рампи сяйва, хром — холодні нейтралі, семафора немає ніде.
+
+   Дисплейною гарнітурою (Unbounded) набрано рівно чотири речі: слово в
+   навчанні, велике число на «Сьогодні», заголовки екранів і відповідь. Усе
+   інше — Onest. Дисплейна гарнітура втрачає силу рівно тоді, коли нею
+   починають набирати підписи.
+   ========================================================================== */
+
+.screen {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px var(--pad) 32px;
+  min-height: 0;
+}
+
+/* Смуга дій екрана — сестра `.screen`, а не його вміст: усередині вона їхала б
+   геть разом із прокруткою. Стоїть над панеллю вкладок, коли та є.
+
+   Своєї safe-area не має навмисно: під вкладками її вже дали вони, а на екранах
+   без вкладок (чужий список за посиланням) внизу немає нічого, тож відступ
+   дається тут через :last-child. */
+.screen-foot {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--edge);
+  background: var(--night);
+  padding: 12px var(--pad);
+}
+
+.screen-foot:last-child {
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
+/* Шапка екрана: рубрика й заголовок ліворуч, аватар праворуч. Профіль живе
+   саме тут, а не вкладкою: у нього заходять раз на місяць. */
+.screen-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Ліва половина шапки: шеврон «назад» і заголовок в одному рядку. Шеврон
+   висунуто в поле відступу (-8px), щоб заголовок лишався на тій самій
+   вертикалі, що й на екранах без нього. */
+.screen-head-main {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.screen-back {
+  margin-left: -8px;
+}
+
+/* Два органи в правому куті шапки — це тільки «Словник»: «Списки» й аватар.
+   Скрізь інде там стоїть щось одне. */
+.head-tools {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Єдина кольорова іконка застосунку: штрих залито стрічкою сяйва (див.
+   `ListsIcon`).
+
+   24px, а не 18px типових для `.icon-btn`: поруч стоїть аватар — коло 38px із
+   фотографією, — і штрихова іконка при однаковій із ним дотиковій цілі
+   виглядала поруч удвічі меншою. Полотно кнопки лишається 38px, росте тільки
+   малюнок. */
+.head-lists svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Число в правому куті шапки — голос чисел, як усі лічильники: табличні
+   цифри, без капсу (ADR-0022, ADR-0033). Стоїть там, де
+   на «Сьогодні» аватар, і зайняло місце, що звільнила рубрика. */
+.head-count {
+  flex: none;
+  font-family: var(--sans);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-meta);
+  color: var(--haze-2);
+  padding-top: 8px;
+  white-space: nowrap;
+}
+
+/* Ініціал — гліф, а не текст: його кегль міряється кружечком, у якому він
+   стоїть, тому шкалі ADR-0033 він не підлягає. */
+.avatar {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  /* Без цього фото вилазить за скруглення і коло стає квадратом. */
+  overflow: hidden;
+  border: 1px solid var(--edge);
+  background: var(--sheet);
+  color: var(--haze);
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-shadow: var(--lift);
+}
+
+/* --- поля --------------------------------------------------------------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.field > label {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--haze-2);
+}
+
+.field > input,
+.v-search,
+.ed-inline input,
+.ed-word-field > input,
+.ed-cat,
+.ed-body,
+.ed-list-trigger {
+  width: 100%;
+  border: 1px solid var(--edge);
+  background: var(--sheet);
+  border-radius: var(--r-sm);
+  padding: 14px 15px;
+  font-size: var(--t-lead); /* менше 16px — і iOS збільшує сторінку на фокусі */
+  font-family: var(--sans);
+  color: var(--frost);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.field > input::placeholder,
+.v-search::placeholder,
+.ed-inline input::placeholder,
+.ed-cat::placeholder,
+.ed-body::placeholder {
+  color: var(--haze-2);
+}
+
+.field > input:focus,
+.v-search:focus,
+.ed-inline input:focus,
+.ed-cat:focus,
+.ed-body:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--a1) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--a1) 14%, transparent);
+}
+
+/* --- кнопки ------------------------------------------------------------- */
+
+.btn {
+  width: 100%;
+  border: none;
+  border-radius: var(--r-sm);
+  background: var(--frost);
+  color: var(--night);
+  font-family: var(--sans);
+  font-size: var(--t-lead);
+  font-weight: 600;
+  padding: 16px;
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    opacity 0.12s ease;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+/* Вимкнена головна кнопка — власний колір, а не прозорість.
+   `opacity: 0.4` тут не працює в обох темах одразу: заливка `--frost` і напис
+   `--night` світлішають чи темнішають РАЗОМ, тож і контраст між ними падає
+   разом із помітністю. На світлій темі виходило 2.3:1 — сірий блок із блідим
+   написом, який читався радше як активна кнопка, ніж як вимкнена. */
+.btn:disabled {
+  background: var(--sheet-2);
+  color: var(--haze);
+  cursor: default;
+}
+
+.btn-quiet {
+  width: 100%;
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--haze);
+  font-family: var(--sans);
+  font-size: var(--t-body);
+  padding: 14px;
+  cursor: pointer;
+}
+
+.btn-quiet:active {
+  background: var(--sheet);
+}
+
+.btn-link {
+  border: none;
+  background: none;
+  color: var(--haze);
+  font-family: var(--sans);
+  font-size: var(--t-body);
+  padding: 6px 2px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Кнопка-іконка. Використовується там, де слово коштувало б рядка: «олівець»
+   у перегляді картки, «×» у навчанні, «‹» в аркуші. */
+.icon-btn {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--edge);
+  border-radius: 12px;
+  background: var(--sheet);
+  color: var(--frost);
+  cursor: pointer;
+  padding: 0;
+}
+
+.icon-btn:active {
+  background: var(--sheet-2);
+}
+
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.icon-btn-bare {
+  border-color: transparent;
+  background: none;
+  color: var(--haze);
+}
+
+/* --- динамік ------------------------------------------------------------ */
+
+/* Один орган у шести місцях. Рамки й тла немає навмисно: він стоїть поруч із
+   текстом, який і є головним, — і мусить читатись як позначка на полі, а не як
+   друга кнопка поруч зі словом.
+
+   Дотикова ціль більша за саму іконку: 34–40px проти 16–20px. Промах тут не
+   коштує нічого, але й влучати мусить палець, а не курсор. */
+.spk {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0 0 0 2px;
+  color: var(--haze-2);
+  cursor: pointer;
+}
+
+.spk svg {
+  width: 16px;
+  height: 16px;
+}
+
+.spk-md {
+  width: 40px;
+  height: 40px;
+}
+
+.spk-md svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Друга хвиля й колір рампи — поки звучить голос. Це не прикраса: синтез
+   інколи мовчки не спрацьовує, і без цієї ознаки кнопка виглядала б однаково
+   зламаною і тоді, коли працює зі стишеним телефоном. */
+.spk .spk-wave {
+  opacity: 0;
+  transition: opacity 0.14s ease;
+}
+
+.spk[data-on] {
+  color: var(--a1);
+}
+
+.spk[data-on] .spk-wave {
+  opacity: 1;
+}
+
+.spk:active {
+  color: var(--frost);
+}
+
+/* Праворуч у рядку форми — після мітки, значення й транскрипції. */
+.spk-end {
+  margin-left: auto;
+}
+
+/* На письмовій лінійці поля «слово» в редакторі. */
+.spk-on-rule {
+  position: absolute;
+  right: 0;
+  bottom: 4px;
+}
+
+/* --- повідомлення ------------------------------------------------------- */
+
+.msg {
+  border-radius: var(--r-sm);
+  padding: 13px 15px;
+  font-size: var(--t-body);
+  line-height: 1.5;
+  margin-bottom: 16px;
+  background: var(--sheet);
+  border: 1px solid var(--edge);
+  color: var(--haze);
+}
+
+/* Помилка не червона (ADR-0012): вона позначена лінією й повним контрастом
+   тексту. Червоний тут відкрив би семафор, а разом із ним — зелену «Добре». */
+.msg-error {
+  border-left: 2px solid var(--a0);
+  color: var(--frost);
+}
+
+.hint {
+  font-size: var(--t-sub);
+  color: var(--haze-2);
+  line-height: 1.55;
+  margin: 0 0 20px;
+}
+
+.hint-center {
+  text-align: center;
+  margin-top: 14px;
+}
+
+/* --- смуга офлайну ------------------------------------------------------ */
+
+.offline-bar {
+  flex: none;
+  background: var(--sheet);
+  border-bottom: 1px solid var(--edge);
+  color: var(--haze);
+  font-size: var(--t-meta);
+  text-align: center;
+  padding: 8px 14px;
+}
+
+/* --- панель вкладок ----------------------------------------------------- */
+
+.tabs {
+  flex: none;
+  display: flex;
+  border-top: 1px solid var(--edge);
+  background: var(--night);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.tabs a {
+  position: relative;
+  flex: 1;
+  color: var(--haze-2);
+  font-size: var(--t-label);
+  padding: 12px 2px 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.tabs a.active {
+  color: var(--frost);
+}
+
+/* Активна вкладка позначена шматочком тієї самої стрічки — четверта поява
+   підпис-елемента, найтихіша. */
+.tabs a.active::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 26px;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: var(--aurora);
+}
+
+.tabs svg {
+  width: 19px;
+  height: 19px;
+}
+
+.stub {
+  margin-top: 24px;
+  padding: 18px 16px;
+  border: 1px dashed var(--edge);
+  border-radius: var(--r);
+  color: var(--haze-2);
+  font-size: var(--t-body);
+  line-height: 1.55;
+}
+

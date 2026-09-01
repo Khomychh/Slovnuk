@@ -34,17 +34,14 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
-from fsrs import Rating
-from sqlalchemy import delete, select
-
 from app.database.database import async_session_maker
 from app.database.models import (
-    CardListLinkModel,
-    CardModel,
     DEFAULT_DAILY_COMBINED_GOAL,
     DEFAULT_DAILY_NEW_GOAL,
     DEFAULT_DAILY_REVIEW_GOAL,
     DEFAULT_DESIRED_RETENTION,
+    CardListLinkModel,
+    CardModel,
     GoalModeEnum,
     GrammarNoteModel,
     NoteCategoryModel,
@@ -68,6 +65,8 @@ from app.database.models import (
 from app.services.library import snapshot_rows
 from app.services.scheduler import review_track
 from app.services.vocabulary import ensure_tracks
+from fsrs import Rating
+from sqlalchemy import delete, select
 
 TAKER_PASSWORD = "TakerPass123!"
 TAKER_COUNT = 3  # = RATING_VISIBILITY_THRESHOLD, щоб одразу перевірити й межу видимості рейтингу

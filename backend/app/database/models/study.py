@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import (
     BigInteger,
@@ -20,7 +20,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.models import Base, TimestampMixin
 from app.database.models.enums import GoalModeEnum, ReviewKindEnum, ReviewStateEnum
-
 
 if TYPE_CHECKING:
     from app.database.models.accounts import UserModel
@@ -73,7 +72,9 @@ class ReviewTrackModel(Base, TimestampMixin):
         ForeignKey("cards.id", ondelete="CASCADE"), nullable=False
     )
 
-    card: Mapped["CardModel"] = relationship("CardModel", back_populates="review_tracks")
+    card: Mapped["CardModel"] = relationship(
+        "CardModel", back_populates="review_tracks"
+    )
     logs: Mapped[List["ReviewLogModel"]] = relationship(
         "ReviewLogModel", back_populates="track", cascade="all, delete-orphan"
     )
@@ -142,7 +143,9 @@ class ReviewLogModel(Base):
     )
 
     user: Mapped["UserModel"] = relationship("UserModel", back_populates="review_logs")
-    track: Mapped["ReviewTrackModel"] = relationship("ReviewTrackModel", back_populates="logs")
+    track: Mapped["ReviewTrackModel"] = relationship(
+        "ReviewTrackModel", back_populates="logs"
+    )
 
     __table_args__ = (
         CheckConstraint("rating BETWEEN 1 AND 4", name="ck_review_logs_rating_range"),
@@ -217,6 +220,4 @@ class StudyDayModel(Base, TimestampMixin):
     )
 
     def __repr__(self):
-        return (
-            f"<StudyDayModel(id={self.id}, day={self.day}, is_goal_met={self.is_goal_met})>"
-        )
+        return f"<StudyDayModel(id={self.id}, day={self.day}, is_goal_met={self.is_goal_met})>"

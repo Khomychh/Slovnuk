@@ -60,16 +60,30 @@ import { useSettings } from "../study/queries";
  * його рахував, а фронтенд не показував ніде.
  *
  * Ключі — з `stability_bands` бекенду, і перейменовувати їх не можна: смуга
- * читає відповідь саме ними.
+ * читає відповідь саме ними. А от СКЛАДАТИ їх можна й треба.
+ *
+ * Бекенд і далі рахує шість діапазонів; смуга показує чотири, бо шість
+ * кольорів на одній смузі (і тим паче на рисці словника в 3px) не
+ * розрізняються — див. рампу в `theme.css`. Кожна зупинка тут просто сумує ті
+ * ключі, що під неї підпадають, тож сума всіх чотирьох, як і раніше, дорівнює
+ * кількості карток, і підпис «608 слів» не бреше.
+ *
+ * Склеєні пари обрані так, щоб МЕЖА ВИВЧЕНОГО (6 днів, `LEARNED_STABILITY_DAYS`)
+ * лишилась межею між зупинками: «пригадую» — це все до неї, «знаю» — одразу
+ * після. Інакше смуга й лічильник вивчених розійшлися б.
  */
 const BANDS = [
-  { key: "new", name: "не вчив", token: "--a0" },
-  { key: "under_day", name: "ледь памʼятаю", token: "--a1" },
-  { key: "days", name: "пригадую", token: "--a2" },
-  { key: "weeks", name: "знаю", token: "--a3" },
-  { key: "months", name: "добре знаю", token: "--a4" },
-  { key: "long", name: "знаю назубок", token: "--a5" },
+  { keys: ["new"], name: "не вчив", token: "--a0" },
+  { keys: ["under_day", "days"], name: "пригадую", token: "--a1" },
+  { keys: ["weeks"], name: "знаю", token: "--a2" },
+  { keys: ["months", "long"], name: "добре знаю", token: "--a3" },
 ] as const;
+
+/** Сума ключів бекенду, що лежать під однією зупинкою рампи. */
+const bandTotal = (
+  bands: Record<string, number> | undefined,
+  keys: readonly string[],
+) => keys.reduce((sum, key) => sum + (bands?.[key] ?? 0), 0);
 
 const WEEKDAYS = ["пн", "вт", "ср", "чт", "пт", "сб", "нд"];
 
@@ -179,9 +193,9 @@ export default function ProgressScreen() {
       <div className="band" aria-label="Слова за тим, наскільки добре вивчені">
         {BANDS.map((band) => (
           <i
-            key={band.key}
+            key={band.name}
             style={{
-              flexGrow: bands ? bands[band.key] : 1,
+              flexGrow: bands ? bandTotal(bands, band.keys) : 1,
               // Саме backgroundColor, а не background: інакше воно затерло б
               // внутрішній градієнт світла з ui.css.
               backgroundColor: `var(${band.token})`,
@@ -192,13 +206,15 @@ export default function ProgressScreen() {
 
       <div className="legend">
         {BANDS.map((band) => (
-          <div className="leg" key={band.key}>
+          <div className="leg" key={band.name}>
             <span
               className="leg-sw"
               style={{ background: `var(${band.token})` }}
             />
             <span className="leg-n">{band.name}</span>
-            <span className="leg-v">{bands ? bands[band.key] : "—"}</span>
+            <span className="leg-v">
+              {bands ? bandTotal(bands, band.keys) : "—"}
+            </span>
           </div>
         ))}
       </div>

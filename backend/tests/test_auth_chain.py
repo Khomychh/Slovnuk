@@ -7,12 +7,11 @@
 `bcrypt>=5`, повністю й тихо, і саме його першим смикне фронтенд.
 """
 
+from app.database.models import UserModel
+from app.database.models.accounts import ActivationTokenModel
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.database.models import UserModel
-from app.database.models.accounts import ActivationTokenModel
 
 EMAIL = "newcomer@example.com"
 PASSWORD = "Qwerty!23456"
@@ -40,8 +39,10 @@ async def test_register_activate_login_refresh_me(
 
     # користувач створений неактивним
     user = (
-        await db_session.execute(select(UserModel).where(UserModel.email == EMAIL))
-    ).scalars().first()
+        (await db_session.execute(select(UserModel).where(UserModel.email == EMAIL)))
+        .scalars()
+        .first()
+    )
     assert user is not None
     assert user.is_active is False
 
@@ -55,10 +56,16 @@ async def test_register_activate_login_refresh_me(
 
     # --- активація --------------------------------------------------------
     token_record = (
-        await db_session.execute(
-            select(ActivationTokenModel).where(ActivationTokenModel.user_id == user.id)
+        (
+            await db_session.execute(
+                select(ActivationTokenModel).where(
+                    ActivationTokenModel.user_id == user.id
+                )
+            )
         )
-    ).scalars().first()
+        .scalars()
+        .first()
+    )
     assert token_record is not None
 
     response = await client.post(

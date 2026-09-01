@@ -5,13 +5,13 @@ from sqlalchemy.orm import joinedload
 
 from app.config.dependencies import get_jwt_auth_manager, get_s3_storage_client
 from app.database.database import get_db
-from app.database.models.accounts import UserModel, UserGroupEnum, UserProfileModel
-from app.exceptions import BaseSecurityError, BaseS3Error, S3FileNotFoundError
+from app.database.models.accounts import UserGroupEnum, UserModel, UserProfileModel
+from app.exceptions import BaseS3Error, BaseSecurityError, S3FileNotFoundError
 from app.schemas.profiles import (
+    AvatarUpdateSchema,
     ProfileCreateSchema,
     ProfileResponseSchema,
     ProfileUpdateSchema,
-    AvatarUpdateSchema,
 )
 from app.security.http import get_token
 from app.security.interfaces import JWTAuthManagerInterface
@@ -92,7 +92,10 @@ async def create_profile(
     if not target_user or not target_user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "user_not_found", "message": "User not found or not active."},
+            detail={
+                "code": "user_not_found",
+                "message": "User not found or not active.",
+            },
         )
 
     # Перевірка наявності профілю
@@ -102,7 +105,10 @@ async def create_profile(
     if existing_profile:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "profile_already_exists", "message": "User already has a profile."},
+            detail={
+                "code": "profile_already_exists",
+                "message": "User already has a profile.",
+            },
         )
 
     # Збереження аватара
@@ -189,7 +195,10 @@ async def update_profile(
     if not target_user or not target_user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "user_not_found", "message": "User not found or not active."},
+            detail={
+                "code": "user_not_found",
+                "message": "User not found or not active.",
+            },
         )
 
     # Оновлення або створення профілю
@@ -260,7 +269,10 @@ async def update_profile_avatar(
     if not target_user or not target_user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "user_not_found", "message": "User not found or not active."},
+            detail={
+                "code": "user_not_found",
+                "message": "User not found or not active.",
+            },
         )
 
     stmt = select(UserProfileModel).filter_by(user_id=user_id)
@@ -340,7 +352,10 @@ async def delete_profile_avatar(
     if not target_user or not target_user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "user_not_found", "message": "User not found or not active."},
+            detail={
+                "code": "user_not_found",
+                "message": "User not found or not active.",
+            },
         )
 
     stmt = select(UserProfileModel).filter_by(user_id=user_id)
@@ -349,7 +364,10 @@ async def delete_profile_avatar(
     if not profile or not profile.avatar:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "avatar_not_found", "message": "This profile has no avatar to delete."},
+            detail={
+                "code": "avatar_not_found",
+                "message": "This profile has no avatar to delete.",
+            },
         )
 
     try:

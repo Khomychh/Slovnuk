@@ -19,11 +19,10 @@ GROUP BY на боці Postgres — інакше «за весь час» кош
 from datetime import date, datetime, timedelta, timezone
 
 import pytest
-from sqlalchemy import func, literal, select
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-
 from app.config.dependencies import get_settings
 from app.services.study_day import local_day, local_day_bounds, resolve_timezone
+from sqlalchemy import func, literal, select
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 # Київ переходить на літній час в останню неділю березня (доба 23 години) і на
 # зимовий — в останню неділю жовтня (доба 25 годин).
@@ -66,7 +65,9 @@ async def test_postgres_and_python_agree_on_day_bounds(session, tz_name, day):
     start, end = local_day_bounds(day, tz)
 
     assert await _postgres_local_day(session, start, tz_name) == day
-    assert await _postgres_local_day(session, end - timedelta(seconds=1), tz_name) == day
+    assert (
+        await _postgres_local_day(session, end - timedelta(seconds=1), tz_name) == day
+    )
     assert await _postgres_local_day(session, end, tz_name) == day + timedelta(days=1)
 
 
