@@ -16,8 +16,20 @@
  * (`--sheet`), рамка, радіус і синє кільце на фокусі — та сама модель, що в
  * `.field` решти застосунку (`base.css`). Раніше тут діяло правило «поверхня
  * одна»: поля без рамки й тла, самі плейсхолдером і курсором, — і на екран не
- * було видно, куди писати. Підпис поля (`ed-field-cap`) — тихий рядок, не
- * капітель: капітеллю лишається рубрика розділу. Слово підпису не має.
+ * було видно, куди писати.
+ *
+ * ОДИН СПОСІБ ПІДПИСАТИ ПОЛЕ. Їх було три одночасно: капітель над розділом,
+ * `ed-field-cap` над половиною полів і плейсхолдер усередині другої половини
+ * («частина мови», «транскрипція», «мітка»). Плейсхолдер зникає при вводі,
+ * тобто заповнена картка лишалась без підписів рівно тоді, коли її відкрили
+ * правити. Тепер `ed-field-cap` стоїть над КОЖНИМ полем, а плейсхолдер —
+ * тільки там, де показує формат, а не називає поле («приклад | переклад»).
+ * Порожній вибір при цьому називає свій стан («не вказана», «без мітки»), а не
+ * поле, бо поле вже підписане зверху.
+ *
+ * Слово підпису не має: порожня лінійка дисплейною гарнітурою ні з чим не
+ * сплутати, а капітель над героєм була б зайвим рядком шуму над найпершим, що
+ * видно на екрані.
  *
  * ПРАВА КОЛОНКА ПОСТІЙНА. `−` у кожного рядка, `+` у підвалі — одна вертикаль
  * на всю панель. «×» стояв лише там, де було що прибирати, тож права межа
@@ -203,7 +215,7 @@ function FormLabelField({
         aria-label="Мітка форми"
         onClick={() => setPicking(true)}
       >
-        <span className="ed-pick-val">{value || "мітка"}</span>
+        <span className="ed-pick-val">{value || "без мітки"}</span>
         <ChevronIcon />
       </button>
 
@@ -737,6 +749,7 @@ export default function CardEditScreen({
                 {/* Не рідний `<select>`: на Android система малює його на весь
                     екран, і картка, заради якої його відкрили, зникає (ADR-0031). */}
                 <div className="ed-field">
+                  <span className="ed-field-cap">Частина мови</span>
                   <button
                     type="button"
                     className={
@@ -748,16 +761,16 @@ export default function CardEditScreen({
                     <span className="ed-pick-val">
                       {sense.partOfSpeech
                         ? POS_LABELS[sense.partOfSpeech]
-                        : "частина мови"}
+                        : "не вказана"}
                     </span>
                     <ChevronIcon />
                   </button>
                 </div>
                 <label className="ed-field">
+                  <span className="ed-field-cap">Транскрипція</span>
                   <input
                     className="ed-ipa"
                     aria-label="Транскрипція"
-                    placeholder="транскрипція"
                     autoCapitalize="none"
                     autoCorrect="off"
                     spellCheck={false}
@@ -868,16 +881,17 @@ export default function CardEditScreen({
                 {/* Та сама мала пара, що в значенні: мітка й транскрипція. */}
                 <div className="ed-row">
                   <div className="ed-field">
+                    <span className="ed-field-cap">Мітка</span>
                     <FormLabelField
                       value={form.label}
                       onChange={(label) => patchForm(index, { label })}
                     />
                   </div>
                   <label className="ed-field">
+                    <span className="ed-field-cap">Транскрипція</span>
                     <input
                       className="ed-ipa"
                       aria-label="Транскрипція форми"
-                      placeholder="транскрипція"
                       autoCapitalize="none"
                       autoCorrect="off"
                       spellCheck={false}
@@ -896,7 +910,7 @@ export default function CardEditScreen({
               type="button"
               onClick={() => patch({ forms: [...draft.forms, blankForm()] })}
             >
-              <span className="ed-foot-label">Ще форма</span>
+              <span className="ed-foot-label">Додати ще</span>
               <span className="ed-foot-act">
                 <AddIcon />
               </span>
@@ -908,7 +922,7 @@ export default function CardEditScreen({
             type="button"
             onClick={() => patch({ forms: [...draft.forms, blankForm()] })}
           >
-            <span className="ed-foot-label">Ще форма</span>
+            <span className="ed-foot-label">Додати іншу форму слова</span>
             <span className="ed-foot-act">
               <AddIcon />
             </span>

@@ -36,7 +36,7 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 13px;
+  font-size: var(--t-sub);
   color: var(--haze);
 }
 
@@ -53,10 +53,11 @@
 }
 
 .leg-v {
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--frost);
+  font-family: var(--sans);
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
+  font-size: var(--t-meta);
+  color: var(--frost);
 }
 
 /* --- плитки періодів ----------------------------------------------------- */
@@ -101,13 +102,21 @@
   border-left: 1px solid var(--edge);
 }
 
-/* 8px, а не 9.5px, і трекінг 0.08em, а не 0.14em: «ЗАГАЛОМ» — сім символів, і
-   на старих значеннях воно переносилось у другий рядок на вузькому телефоні.
-   Повні слова тут важливіші за розрідженість — «ТИЖД» вимагало б розгадування. */
+/* Найдрібніша сходинка шкали (`--t-micro`), а не звичайна рубрика: «ЗАГАЛОМ» —
+   сім символів у слоті завширшки чверть екрана, і на кеглі рубрики воно вже
+   переносилось у другий рядок на вузькому телефоні. Повні слова тут важливіші
+   за розрідженість — «ТИЖД» вимагало б розгадування.
+
+   Саме через цей слот `--t-micro` лишився 8px при переході на Onest, а
+   `--track-micro` став 0.06em: на 9px/0.12em «ЗАГАЛОМ» виходило 52px проти
+   62px слота на телефоні 320px — шість пікселів запасу на всю сітку. Тепер
+   43px, тобто рівно те, що тут і трималось. Читається воно при цьому краще:
+   капітель Onest на 8px вища за моноширинну на тому ж кеглі. */
 .tile-lbl {
-  font-family: var(--mono);
-  font-size: 8px;
-  letter-spacing: 0.08em;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: var(--t-micro);
+  letter-spacing: var(--track-micro);
   text-transform: uppercase;
   color: var(--haze-2);
   white-space: nowrap;
@@ -115,9 +124,9 @@
 
 .tile-num {
   font-family: var(--display);
-  font-size: 22px;
+  font-size: var(--t-head);
   font-weight: 600;
-  letter-spacing: -0.04em;
+  letter-spacing: var(--track-head);
   line-height: 1;
   font-variant-numeric: tabular-nums;
   color: var(--haze);
@@ -172,12 +181,13 @@
   border-top-left-radius: 3px;
 }
 
-/* Той самий моно-капс, що в рубриках екранів: шапка панелі позначає, про що
+/* Той самий капс, що в рубриках екранів: шапка панелі позначає, про що
    вона, а не говорить. */
 .pd-head {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.12em;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--haze-2);
   padding-bottom: 9px;
@@ -198,12 +208,12 @@
 }
 
 .pd-lbl {
-  font-size: 13px;
+  font-size: var(--t-sub);
   color: var(--haze);
 }
 
 .pd-val {
-  font-size: 14px;
+  font-size: var(--t-body);
   color: var(--frost);
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -216,7 +226,7 @@
 }
 
 .pd-empty {
-  font-size: 13px;
+  font-size: var(--t-sub);
   color: var(--haze-2);
   margin: 10px 0 2px;
 }
@@ -294,9 +304,10 @@
   min-width: 0;
   text-align: center;
   white-space: nowrap;
-  font-family: var(--mono);
-  font-size: 8px;
-  letter-spacing: 0.04em;
+  font-family: var(--sans);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-micro);
   color: var(--haze-2);
 }
 
@@ -308,9 +319,10 @@
 }
 
 .cal-h {
-  font-family: var(--mono);
-  font-size: 9px;
-  letter-spacing: 0.1em;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: var(--t-micro);
+  letter-spacing: var(--track-micro);
   text-transform: uppercase;
   color: var(--haze-2);
   text-align: center;
@@ -359,7 +371,7 @@ button.cal-c {
 }
 
 .explain {
-  font-size: 13px;
+  font-size: var(--t-sub);
   color: var(--haze-2);
   line-height: 1.55;
   margin-top: 18px;

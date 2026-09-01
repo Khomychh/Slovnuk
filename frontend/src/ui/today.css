@@ -61,9 +61,10 @@
 
 .hero-lbl {
   display: block;
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--haze-2);
 }
@@ -71,10 +72,10 @@
 .hero-num {
   display: block;
   font-family: var(--display);
-  font-size: 54px;
+  font-size: var(--t-num);
   font-weight: 600;
   line-height: 1;
-  letter-spacing: -0.05em;
+  letter-spacing: var(--track-num);
   margin-top: 8px;
   font-variant-numeric: tabular-nums;
 }
@@ -82,10 +83,10 @@
 .hero-word {
   display: block;
   font-family: var(--display);
-  font-size: 27px;
+  font-size: var(--t-hero);
   font-weight: 500;
   line-height: 1.1;
-  letter-spacing: -0.03em;
+  letter-spacing: var(--track-hero);
   margin-top: 8px;
 }
 
@@ -94,7 +95,7 @@
    під неї. */
 .hero-sub {
   display: block;
-  font-size: 13px;
+  font-size: var(--t-sub);
   color: var(--haze);
   margin-top: 10px;
   padding-right: 40px;
@@ -214,7 +215,7 @@
   background: var(--night);
   color: var(--frost);
   font-family: var(--sans);
-  font-size: 14px;
+  font-size: var(--t-body);
 }
 
 .aim-search::placeholder {
@@ -237,7 +238,7 @@
   background: none;
   color: var(--haze);
   font-family: var(--sans);
-  font-size: 14.5px;
+  font-size: var(--t-body);
   text-align: left;
   cursor: pointer;
 }
@@ -260,10 +261,11 @@
 }
 
 .aim-pick-num {
-  font-family: var(--mono);
-  font-size: 11.5px;
-  color: var(--haze-2);
+  font-family: var(--sans);
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
+  font-size: var(--t-meta);
+  color: var(--haze-2);
 }
 
 /* Список, із якого сьогодні нічого не показати. Не вимкнений: вибрати його
@@ -292,7 +294,7 @@
   background: none;
   color: var(--haze-2);
   font-family: var(--sans);
-  font-size: 13px;
+  font-size: var(--t-sub);
   text-align: left;
   cursor: pointer;
 }
@@ -341,7 +343,7 @@
   background: none;
   color: var(--haze);
   font-family: var(--sans);
-  font-size: 13.5px;
+  font-size: var(--t-sub);
   line-height: 1;
   white-space: nowrap;
   cursor: pointer;
@@ -404,15 +406,16 @@
 }
 
 .goal-label {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--haze-2);
 }
 
 .goal-num {
-  font-size: 13.5px;
+  font-size: var(--t-sub);
   color: var(--haze);
   font-variant-numeric: tabular-nums;
 }
@@ -424,7 +427,7 @@
 
 .goal-off {
   color: var(--haze-2);
-  font-size: 12.5px;
+  font-size: var(--t-meta);
 }
 
 .goal-track {
@@ -453,7 +456,7 @@
    ціль, тож вона тихіша за все навколо — і за підпис смужки теж. */
 .goal-note {
   margin-top: 7px;
-  font-size: 12px;
+  font-size: var(--t-meta);
   color: var(--haze-2);
   font-variant-numeric: tabular-nums;
 }
@@ -505,9 +508,10 @@
 }
 
 .week-lbl {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.1em;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
   color: var(--haze-2);
 }
 
@@ -532,15 +536,16 @@
 }
 
 .fold-label {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--haze-2);
 }
 
 .fold-value {
-  font-size: 14px;
+  font-size: var(--t-body);
   color: var(--haze);
 }
 
@@ -566,7 +571,7 @@
   color: var(--haze);
   border-radius: 999px;
   padding: 8px 14px;
-  font-size: 14px;
+  font-size: var(--t-body);
   font-family: var(--sans);
   cursor: pointer;
   display: inline-flex;
@@ -584,7 +589,7 @@
 .chip-sm {
   min-height: 40px;
   padding: 0 14px;
-  font-size: 13.5px;
+  font-size: var(--t-sub);
   color: var(--haze-2);
 }
 

@@ -55,7 +55,7 @@
   background: none;
   color: var(--haze-2);
   font-family: var(--sans);
-  font-size: 14.5px;
+  font-size: var(--t-body);
   padding: 8px 4px 11px;
   cursor: pointer;
 }
@@ -76,8 +76,10 @@
 }
 
 .half-count {
-  font-family: var(--mono);
-  font-size: 11px;
+  font-family: var(--sans);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-meta);
   color: var(--haze-2);
 }
 
@@ -139,7 +141,7 @@
 }
 
 .pub-title {
-  font-size: 15.5px;
+  font-size: var(--t-body);
   font-weight: 500;
   color: var(--frost);
   overflow: hidden;
@@ -155,7 +157,7 @@
    ньому тримається ритм списку — інакше картки стрибали б у висоті залежно від
    довжини слів. Обрізане слово читається як «і далі», що правда й є. */
 .pub-words {
-  font-size: 13.5px;
+  font-size: var(--t-sub);
   color: var(--haze);
   margin-top: 5px;
   white-space: nowrap;
@@ -169,7 +171,7 @@
   margin: 0 5px;
 }
 
-/* Числа — свій голос: моноширинний, без капсу (ADR-0022). Їх звіряють між
+/* Числа — свій голос: табличні цифри, без капсу (ADR-0022, ADR-0033). Їх звіряють між
    картками поглядом згори вниз, і пропорційний шрифт зсував би стовпчик на
    кожній цифрі. Капс тут був би криком: «54 СЛОВА ВЗЯЛИ 128» читається голосно
    й повільно, а це підрядок. */
@@ -178,8 +180,10 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: 14px;
-  font-family: var(--mono);
-  font-size: 12px;
+  font-family: var(--sans);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-meta);
   color: var(--haze);
   margin-top: 12px;
 }
@@ -206,10 +210,10 @@
 
 /* Люди й дати — звичайним шрифтом і окремим рядком (ADR-0022). Це не дані, а
    підпис, і читають його зліва направо один раз, а не звіряють між картками.
-   Доки автор стояв у тій самій моноширинній стрічці, що й числа, «Іван Хомич»
+   Доки автор стояв у тій самій стрічці табличних цифр, що й числа, «Іван Хомич»
    виглядав як ще одне поле таблиці. */
 .pub-by {
-  font-size: 12.5px;
+  font-size: var(--t-meta);
   color: var(--haze-2);
   margin-top: 5px;
 }
@@ -217,7 +221,7 @@
 /* Походження похідної публікації. Мусить бути видно, але не сперечатись за
    увагу з назвою: це виноска, а не заголовок. */
 .pub-derived {
-  font-size: 12px;
+  font-size: var(--t-meta);
   color: var(--haze-2);
   margin-top: 6px;
 }
@@ -225,7 +229,7 @@
 /* На сторінці публікації ті самі два голоси стоять під заголовком, тож дихають
    вільніше: тут вони шапка екрана, а не низ картки. */
 .pub-figures-page {
-  font-size: 13px;
+  font-size: var(--t-sub);
   margin-top: 16px;
 }
 
@@ -235,7 +239,7 @@
 
 .lib-desc-full {
   color: var(--haze);
-  font-size: 14px;
+  font-size: var(--t-body);
   line-height: 1.55;
   margin: 14px 0 0;
   overflow-wrap: anywhere;
@@ -293,14 +297,14 @@
   border: 1px solid var(--edge);
   border-radius: 8px;
   padding: 4px 9px;
-  font-size: 13px;
+  font-size: var(--t-sub);
   color: var(--haze);
   overflow-wrap: anywhere;
 }
 
 .lib-skipped-rest {
   align-self: center;
-  font-size: 12px;
+  font-size: var(--t-meta);
   color: var(--haze-2);
 }
 

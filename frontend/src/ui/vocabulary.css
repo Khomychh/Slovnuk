@@ -2,18 +2,31 @@
    Словник
    ========================================================================== */
 
+/* «431 слово · 7 списків» — це ЛІЧИЛЬНИК, тобто голос чисел (ADR-0022), а не
+   рубрика. Капс тут лишався від часів, коли ним було набрано все підряд, і
+   рядок через це читався як заголовок розділу, під яким нічого не написано.
+
+   Кегль піднявся на сходинку разом зі зняттям капсу, і це не окреме рішення:
+   `--t-label` міряний під капітель, у якої висота літери — це висота великої
+   (0.71em). У нижньому регістрі та сама сходинка дала б 0.53em, тобто рядок
+   став би на чверть дрібнішим, лишившись на місці заголовка. `--t-meta` — та
+   сама сходинка, на якій стоять усі інші лічильники застосунку. */
 .v-summary {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: var(--t-meta);
+  font-variant-numeric: tabular-nums;
   color: var(--haze-2);
   margin: 20px 0 12px;
 }
 
+/* Кегль НЕ задається: поле бере `--t-lead` зі спільного правила `base.css`.
+   Тут стояло `--t-body` (15px), і, оскільки `vocabulary.css` імпортується
+   після `base.css` при однаковій специфічності, вигравало саме воно — тобто
+   поле пошуку було єдиним у застосунку, що порушувало правило «менше 16px — і
+   iOS збільшує сторінку на фокусі», яке той-таки `base.css` і документує. */
 .v-search {
   padding: 13px 15px;
-  font-size: 15px;
 }
 
 .v-search:disabled {
@@ -33,7 +46,7 @@
   color: var(--frost);
   border-radius: 999px;
   padding: 8px 14px;
-  font-size: 13px;
+  font-size: var(--t-sub);
   font-family: var(--sans);
   cursor: pointer;
 }
@@ -114,7 +127,7 @@
 }
 
 .v-word {
-  font-size: 16px;
+  font-size: var(--t-lead);
   font-weight: 500;
   /* До двох рядків: у словнику є «слова» на 61 символ — цілі речення. */
   display: -webkit-box;
@@ -125,16 +138,17 @@
 
 .v-ipa {
   color: var(--haze-2);
-  font-size: 12.5px;
+  font-size: var(--t-meta);
   font-family: var(--ipa);
 }
 
 .v-tag {
   margin-left: auto;
   color: var(--haze-2);
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.1em;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   border: 1px solid var(--edge);
   border-radius: 999px;
@@ -145,7 +159,7 @@
 .v-tr {
   display: block;
   color: var(--haze);
-  font-size: 14px;
+  font-size: var(--t-body);
   margin-top: 4px;
   white-space: nowrap;
   overflow: hidden;
@@ -200,7 +214,7 @@
 
 .v-lists-line {
   color: var(--haze);
-  font-size: 13px;
+  font-size: var(--t-sub);
   margin-bottom: 16px;
 }
 
@@ -313,9 +327,9 @@
    заголовок і мусить одразу сказати, що станеться: «Додасться 12 із 54 слів». */
 .sheet-title {
   font-family: var(--display);
-  font-size: 19px;
+  font-size: var(--t-title);
   font-weight: 500;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--track-title);
   line-height: 1.25;
   color: var(--frost);
   margin-bottom: 12px;
@@ -350,7 +364,7 @@
   margin: 0;
   border-left: 2px solid var(--edge);
   padding-left: 12px;
-  font-size: 14.5px;
+  font-size: var(--t-body);
   line-height: 1.55;
   color: var(--haze);
 }
@@ -398,7 +412,7 @@
   border-bottom: 1px solid var(--edge-soft);
   color: var(--frost);
   font-family: var(--sans);
-  font-size: 15px;
+  font-size: var(--t-body);
   padding: 14px var(--pad);
   text-align: left;
   cursor: pointer;
@@ -410,8 +424,10 @@
 
 .sheet-count {
   color: var(--haze-2);
-  font-family: var(--mono);
-  font-size: 12px;
+  font-family: var(--sans);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-meta);
 }
 
 .sheet-muted {
@@ -422,7 +438,7 @@
    не називає варіант, а лише додає про нього. */
 .sheet-note {
   color: var(--haze-2);
-  font-size: 13px;
+  font-size: var(--t-sub);
 }
 
 /* Рампа на рядку «спершу холодні»: чотири зупинки зліва направо — це і є той
@@ -449,7 +465,7 @@
    колір рядка (`--frost` чи, коли рядок увімкнено, `--a3` з `.sheet-row-on`),
    тож не заводить третього значення насиченого кольору поряд із тими двома. */
 .sheet-check {
-  font-size: 16px;
+  font-size: var(--t-lead);
   min-width: 16px;
   text-align: right;
 }
@@ -462,9 +478,10 @@
 /* --- редактор ----------------------------------------------------------- */
 
 .ed-label {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--haze-2);
   margin: 24px 0 10px;
@@ -489,9 +506,10 @@
   align-items: center;
   gap: 12px;
   margin: 26px 0 10px;
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--haze-2);
 }
@@ -519,9 +537,9 @@
 .ed-word-field > input.ed-word,
 .field > input.ed-word {
   font-family: var(--display);
-  font-size: 26px;
+  font-size: var(--t-hero);
   font-weight: 500;
-  letter-spacing: -0.03em;
+  letter-spacing: var(--track-hero);
   background: none;
   border: none;
   border-bottom: 1px solid var(--edge);
@@ -557,7 +575,7 @@
    плейсхолдером і курсором, — і на екран не було видно, куди писати.
 
    Підпис поля (`.ed-field-cap`) — тихий рядок звичайним шрифтом, не капітель:
-   моно-капітель лишається за рубрикою розділу («ФОРМИ», «КОМЕНТАР»), щоб
+   капітель лишається за рубрикою розділу («ФОРМИ», «КОМЕНТАР»), щоб
    дюжина підписів полів не читалась дюжиною рубрик. Слово підпису не має
    зовсім.
 
@@ -604,20 +622,21 @@
   padding: 0 14px;
 }
 
-/* Рубрика розділу й підпис примітки — моно-капітель. Це СТРУКТУРА: вона
+/* Рубрика розділу й підпис примітки — капітель. Це СТРУКТУРА: вона
    позначає, а не говорить. */
 .ed-head-label,
 .ed-note-label {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--haze-2);
 }
 
 /* А підвал панелі — це КНОПКА, і набрана вона мусить бути інакше.
 
-   Була та сама моно-капітель, що в рубрики: на порожньому екрані створення
+   Була та сама капітель, що в рубрики: на порожньому екрані створення
    панель «Форми» складалась із двох сірих рядків — «ФОРМИ» і «ЩЕ ФОРМА», —
    однакового шрифту, кегля, трекінгу й кольору, за 47px один від одного.
    Один із них заголовок, другий орган керування, і відрізнити їх не було
@@ -628,7 +647,7 @@
    різницю видно боковим зором, не вчитуючись. */
 .ed-foot-label {
   font-family: var(--sans);
-  font-size: 14px;
+  font-size: var(--t-body);
   color: var(--haze);
 }
 
@@ -737,16 +756,36 @@
   margin-top: 6px;
 }
 
-/* Підпис поля — тихий рядок звичайним шрифтом. НЕ капітель: моно-капітель на
-   цьому екрані позначає рубрику розділу, і дюжина однакових капітельних рядків
-   над полями читалась дюжиною рубрик. */
+/* Підпис поля — тихий рядок звичайним кеглем і регістром. НЕ капітель: капітель
+   на цьому екрані позначає рубрику розділу, і дюжина однакових капітельних
+   рядків над полями читалась дюжиною рубрик.
+
+   І тихіший ЗА РУБРИКУ, а не голосніший. Було 500 і `--haze` — тобто «Переклад»
+   (одне поле) звучало важче за «ФОРМИ» (цілий розділ) на 600 і `--haze-2`.
+   Ієрархія стояла навиворіт: підпис поля мусить читатись підлеглим тому
+   заголовку, під яким лежить. Тепер обидва на `--haze-2`, а розводять їх
+   регістр і вага — рубрика капітеллю в 600, підпис реченням у 400.
+
+   ПІДПИС ТЕПЕР Є В КОЖНОГО ПОЛЯ. До цього на екрані працювали ТРИ системи
+   підписування одночасно: капітель над розділом, цей рядок над половиною полів
+   і плейсхолдер усередині другої половини. Плейсхолдер зникає при вводі, тобто
+   заповнена картка лишалась без підписів рівно там, де їх найбільше треба —
+   коли її відкривають правити. Плейсхолдер лишається тільки там, де він показує
+   ФОРМАТ, а не називає поле («приклад | переклад»). */
 .ed-field-cap {
   display: block;
   font-family: var(--sans);
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--haze);
+  font-size: var(--t-meta);
+  font-weight: 400;
+  color: var(--haze-2);
   margin-bottom: 6px;
+  /* Запобіжник, а не розрахунок: «Транскрипція» — одне нерозривне слово, і без
+     цього воно не переноситься, а вилазить на сусіднє поле. Ширини нижче
+     підібрані так, щоб трикрапка не спрацьовувала на 320px; це страховка на
+     випадок збільшеного системного шрифту чи ще вужчого екрана. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Поле втоплене в підняту панель: тло `--sheet` проти `--sheet-2` панелі,
@@ -768,7 +807,7 @@
   padding: 12px 14px;
   min-height: 46px;
   font-family: var(--sans);
-  font-size: 16px; /* менше 16px — і iOS збільшує сторінку на фокусі */
+  font-size: var(--t-lead); /* менше 16px — і iOS збільшує сторінку на фокусі */
   color: var(--frost);
   transition:
     border-color 0.15s ease,
@@ -832,21 +871,47 @@
 
 /* Пара ділиться не навпіл: транскрипція вужча за сусіда.
 
-   Рівні половини були симетричні й тісні. У рядку значення пара ділить ширину
-   ще й із кнопкою «−», тож на текст лишалось 97px — а найдовша частина мови,
-   «прийменник», займає 94. Три пікселі до обрізання: будь-який інший шрифт чи
-   ширший телефон, і слово поїхало б у трикрапку.
+   Рівні половини були симетричні й тісні. Другий у парі — а це завжди
+   транскрипція, і в значенні, і у формі — коротший за природою
+   (`/ɪnˈdevə/` — 70px), і зайва ширина в нього просто стояла порожня.
 
-   Транскрипція при цьому коротка за природою (`/ɪnˈdevə/` — 70px), і зайва
-   ширина в неї просто стоїть порожня. Тому другий у парі — а це завжди
-   транскрипція, і в значенні, і у формі — віддає частину ширини першому. */
+   ЧИСЛО ДИКТУЄ ПІДПИС. Доки поля підписувались плейсхолдером, ділити
+   намагались під найдовший вміст. Тепер над кожним полем стоїть
+   `.ed-field-cap`, і вузьке місце — саме він: «Транскрипція» це одне
+   НЕРОЗРИВНЕ слово завширшки 77.3px, воно не переноситься.
+
+   Заміряно в Chrome на 320px, найвужчому телефоні, який застосунок обслуговує.
+   Рядок значення має 235.2px, з них 40 забирає «−» і 20 — два проміжки, тож на
+   пару лишається 175.2:
+
+     0.72 → 101.9 : 73.3   підпис не влазить, вилазить на сусіда
+     0.78 → 98.4  : 76.8   впритул, нуль запасу
+     0.85 → 94.7  : 80.5   3.2px запасу — беремо
+     0.90 → 92.2  : 83.0   запас більший, але перший слот вужчає намарно
+
+   «Частина мови» — 79.9px, тобто перший слот має запас за будь-якого поділу;
+   вузьким лишається другий.
+
+   ВІДОМА МЕЖА, ЯКОЇ ЦЕЙ ПОДІЛ НЕ ЛІКУЄ. Найдовша частина мови, «прикметник»,
+   займає 91px, а тригер `.ed-pick` з'їдає 52px власним хромом (поля 14+14,
+   шеврон 16, проміжок 8). Тобто ЗНАЧЕННЯ вміщається лише від 430px ширини
+   екрана; на 390px (найпоширеніший телефон) слот 79px, на 375px — 71px, на
+   320px — 41px. Поділ пари цього не рятує: на 0.72 буде 89px замість 79px,
+   тобто трикрапка з'явиться на два символи пізніше, і тільки.
+
+   Це вада БУДОВИ рядка, а не кегля: picker зі значеннями до 91px не може
+   стояти в парі з іншим полем і кнопкою «−» на телефоні. Лікується тим, що
+   «Частина мови» дістає власний рядок на всю ширину, — і це окреме рішення,
+   а не наслідок цієї правки. Обрано 0.85, бо ЗНАЧЕННЯ обрізається за будь-якого
+   поділу, а ПІДПИС при 0.85 читається повністю на всіх ширинах, і саме він
+   тепер єдине, чим поле себе називає. */
 .ed-row > .ed-field {
   flex: 1 1 0;
   min-width: 0;
 }
 
 .ed-row > .ed-field + .ed-field {
-  flex: 0.72 1 0;
+  flex: 0.85 1 0;
 }
 
 /* Транскрипція набирається тим самим стеком, яким показується: у даних вона
@@ -855,13 +920,12 @@
   font-family: var(--ipa);
 }
 
-/* Головне поле блоку — переклад у значенні, сама форма у формі. Кегль більший
-   за сусідні: це те, що людина читатиме щодня, а частина мови й транскрипція —
-   приписки до нього. */
-.ed-block input.ed-tr,
-.ed-block input.ed-form-val {
-  font-size: 17px;
-}
+/* Плейсхолдера тут немає зовсім, і саме тому немає правила на нього. Слово
+   «транскрипція» стояло всередині поля й набиралось системним стеком — бо
+   `font-family` на полі діє й на плейсхолдер, — тобто в рядку значення два
+   сусідні поля показували сірий український текст ДВОМА гарнітурами. Тепер
+   поле підписане зверху (`.ed-field-cap`), як і решта, а системний стек
+   лишається рівно на тому, що вводять. */
 
 /* Мітка, набрана руками. Одинадцять міток словника не з четвірки підказок
    («Скорочене заперечення»), тож вільний ввід нікуди не подівся — він просто
@@ -938,9 +1002,9 @@ input.ed-word-input {
   min-width: 0;
   min-height: 54px;
   font-family: var(--display);
-  font-size: 22px;
+  font-size: var(--t-head);
   font-weight: 500;
-  letter-spacing: -0.03em;
+  letter-spacing: var(--track-head);
 }
 
 /* Плейсхолдер цього поля — окремо від набраного слова.
@@ -1022,7 +1086,7 @@ input.ed-word-input::placeholder {
 
 .ed-note-text {
   font-family: var(--sans);
-  font-size: 15px;
+  font-size: var(--t-body);
   color: var(--haze);
   overflow-wrap: anywhere;
 }
@@ -1045,7 +1109,7 @@ input.ed-word-input::placeholder {
   background: none;
   padding: 8px 14px;
   font-family: var(--sans);
-  font-size: 14px;
+  font-size: var(--t-body);
   color: var(--frost);
   cursor: pointer;
 }
@@ -1067,11 +1131,19 @@ input.ed-word-input::placeholder {
   cursor: pointer;
 }
 
+/* ПІДПИС КОНТРОЛА, А НЕ РУБРИКА. Був байт у байт `.ed-head-label` — 600, 10px,
+   0.1em, капс, `--haze-2`, — і стояв із ним на ОДНОМУ рядку, за 200px: у шапці
+   панелі «ФОРМИ» ліворуч і «ТРЕНУВАТИ» праворуч не різнились нічим, окрім
+   місця. Це та сама плутанина, яку вже полагоджено в підвалі панелі
+   (`.ed-foot-label`), тільки вертикальний випадок там, а горизонтальний тут.
+
+   Різняться три ознаки разом — кегль, вага, регістр, — тож рубрику від органа
+   керування видно боковим зором. Пара кольорів лишається тією самою:
+   `--haze-2` вимкнено, `--haze` увімкнено. */
 .ed-switch-label {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: var(--t-body);
   color: var(--haze-2);
   transition: color 0.16s ease;
 }
@@ -1102,6 +1174,13 @@ input.ed-word-input::placeholder {
   overflow: hidden;
   min-height: 96px;
   line-height: 1.55;
+}
+
+/* Порожній перегляд — стан, а не підказка з іншого екрана. `.hint` глобально
+   лишається на 13px, але на цьому екрані сходинки 13px більше немає ніде:
+   усі тихі рядки редактора стоять на 15px. */
+.ed-block .ed-preview .hint {
+  font-size: var(--t-body);
 }
 
 /* Перегляд Markdown стоїть на місці textarea — тож і виглядає так само, щоб
@@ -1176,8 +1255,11 @@ input.ed-word-input::placeholder {
   color: var(--haze);
 }
 
+/* Порожній вибір — той самий колір, що в `.ed-pick-empty`. Були два різні сірі
+   на один і той самий стан («нічого не вибрано») за пів екрана один від
+   одного: тут `--haze`, у тригерах частини мови й мітки `--haze-2`. */
 .ed-list-trigger-empty {
-  color: var(--haze);
+  color: var(--haze-2);
 }
 
 /* --- видалення ----------------------------------------------------------- */
@@ -1295,16 +1377,17 @@ input.ed-word-input::placeholder {
 
 
 .card-label {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--haze-2);
   margin: 22px 0 8px;
 }
 
 .card-comment {
-  font-size: 14px;
+  font-size: var(--t-body);
   color: var(--haze);
   background: var(--raised);
   border-radius: 12px;
@@ -1339,7 +1422,7 @@ input.ed-word-input::placeholder {
 }
 
 .list-row-name {
-  font-size: 15px;
+  font-size: var(--t-body);
   font-weight: 500;
 }
 
@@ -1353,9 +1436,10 @@ input.ed-word-input::placeholder {
    цього. */
 .list-row-sub {
   color: var(--haze-2);
-  font-family: var(--mono);
-  font-size: 11.5px;
-  letter-spacing: 0.02em;
+  font-family: var(--sans);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-meta);
 }
 
 /* Смуга-частка: ширина = частка словника, що лежить у цьому списку. П'ятий

@@ -79,17 +79,22 @@
   height: 24px;
 }
 
-/* Число в правому куті шапки — моноширинне, як усі лічильники. Стоїть там, де
+/* Число в правому куті шапки — голос чисел, як усі лічильники: табличні
+   цифри, без капсу (ADR-0022, ADR-0033). Стоїть там, де
    на «Сьогодні» аватар, і зайняло місце, що звільнила рубрика. */
 .head-count {
   flex: none;
-  font-family: var(--mono);
-  font-size: 11px;
+  font-family: var(--sans);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-meta);
   color: var(--haze-2);
   padding-top: 8px;
   white-space: nowrap;
 }
 
+/* Ініціал — гліф, а не текст: його кегль міряється кружечком, у якому він
+   стоїть, тому шкалі ADR-0033 він не підлягає. */
 .avatar {
   flex: none;
   width: 38px;
@@ -120,9 +125,10 @@
 }
 
 .field > label {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--haze-2);
 }
@@ -139,7 +145,7 @@
   background: var(--sheet);
   border-radius: var(--r-sm);
   padding: 14px 15px;
-  font-size: 16px; /* менше 16px — і iOS збільшує сторінку на фокусі */
+  font-size: var(--t-lead); /* менше 16px — і iOS збільшує сторінку на фокусі */
   font-family: var(--sans);
   color: var(--frost);
   transition:
@@ -174,7 +180,7 @@
   background: var(--frost);
   color: var(--night);
   font-family: var(--sans);
-  font-size: 16px;
+  font-size: var(--t-lead);
   font-weight: 600;
   padding: 16px;
   cursor: pointer;
@@ -205,7 +211,7 @@
   background: none;
   color: var(--haze);
   font-family: var(--sans);
-  font-size: 15px;
+  font-size: var(--t-body);
   padding: 14px;
   cursor: pointer;
 }
@@ -219,7 +225,7 @@
   background: none;
   color: var(--haze);
   font-family: var(--sans);
-  font-size: 14px;
+  font-size: var(--t-body);
   padding: 6px 2px;
   cursor: pointer;
   text-decoration: underline;
@@ -334,7 +340,7 @@
 .msg {
   border-radius: var(--r-sm);
   padding: 13px 15px;
-  font-size: 14.5px;
+  font-size: var(--t-body);
   line-height: 1.5;
   margin-bottom: 16px;
   background: var(--sheet);
@@ -350,7 +356,7 @@
 }
 
 .hint {
-  font-size: 13.5px;
+  font-size: var(--t-sub);
   color: var(--haze-2);
   line-height: 1.55;
   margin: 0 0 20px;
@@ -368,7 +374,7 @@
   background: var(--sheet);
   border-bottom: 1px solid var(--edge);
   color: var(--haze);
-  font-size: 12.5px;
+  font-size: var(--t-meta);
   text-align: center;
   padding: 8px 14px;
 }
@@ -387,7 +393,7 @@
   position: relative;
   flex: 1;
   color: var(--haze-2);
-  font-size: 10.5px;
+  font-size: var(--t-label);
   padding: 12px 2px 13px;
   display: flex;
   flex-direction: column;
@@ -424,7 +430,7 @@
   border: 1px dashed var(--edge);
   border-radius: var(--r);
   color: var(--haze-2);
-  font-size: 14px;
+  font-size: var(--t-body);
   line-height: 1.55;
 }
 

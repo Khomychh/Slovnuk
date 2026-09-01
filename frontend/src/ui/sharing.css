@@ -15,7 +15,7 @@
   background: var(--night);
   color: var(--haze);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--t-meta);
   line-height: 1.6;
   padding: 12px 14px;
   overflow-wrap: anywhere;
@@ -30,11 +30,13 @@
 
 /* --- чужий список ------------------------------------------------------- */
 
+/* Автор — звичайним шрифтом, як `.pub-by` (ADR-0022). Це імʼя людини, і
+   читають його зліва направо один раз; капс із трекінгом перетворював «Іван
+   Хомич» на рубрику, тобто на назву розділу, якою він не є. Тим паче що
+   рубрика тут стояла б перед справжнім заголовком екрана (`.sh-headline`) і
+   сперечалась би з ним за те, з чого рядок починати. */
 .sh-author {
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: var(--t-meta);
   color: var(--haze-2);
   margin-top: 8px;
 }
@@ -43,9 +45,9 @@
    Дисплейною гарнітурою, бо це найважливіший рядок тут. */
 .sh-headline {
   font-family: var(--display);
-  font-size: 20px;
+  font-size: var(--t-title);
   font-weight: 500;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--track-title);
   margin: 16px 0 6px;
 }
 
@@ -70,16 +72,17 @@
 }
 
 .sh-word {
-  font-size: 15px;
+  font-size: var(--t-body);
   font-weight: 500;
   overflow-wrap: anywhere;
 }
 
 .sh-have {
   flex: none;
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.1em;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--haze-2);
   border: 1px solid var(--edge);
@@ -89,7 +92,7 @@
 
 .sh-tr {
   color: var(--haze);
-  font-size: 13px;
+  font-size: var(--t-sub);
   margin-top: 2px;
 }
 

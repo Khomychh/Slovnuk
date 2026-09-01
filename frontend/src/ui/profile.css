@@ -41,7 +41,7 @@
 
 .p-id-mail {
   color: var(--frost);
-  font-size: 15px;
+  font-size: var(--t-body);
   overflow-wrap: anywhere;
 }
 
@@ -59,6 +59,8 @@
 
 /* Фото і є кнопка заміни. Підпис «змінити» лежить смужкою по нижньому краю
    кола — без нього дотик по аватару лишався б здогадкою. */
+/* Ініціал — гліф, а не текст: його кегль міряється кружечком, у якому він
+   стоїть, тому шкалі ADR-0033 він не підлягає. */
 .p-avatar {
   position: relative;
   flex: none;
@@ -92,9 +94,10 @@
   padding: 3px 0 5px;
   background: color-mix(in srgb, var(--night) 78%, transparent);
   color: var(--frost);
-  font-family: var(--mono);
-  font-size: 8.5px;
-  letter-spacing: 0.14em;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: var(--t-micro);
+  letter-spacing: var(--track-micro);
   text-transform: uppercase;
 }
 
@@ -207,13 +210,13 @@
 
 .p-line-key {
   color: var(--frost);
-  font-size: 15px;
+  font-size: var(--t-body);
   min-width: 0;
 }
 
 .p-line-val {
   color: var(--haze);
-  font-size: 15px;
+  font-size: var(--t-body);
   text-align: right;
   overflow-wrap: anywhere;
 }
@@ -231,7 +234,7 @@
   background: none;
   color: var(--frost);
   font-family: var(--sans);
-  font-size: 15px;
+  font-size: var(--t-body);
   text-align: left;
   cursor: pointer;
 }
@@ -252,7 +255,7 @@
    рядком і претендувала на роздільник, хоч керувати нею нічим. */
 .p-note {
   margin: -10px 0 18px;
-  font-size: 13px;
+  font-size: var(--t-sub);
   color: var(--haze-2);
   line-height: 1.5;
 }
@@ -290,12 +293,12 @@
 
 .sw-label {
   color: var(--frost);
-  font-size: 15px;
+  font-size: var(--t-body);
 }
 
 .sw-hint {
   color: var(--haze-2);
-  font-size: 12.5px;
+  font-size: var(--t-meta);
   line-height: 1.4;
 }
 
@@ -396,7 +399,7 @@
 }
 
 .g-title {
-  font-size: 16px;
+  font-size: var(--t-lead);
   font-weight: 500;
   min-width: 0;
   overflow-wrap: anywhere;
@@ -409,9 +412,10 @@
   margin-left: auto;
   flex: none;
   color: var(--haze-2);
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.1em;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: var(--t-label);
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   border: 1px solid var(--edge);
   border-radius: 999px;
@@ -423,7 +427,7 @@
 .g-snippet {
   display: block;
   color: var(--haze);
-  font-size: 14px;
+  font-size: var(--t-body);
   margin-top: 4px;
   white-space: nowrap;
   overflow: hidden;
@@ -432,9 +436,9 @@
 
 .note-title {
   font-family: var(--display);
-  font-size: 26px;
+  font-size: var(--t-hero);
   font-weight: 500;
-  letter-spacing: -0.03em;
+  letter-spacing: var(--track-hero);
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
@@ -446,7 +450,7 @@
 .md {
   margin-top: 18px;
   color: var(--frost);
-  font-size: 15.5px;
+  font-size: var(--t-body);
   line-height: 1.62;
 }
 
@@ -461,7 +465,7 @@
    півекрана. */
 .md-h {
   font-family: var(--sans);
-  font-size: 15.5px;
+  font-size: var(--t-body);
   font-weight: 600;
   line-height: 1.5;
   color: var(--frost);
@@ -497,7 +501,7 @@
 
 .md code {
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: var(--t-sub);
   background: var(--raised);
   border-radius: 5px;
   padding: 1px 5px;
