@@ -2310,7 +2310,7 @@ export interface operations {
                     "application/json": components["schemas"]["UserRegistrationResponseSchema"];
                 };
             };
-            /** @description Conflict - User with this email already exists. */
+            /** @description Conflict - An activated user with this email already exists. */
             409: {
                 headers: {
                     [name: string]: unknown;
