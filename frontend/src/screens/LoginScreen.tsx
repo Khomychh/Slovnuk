@@ -44,7 +44,12 @@ export default function LoginScreen() {
       if (caught instanceof OfflineError) {
         setError("Немає звʼязку. Увійти можна тільки онлайн.");
       } else if (caught instanceof ApiError && caught.code === "account_not_activated") {
-        setError("Акаунт ще не активовано. Відкрийте посилання з листа.");
+        // Друге речення — для того, у кого лист протермінувався: посилання
+        // живе добу, а повторна реєстрація тією ж поштою шле новий (ADR-0034).
+        setError(
+          "Акаунт ще не активовано. Відкрийте посилання з листа, " +
+            "а якщо воно застаріло — створіть акаунт тією ж поштою ще раз.",
+        );
       } else if (caught instanceof ApiError && caught.status === 401) {
         setError("Пошта або пароль не підходять.");
       } else {
