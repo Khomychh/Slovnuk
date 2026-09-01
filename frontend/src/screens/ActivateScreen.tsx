@@ -98,7 +98,7 @@ export default function ActivateScreen() {
               `email_already_exists`, тобто порада вела в глухий кут. Лишається
               те, що справді допомагає в найчастішому випадку — посилання вже
               спрацювало раніше. */}
-          <p className="hint">Якщо акаунт уже активовано, просто увійдіть.</p>
+          <p className="hint auth-note">Якщо акаунт уже активовано, просто увійдіть.</p>
           <Link className="btn-quiet auth-act" to="/accounts/login">
             Увійти
           </Link>

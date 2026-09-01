@@ -130,16 +130,14 @@ export default function RegisterScreen() {
           onChange={(event) => setPassword(event.target.value)}
           required
         />
-        <div className="auth-pw-row">
-          <span className="hint">{PASSWORD_HINT}</span>
-          <button
-            className="btn-link"
-            type="button"
-            onClick={() => setShow((current) => !current)}
-          >
-            {show ? "Сховати" : "Показати"}
-          </button>
-        </div>
+        <button
+          className="btn-link auth-pw-toggle"
+          type="button"
+          onClick={() => setShow((current) => !current)}
+        >
+          {show ? "Сховати" : "Показати"}
+        </button>
+        <p className="hint auth-pw-note">{PASSWORD_HINT}</p>
 
         <button className="btn" type="submit" disabled={busy || !email || !password}>
           {busy ? "Створюємо…" : "Створити акаунт"}

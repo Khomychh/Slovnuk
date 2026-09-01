@@ -165,16 +165,14 @@ export function ResetPasswordScreen() {
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-        <div className="auth-pw-row">
-          <span className="hint">{PASSWORD_HINT}</span>
-          <button
-            className="btn-link"
-            type="button"
-            onClick={() => setShow((current) => !current)}
-          >
-            {show ? "Сховати" : "Показати"}
-          </button>
-        </div>
+        <button
+          className="btn-link auth-pw-toggle"
+          type="button"
+          onClick={() => setShow((current) => !current)}
+        >
+          {show ? "Сховати" : "Показати"}
+        </button>
+        <p className="hint auth-pw-note">{PASSWORD_HINT}</p>
         {/* Тут кнопка лишається на всю ширину з підписом: це головна дія цілого
             екрана, а не куток панелі. Іконка та сама, що й у решті збережень. */}
         <button className="btn btn-with-icon" type="submit" disabled={busy || !password}>

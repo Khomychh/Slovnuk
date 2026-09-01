@@ -56,7 +56,7 @@ export default function LoginScreen() {
   }
 
   return (
-    <AuthScreen title="Вхід">
+    <AuthScreen title="Slovnuk">
       {awaitingShare ? (
         <p className="hint auth-note">
           Список, яким з вами поділились, відкриється одразу після входу.
