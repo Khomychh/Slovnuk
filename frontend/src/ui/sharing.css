@@ -96,32 +96,3 @@
   margin-top: 2px;
 }
 
-/* --- реєстрація --------------------------------------------------------- */
-
-/* Вимоги до пароля ліворуч, «показати» праворуч: перше читають до набору,
-   другим перевіряють набране, і обидва стосуються того самого поля. */
-.reg-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin: -6px 0 18px;
-}
-
-.reg-row > .hint {
-  flex: 1;
-  margin: 0;
-}
-
-.reg-row > .btn-link {
-  flex: none;
-  white-space: nowrap;
-}
-
-.login-links {
-  display: flex;
-  justify-content: center;
-  gap: 18px;
-  margin-top: 18px;
-}
-

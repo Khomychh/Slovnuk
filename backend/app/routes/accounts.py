@@ -73,6 +73,32 @@ async def _send_email_safely(send_email, *args, **kwargs) -> None:
         logger.error("Не вдалося надіслати лист: %s", error)
 
 
+def _queue_activation_email(
+    background_tasks: BackgroundTasks,
+    email_sender: EmailSenderInterface,
+    settings: Settings,
+    user: UserModel,
+    activation_token: ActivationTokenModel,
+) -> None:
+    """
+    Ставить у чергу лист активації.
+
+    Адресу знає ще й фронтенд (ActivateScreen читає її з рядка запиту), тож
+    зібрана вона рівно в одному місці на обидві гілки реєстрації — першу й
+    повторну.
+    """
+    activation_link = (
+        f"{settings.FRONTEND_BASE_URL}/accounts/activate"
+        f"?email={user.email}&token={activation_token.token}"
+    )
+    background_tasks.add_task(
+        _send_email_safely,
+        email_sender.send_activation_email,
+        email=str(user.email),
+        activation_link=activation_link,
+    )
+
+
 @router.post(
     "/register/",
     response_model=UserRegistrationResponseSchema,
@@ -81,7 +107,7 @@ async def _send_email_safely(send_email, *args, **kwargs) -> None:
     status_code=status.HTTP_201_CREATED,
     responses={
         409: {
-            "description": "Conflict - User with this email already exists.",
+            "description": "Conflict - An activated user with this email already exists.",
             "content": {
                 "application/json": {
                     "example": {
@@ -115,11 +141,12 @@ async def register_user(
     settings: Settings = Depends(get_settings),
     email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
 ) -> UserRegistrationResponseSchema:
-    # Cпершу перевіримо, чи існує користувач з таким email
+    # Cпершу перевіримо, чи існує користувач з таким email.
+    # Зайнята пошта — це тільки активний акаунт (ADR-0034).
     stmt = select(UserModel).where(UserModel.email == user_data.email)
     result = await db.execute(stmt)
     existing_user = result.scalars().first()
-    if existing_user:
+    if existing_user and existing_user.is_active:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={
@@ -127,6 +154,34 @@ async def register_user(
                 "message": f"A user with this email {user_data.email} already exists.",
             },
         )
+
+    # Неактивний акаунт — це недороблена реєстрація, а не зайнята пошта, тож
+    # починаємо її наново: новий пароль, новий токен, новий лист.
+    if existing_user:
+        try:
+            existing_user.password = user_data.password
+            await db.execute(
+                delete(ActivationTokenModel).where(
+                    ActivationTokenModel.user_id == existing_user.id
+                )
+            )
+            activation_token = ActivationTokenModel(user_id=existing_user.id)
+            db.add(activation_token)
+            await db.commit()
+        except SQLAlchemyError as e:
+            await db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail={
+                    "code": "internal_error",
+                    "message": "An error occurred during user creation.",
+                },
+            ) from e
+
+        _queue_activation_email(
+            background_tasks, email_sender, settings, existing_user, activation_token
+        )
+        return UserRegistrationResponseSchema.model_validate(existing_user)
 
     # Перевіримо, чи існує група користувачів.
     # А групи мають створюватися через alembic під час створення бази даних
@@ -175,15 +230,8 @@ async def register_user(
         ) from e
     else:
         # якщо помилок немає, то відправляємо лист на електронну пошту
-        activation_link = (
-            f"{settings.FRONTEND_BASE_URL}/accounts/activate"
-            f"?email={new_user.email}&token={activation_token.token}"
-        )
-        background_tasks.add_task(
-            _send_email_safely,
-            email_sender.send_activation_email,
-            email=str(new_user.email),
-            activation_link=activation_link,
+        _queue_activation_email(
+            background_tasks, email_sender, settings, new_user, activation_token
         )
         return UserRegistrationResponseSchema.model_validate(new_user)
 

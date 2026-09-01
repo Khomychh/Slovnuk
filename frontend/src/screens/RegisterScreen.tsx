@@ -1,22 +1,26 @@
 /**
- * Реєстрація.
- *
- * Була відсутня цілком: ендпоінт на бекенді є з першого дня, а маршруту й
- * посилання з екрана входу — ні. Поки користувач один, це не помічалось; щойно
- * з'явився шер, вона стала обов'язковою — людина, якій дали посилання на список,
- * інакше не має жодного способу завести акаунт.
+ * Новий акаунт.
  *
  * Полів рівно два: `UserRegistrationRequestSchema` — це email і пароль, більше
  * бекенд не приймає. Ім'я заповнюється потім у профілі.
  *
  * Другого поля «повторіть пароль» немає навмисно: пошта однаково перевіряється
  * листом активації, тож помилка в паролі лікується скиданням, а не блокує
- * акаунт. Замість нього — перемикач «показати», який ту саму помилку показує
- * одразу.
+ * акаунт. Замість нього — перемикач «Показати», який ту саму помилку показує
+ * одразу. Те саме рішення діє й на екрані нового пароля.
+ *
+ * Пояснення «слова й прогрес зберігаються на сервері, тож потрібен акаунт»
+ * прибрано: воно доводило потребу в акаунті людині, яка вже натиснула
+ * «Створити акаунт».
+ *
+ * Той самий екран — і спосіб отримати новий лист активації: пошта, зайнята
+ * непідтвердженим акаунтом, вільна, і реєстрація починає його наново
+ * (ADR-0034). Тому `email_already_exists` тепер означає рівно одне — акаунт
+ * живий і підтверджений, тож порада «спробуйте увійти» завжди правдива.
  */
 
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ApiError, OfflineError, apiFetch } from "../api/client";
 import {
   PASSWORD_HINT,
@@ -25,10 +29,9 @@ import {
   passwordProblem,
 } from "../auth/password";
 import { peekShare } from "../sharing/pending";
-import { Field, Message, Screen } from "../ui/parts";
+import { AuthScreen, Field, Message } from "../ui/parts";
 
 export default function RegisterScreen() {
-  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
@@ -73,7 +76,7 @@ export default function RegisterScreen() {
       ) {
         setError("Акаунт із такою поштою вже є. Спробуйте увійти.");
       } else {
-        setError(caught instanceof Error ? caught.message : "Щось пішло не так");
+        setError("Не вдалося створити акаунт. Спробуйте ще раз.");
       }
     } finally {
       setBusy(false);
@@ -81,39 +84,35 @@ export default function RegisterScreen() {
   }
 
   if (sent) {
+    /* Заголовок і є повідомленням, тому окремої плашки під ним немає. Рядок
+       нижче каже рівно дві невідомі речі: куди пішов лист і що з ним робити.
+       Третє речення — «доки цього не зробите, увійти не вийде» — прибрано: це
+       та сама думка вдруге, і вона однаково прозвучить на вході, якщо людина
+       туди прийде без активації. */
     return (
-      <Screen eyebrow="slovnuk" title="Перевірте пошту">
-        <p className="hint" style={{ marginTop: 10 }}>
-          Ми надіслали лист на {normalizeEmail(email)}. Відкрийте посилання з
-          нього — воно активує акаунт. Доки цього не зробите, увійти не вийде.
+      <AuthScreen title="Перевірте пошту">
+        <p className="hint auth-note">
+          Лист із посиланням пішов на {normalizeEmail(email)}. Відкрийте
+          посилання — воно активує акаунт.
         </p>
-        {awaitingShare ? (
-          <p className="hint">
-            Список, за яким ви прийшли, не втрачено: він відкриється після входу.
-          </p>
-        ) : null}
-        <button
-          className="btn"
-          type="button"
-          onClick={() => navigate("/accounts/login", { replace: true })}
-        >
+        <Link className="btn auth-act" to="/accounts/login" replace>
           До входу
-        </button>
-      </Screen>
+        </Link>
+      </AuthScreen>
     );
   }
 
   return (
-    <Screen eyebrow="slovnuk" title="Реєстрація">
-      <p className="hint" style={{ marginTop: 10 }}>
-        {awaitingShare
-          ? "Щоб узяти список слів, потрібен акаунт. Після реєстрації ми відкриємо його самі."
-          : "Слова й прогрес зберігаються на сервері, тож потрібен акаунт."}
-      </p>
+    <AuthScreen title="Новий акаунт">
+      {awaitingShare ? (
+        <p className="hint auth-note">
+          Список, яким з вами поділились, відкриється одразу після входу.
+        </p>
+      ) : null}
 
       {error ? <Message kind="error">{error}</Message> : null}
 
-      <form onSubmit={submit} noValidate>
+      <form className="auth-form" onSubmit={submit} noValidate>
         <Field
           label="Пошта"
           id="email"
@@ -136,27 +135,25 @@ export default function RegisterScreen() {
           onChange={(event) => setPassword(event.target.value)}
           required
         />
-        <div className="reg-row">
-          <span className="hint">{PASSWORD_HINT}</span>
-          <button
-            className="btn-link"
-            type="button"
-            onClick={() => setShow((current) => !current)}
-          >
-            {show ? "Сховати" : "Показати"}
-          </button>
-        </div>
+        <button
+          className="btn-link auth-pw-toggle"
+          type="button"
+          onClick={() => setShow((current) => !current)}
+        >
+          {show ? "Сховати" : "Показати"}
+        </button>
+        <p className="hint auth-pw-note">{PASSWORD_HINT}</p>
 
         <button className="btn" type="submit" disabled={busy || !email || !password}>
           {busy ? "Створюємо…" : "Створити акаунт"}
         </button>
       </form>
 
-      <div style={{ marginTop: 18, textAlign: "center" }}>
+      <div className="auth-links">
         <Link className="btn-link" to="/accounts/login">
           Уже маю акаунт
         </Link>
       </div>
-    </Screen>
+    </AuthScreen>
   );
 }

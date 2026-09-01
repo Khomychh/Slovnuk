@@ -66,6 +66,28 @@ export function Screen({
   );
 }
 
+/**
+ * Двері — вхід, новий акаунт, активація, скидання пароля.
+ *
+ * Від `Screen` відрізняється тим, що немає рубрики: вона каже, у якому ти
+ * розділі, а тут розділів немає. `aside`, `back` і `foot` теж не передбачені —
+ * на дверях немає ні рівня вище, ні панелі вкладок, ні профілю.
+ */
+export function AuthScreen({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="screen screen-auth">
+      <h1 className="h-title">{title}</h1>
+      {children}
+    </div>
+  );
+}
+
 export function Field({
   label,
   ...input
