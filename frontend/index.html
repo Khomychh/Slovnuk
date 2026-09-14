@@ -10,11 +10,18 @@
     />
     <!-- Дорівнює --night у theme.css. Розійтись їм не можна: смуга статусу
          телефона стоїть упритул до застосунку, і різниця читається як шов.
-         Значення переставляє скрипт нижче, якщо тема світла. У встановленому
-         застосунку смугу малює система, а не цей тег. -->
+         Значення переставляє скрипт нижче, якщо тема світла.
+
+         На Android у встановленому застосунку цей тег не діє — смугу малює
+         система за маніфестом (vite.config.ts). Лишається він заради вкладки
+         браузера та iOS, де смугу малюють саме за ним. -->
     <meta name="theme-color" content="#000000" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- default, а не black-translucent. Той віддавав застосунку площу під
+         годинником, тобто колір смуги збігався сам, але текст у ній робив
+         жорстко білим — у світлій темі це білий годинник на #eef1fa. Тепер
+         смугу малює iOS і бере колір із theme-color вище (iOS 15+). -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Slovnuk" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
