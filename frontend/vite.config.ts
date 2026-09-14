@@ -17,11 +17,7 @@ export default defineConfig({
         description: "Англійські слова за методом інтервальних повторень",
         lang: "uk",
         start_url: "/",
-        // fullscreen, а не standalone: смугу статусу малює система, а колір їй
-        // можна дати лише один на обидві теми — тобто одна з тем завжди
-        // розходиться. Без смуги розходитись нема чому. iOS цього режиму не
-        // знає і лишається на standalone за ланцюгом відкату.
-        display: "fullscreen",
+        display: "standalone",
         orientation: "portrait",
         // background_color — екран запуску; дорівнює --night темряви.
         background_color: "#000000",
