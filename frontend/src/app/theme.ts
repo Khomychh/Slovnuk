@@ -27,7 +27,7 @@ export const THEME_KEY = "slovnuk.theme";
 /** Дорівнює `--night` кожної теми (`theme.css`). Розійтись їм не можна:
  *  смуга статусу телефона стоїть упритул, і різниця читається як шов. */
 const BAR_COLOR: Record<Resolved, string> = {
-  dark: "#070a14",
+  dark: "#000000",
   light: "#eef1fa",
 };
 
