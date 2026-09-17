@@ -137,6 +137,12 @@
   background: var(--sheet);
 }
 
+/* У режимі вибору натискання не підсвічує: тло й галочка міняються разом,
+   на відпусканні, а не двома кроками. */
+.v-row-picking .v-row-main:active {
+  background: none;
+}
+
 /* Позначка стоїть на місці динаміка й займає ту саму ціль у 44px. Колір лише
    нейтральний: сяйво в рядку вже несе температуру (ADR-0017). */
 .v-check {
@@ -177,8 +183,26 @@
   transform: translate(-50%, -62%) rotate(45deg);
 }
 
-/* Дія вибору живе в `.screen-foot`: над вкладками, поза прокруткою. */
+.v-select-off {
+  visibility: hidden;
+}
+
+/* Дія вибору живе в `.screen-foot`: над вкладками, поза прокруткою. Вихід —
+   текстом ліворуч, щоб не змагався з дією. */
+.v-select-foot {
+  display: flex;
+  gap: 10px;
+}
+
+.v-select-cancel {
+  flex: none;
+  width: auto;
+  border-color: transparent;
+  padding-inline: 16px;
+}
+
 .v-select-act {
+  flex: 1;
   color: var(--frost);
 }
 
@@ -448,6 +472,12 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/* Друга, суворіша дія — без рамки: від «Скасувати» її відрізняє вигляд, а не
+   лише підпис. Розмір той самий, тож ряд кнопок не стрибає. */
+.confirm-alt {
+  border-color: transparent;
 }
 
 /* Аркуш списків: та сама смуга дій, що в підтвердженні, але рядки над нею не

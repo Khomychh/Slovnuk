@@ -42,7 +42,9 @@ export default function CardRow({
   // в поведінці.
   return (
     <div
-      className={selected ? "v-row v-row-on" : "v-row"}
+      className={
+        selecting ? (selected ? "v-row v-row-picking v-row-on" : "v-row v-row-picking") : "v-row"
+      }
       // Риска ліворуч несе температуру (ADR-0017). Підказкою вона тут бути не
       // може: поруч уже стоїть переклад, тобто ховати нічого — на відміну від
       // закритої картки навчання, де той самий колір заборонений (ADR-0016).

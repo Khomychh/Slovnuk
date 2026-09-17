@@ -43,6 +43,10 @@ export default function ConfirmSheet({
   onCancel: () => void;
 }) {
   const confirmRef = useRef<HTMLButtonElement>(null);
+  // Аркуш ставить дію під той самий палець, що його відкрив: другий дотик
+  // подвійного натискання не має права підтвердити незворотне.
+  const openedAt = useRef(performance.now());
+  const settled = () => performance.now() - openedAt.current > 400;
 
   // Фокус іде на дію, а не на скасування: клавіатурою сюди потрапляють рідко, і
   // коли потрапляють — уже знаючи, чого хочуть. Esc поруч, і він безпечний.
@@ -80,16 +84,16 @@ export default function ConfirmSheet({
             className="btn"
             type="button"
             disabled={busy}
-            onClick={onConfirm}
+            onClick={() => settled() && onConfirm()}
           >
             {busy ? "Зачекайте…" : confirmLabel}
           </button>
           {alternative ? (
             <button
-              className="btn-quiet"
+              className="btn-quiet confirm-alt"
               type="button"
               disabled={busy}
-              onClick={alternative.onClick}
+              onClick={() => settled() && alternative.onClick()}
             >
               {alternative.label}
             </button>

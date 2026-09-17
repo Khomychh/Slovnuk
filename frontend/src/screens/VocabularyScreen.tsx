@@ -39,6 +39,17 @@ function namePicked(picked: Card[]): string {
   return rest > 0 ? `${shown.join(", ")} і ще ${rest}` : shown.join(", ");
 }
 
+/** Наслідок тими самими словами, що при видаленні списку разом зі словами. */
+function pickedNote(picked: Card[]): string {
+  const studied = picked.filter(deletionLosesHistory).length;
+  if (studied === 0) {
+    return `${plural(picked.length, "Воно зникне", "Вони зникнуть", "Вони зникнуть")} зі словника.`;
+  }
+  return studied === picked.length
+    ? `Разом ${plural(studied, "з ним", "з ними", "з ними")} зникне історія повторень, і відновити її не вийде.`
+    : `У ${studied} з них зникне й історія повторень, і відновити її не вийде.`;
+}
+
 /** Ті самі слова, що в аркуші: кнопка каже, у якому порядку ти зараз. */
 const SORT_LABEL: Record<CardSort, string> = {
   created: "нові зверху",
@@ -147,15 +158,28 @@ export default function VocabularyScreen() {
       title="Словник"
       foot={
         picked ? (
-          <button
-            className="btn-quiet v-select-act"
-            type="button"
-            disabled={!online || picked.size === 0}
-            title={online ? undefined : "Потрібен звʼязок"}
-            onClick={() => setConfirmDelete(true)}
-          >
-            {picked.size === 0 ? "Виберіть слова" : `Видалити ${words(picked.size)}`}
-          </button>
+          // Вихід із режиму — тут, а не вгорі: верх їде разом із прокруткою.
+          <div className="v-select-foot">
+            <button
+              className="btn-quiet v-select-cancel"
+              type="button"
+              onClick={() => {
+                setDeleteError(null);
+                setPicked(null);
+              }}
+            >
+              Скасувати
+            </button>
+            <button
+              className="btn-quiet v-select-act"
+              type="button"
+              disabled={!online || picked.size === 0}
+              title={online ? undefined : "Потрібен звʼязок"}
+              onClick={() => setConfirmDelete(true)}
+            >
+              {picked.size === 0 ? "Виберіть слова" : `Видалити ${words(picked.size)}`}
+            </button>
+          </div>
         ) : undefined
       }
       /* Два органи в правому куті, і це єдина шапка, де їх два.
@@ -182,20 +206,20 @@ export default function VocabularyScreen() {
     >
       <div className="v-summary">
         <span>
-          {picked && picked.size > 0
-            ? `Вибрано ${words(picked.size)}`
-            : `${words(total)} · ${listsLabel(listCount)}`}
+          {words(total)} · {listsLabel(listCount)}
         </span>
+        {/* У режимі вибору лише ховається: рядок не має міняти висоту. */}
         <button
-          className="v-select"
+          className={picked ? "v-select v-select-off" : "v-select"}
           type="button"
-          disabled={!picked && (!online || items.length === 0)}
+          disabled={Boolean(picked) || !online || items.length === 0}
+          aria-hidden={picked ? true : undefined}
           onClick={() => {
             setDeleteError(null);
-            setPicked(picked ? null : new Map());
+            setPicked(new Map());
           }}
         >
-          {picked ? "Скасувати" : "Вибрати"}
+          Вибрати
         </button>
       </div>
 
@@ -282,12 +306,7 @@ export default function VocabularyScreen() {
       {confirmDelete && picked ? (
         <ConfirmSheet
           title={`Видалити ${words(picked.size)}?`}
-          note={
-            `${namePicked(pickedCards)}. ` +
-            (pickedCards.some(deletionLosesHistory)
-              ? `Разом ${plural(picked.size, "з ним", "з ними", "з ними")} зникне історія повторень — відновити її буде нічим.`
-              : `${plural(picked.size, "Воно зникне", "Вони зникнуть", "Вони зникнуть")} зі словника.`)
-          }
+          note={`${namePicked(pickedCards)}. ${pickedNote(pickedCards)}`}
           confirmLabel={`Видалити ${words(picked.size)}`}
           busy={removeCards.isPending}
           onConfirm={() => void destroyPicked()}
