@@ -19,9 +19,12 @@ import {
   createCard,
   createList,
   deleteCard,
+  deleteCards,
   deleteList,
+  deleteListWithCards,
   fetchCard,
   fetchCards,
+  fetchListDeletion,
   fetchLists,
   fetchStats,
   renameList,
@@ -32,6 +35,7 @@ import {
 } from "../api/vocabulary";
 import { dropPages, readLists, readPage, writeLists, writePage } from "./db";
 import { localDay } from "../study/day";
+import { cardsDeleted } from "../study/store";
 import type { Card, CardCreate, CardUpdate } from "./card";
 
 /** Що саме показує список: фільтр, пошук і порядок разом. */
@@ -244,6 +248,22 @@ export function useDeleteCard() {
   });
 }
 
+export function useDeleteCards() {
+  const client = useQueryClient();
+  const invalidate = useInvalidateVocabulary();
+
+  return useMutation({
+    mutationFn: (ids: number[]) => deleteCards(ids),
+    onSuccess: async ({ deleted_card_ids }) => {
+      for (const id of deleted_card_ids) {
+        client.removeQueries({ queryKey: ["vocabulary", "card", id] });
+      }
+      await cardsDeleted(deleted_card_ids);
+      await invalidate();
+    },
+  });
+}
+
 export function useCreateList() {
   const invalidate = useInvalidateVocabulary();
   return useMutation({
@@ -270,6 +290,30 @@ export function useDeleteList() {
     onSuccess: async () => {
       // Список міг бути позначений за замовчуванням — FK його обнулив, і кеш
       // налаштувань про це не знає.
+      await client.invalidateQueries({ queryKey: ["study", "settings"] });
+      await invalidate();
+    },
+  });
+}
+
+/** Числа для діалогу «разом зі словами». Питаються лише тоді, коли діалог відкрито. */
+export function useListDeletion(id: number | null) {
+  return useQuery({
+    queryKey: ["vocabulary", "list-deletion", id],
+    enabled: id !== null,
+    queryFn: () => fetchListDeletion(id as number),
+    staleTime: 0,
+  });
+}
+
+export function useDeleteListWithCards() {
+  const client = useQueryClient();
+  const invalidate = useInvalidateVocabulary();
+
+  return useMutation({
+    mutationFn: (id: number) => deleteListWithCards(id),
+    onSuccess: async ({ deleted_card_ids }) => {
+      await cardsDeleted(deleted_card_ids);
       await client.invalidateQueries({ queryKey: ["study", "settings"] });
       await invalidate();
     },

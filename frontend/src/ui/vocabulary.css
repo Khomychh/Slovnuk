@@ -18,6 +18,28 @@
   font-variant-numeric: tabular-nums;
   color: var(--haze-2);
   margin: 20px 0 12px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* «Вибрати» — у рядку лічильника, а не серед пігулок фільтра: там на 360px
+   довга назва списку й порядок уже займають усю ширину. */
+.v-select {
+  border: none;
+  background: none;
+  color: var(--haze);
+  font-family: var(--sans);
+  font-size: var(--t-sub);
+  padding: 4px 0 4px 8px;
+  cursor: pointer;
+}
+
+.v-select:disabled {
+  color: var(--haze-2);
+  opacity: 0.5;
+  cursor: default;
 }
 
 /* Кегль НЕ задається: поле бере `--t-lead` зі спільного правила `base.css`.
@@ -109,6 +131,60 @@
    будь-якого слова на мить перефарбовував би його в «майже забуте». */
 .v-row-main:active {
   background: var(--sheet);
+}
+
+.v-row-on {
+  background: var(--sheet);
+}
+
+/* Позначка стоїть на місці динаміка й займає ту саму ціль у 44px. Колір лише
+   нейтральний: сяйво в рядку вже несе температуру (ADR-0017). */
+.v-check {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin-right: 2px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.v-check::before {
+  content: "";
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 1.5px solid var(--edge);
+}
+
+.v-row-on .v-check::before {
+  border-color: var(--frost);
+  background: var(--frost);
+}
+
+/* Галочка, а не крапка: крапка в колі читається як перемикач з одним варіантом. */
+.v-row-on .v-check::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 8px;
+  border: solid var(--night);
+  border-width: 0 2px 2px 0;
+  transform: translate(-50%, -62%) rotate(45deg);
+}
+
+/* Дія вибору живе в `.screen-foot`: над вкладками, поза прокруткою. */
+.v-select-act {
+  color: var(--frost);
+}
+
+.v-select-act:disabled {
+  color: var(--haze-2);
+  cursor: default;
 }
 
 /* У рядку списку ціль більша: сюди тицяють великим пальцем на ходу, у смузі,

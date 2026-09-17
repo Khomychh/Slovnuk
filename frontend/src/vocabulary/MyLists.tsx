@@ -27,6 +27,8 @@ import ConfirmSheet from "../ui/ConfirmSheet";
 import {
   useCreateList,
   useDeleteList,
+  useDeleteListWithCards,
+  useListDeletion,
   useLists,
   useRenameList,
   useVocabularyStats,
@@ -34,6 +36,7 @@ import {
 import { listFraction, listStateLine } from "./card";
 import { useSettings, useUpdateSettings } from "../study/queries";
 import { plural, words } from "../ui/plural";
+import type { ListDeletion } from "../api/vocabulary";
 
 /** Сервер пише помилки англійською; назву, що вже зайнята, кажемо своїми словами. */
 function listProblem(problem: unknown, fallback: string): string {
@@ -41,6 +44,29 @@ function listProblem(problem: unknown, fallback: string): string {
     return "Список із такою назвою вже є.";
   }
   return problem instanceof Error ? problem.message : fallback;
+}
+
+/** Що зникне, що лишиться і чия історія пропаде — числами, до натискання. */
+function withCardsNote({ removed, kept, studied }: ListDeletion): string {
+  if (removed === 0) {
+    return "Усі слова цього списку є в інших списках, тож зникне лише сам список.";
+  }
+  const parts = [
+    `Зі словника ${plural(removed, "зникне", "зникнуть", "зникне")} ${words(removed)}.`,
+  ];
+  if (studied > 0) {
+    parts.push(
+      studied === removed
+        ? `Разом ${plural(removed, "з ним", "з ними", "з ними")} зникне історія повторень.`
+        : `У ${studied} з них зникне й історія повторень.`,
+    );
+  }
+  if (kept > 0) {
+    parts.push(
+      `${words(kept)} ${plural(kept, "лишиться", "лишаться", "лишиться")} — ${plural(kept, "воно є", "вони є", "вони є")} в інших списках.`,
+    );
+  }
+  return parts.join(" ");
 }
 
 export default function MyLists() {
@@ -54,6 +80,7 @@ export default function MyLists() {
   const create = useCreateList();
   const rename = useRenameList();
   const remove = useDeleteList();
+  const removeWithCards = useDeleteListWithCards();
 
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +91,10 @@ export default function MyLists() {
     id: number;
     name: string;
     cardCount: number;
+    /** Другий крок: людина вибрала «разом зі словами». */
+    withCards: boolean;
   } | null>(null);
+  const deletion = useListDeletion(asking?.withCards ? asking.id : null);
 
   const defaultListId = settings.data?.default_list_id ?? null;
   const items = lists.data?.items ?? [];
@@ -115,6 +145,16 @@ export default function MyLists() {
       setAsking(null);
       setError(problem instanceof Error ? problem.message : "Не вдалось видалити");
     }
+  };
+
+  const onDeleteWithCards = async (id: number) => {
+    setError(null);
+    try {
+      await removeWithCards.mutateAsync(id);
+    } catch (problem) {
+      setError(problem instanceof Error ? problem.message : "Не вдалось видалити");
+    }
+    setAsking(null);
   };
 
   const setDefault = async (id: number) => {
@@ -231,6 +271,7 @@ export default function MyLists() {
                       id: list.id,
                       name: list.name,
                       cardCount: list.card_count,
+                      withCards: false,
                     })
                   }
                 >
@@ -285,8 +326,21 @@ export default function MyLists() {
 
       {!online ? <div className="hint">Зміни потребують звʼязку.</div> : null}
 
-      {asking ? (
+      {asking?.withCards ? (
         <ConfirmSheet
+          key="with-cards"
+          title={`Видалити «${asking.name}» разом зі словами?`}
+          note={deletion.data ? withCardsNote(deletion.data) : undefined}
+          confirmLabel={
+            deletion.data?.removed === 0 ? "Видалити список" : "Видалити разом зі словами"
+          }
+          busy={!deletion.data || removeWithCards.isPending}
+          onConfirm={() => void onDeleteWithCards(asking.id)}
+          onCancel={() => setAsking(null)}
+        />
+      ) : asking ? (
+        <ConfirmSheet
+          key="list"
           title={`Видалити список «${asking.name}»?`}
           // Наслідок мусить казати правду: старий PWA видаляв разом зі списком
           // усі його слова, і звичка може лишитись саме та.
@@ -297,6 +351,14 @@ export default function MyLists() {
           }
           confirmLabel="Видалити список"
           busy={remove.isPending}
+          alternative={
+            asking.cardCount > 0
+              ? {
+                  label: "Видалити разом зі словами",
+                  onClick: () => setAsking({ ...asking, withCards: true }),
+                }
+              : undefined
+          }
           onConfirm={() => void onDelete(asking.id)}
           onCancel={() => setAsking(null)}
         />

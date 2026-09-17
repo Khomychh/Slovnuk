@@ -23,6 +23,7 @@ export default function ConfirmSheet({
   note,
   confirmLabel,
   busy = false,
+  alternative,
   onConfirm,
   onCancel,
 }: {
@@ -36,6 +37,8 @@ export default function ConfirmSheet({
   /** Підпис дії. Дієслово, те саме, що привело сюди. */
   confirmLabel: string;
   busy?: boolean;
+  /** Друга, суворіша дія. Стоїть нижче за основну, щоб найлегший шлях лишався м'якшим. */
+  alternative?: { label: string; onClick: () => void };
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -81,6 +84,16 @@ export default function ConfirmSheet({
           >
             {busy ? "Зачекайте…" : confirmLabel}
           </button>
+          {alternative ? (
+            <button
+              className="btn-quiet"
+              type="button"
+              disabled={busy}
+              onClick={alternative.onClick}
+            >
+              {alternative.label}
+            </button>
+          ) : null}
           <button className="btn-quiet" type="button" onClick={onCancel}>
             Скасувати
           </button>
