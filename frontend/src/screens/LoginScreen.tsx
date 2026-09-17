@@ -80,7 +80,7 @@ export default function LoginScreen() {
           autoCapitalize="none"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="ivan@example.com"
+          placeholder="email@example.com"
           required
         />
         <Field

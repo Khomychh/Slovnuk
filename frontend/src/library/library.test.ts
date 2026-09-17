@@ -103,7 +103,7 @@ describe("authorLine", () => {
   });
 
   it("імʼя віддає як є", () => {
-    expect(authorLine("Іван Хомич")).toBe("Іван Хомич");
+    expect(authorLine("Олена Коваленко")).toBe("Олена Коваленко");
   });
 });
 

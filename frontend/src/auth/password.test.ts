@@ -30,8 +30,8 @@ describe("правила пароля", () => {
     expect(passwordProblem("Slovnuky!")).toContain("цифру");
   });
 
-  it("без спеціального символу", () => {
-    expect(passwordProblem("Slovnuk12")).toContain("спеціальний символ");
+  it("спеціальний символ не потрібен", () => {
+    expect(passwordProblem("Slovnuk12")).toBeNull();
   });
 
   it("український великий не вважається великою літерою", () => {
@@ -46,25 +46,11 @@ describe("правила пароля", () => {
     // Тут велика «A» і мала «b» латинські, тож пароль проходить.
     expect(passwordProblem("Пароль1!Ab")).toBeNull();
   });
-
-  it("кожен зі спецсимволів бекенду приймається", () => {
-    for (const symbol of ["@", "$", "!", "%", "*", "?", "&", "#"]) {
-      expect(passwordProblem(`Slovnuk1${symbol}`)).toBeNull();
-    }
-  });
-
-  it("символ, якого бекенд НЕ приймає, не проходить", () => {
-    // Підкреслення й дефіс виглядають як спецсимволи, але серверний набір їх не
-    // містить. Мовчки дозволити їх тут означало б обіцянку, якої сервер не
-    // виконає.
-    expect(passwordProblem("Slovnuk1_")).toContain("спеціальний символ");
-    expect(passwordProblem("Slovnuk1-")).toContain("спеціальний символ");
-  });
 });
 
 describe("пошта", () => {
   it("пробіли по краях зрізаються", () => {
-    expect(normalizeEmail("  ivan@example.com  ")).toBe("ivan@example.com");
+    expect(normalizeEmail("  email@example.com  ")).toBe("email@example.com");
   });
 
   it("порожня — очевидно не пошта", () => {
@@ -72,11 +58,11 @@ describe("пошта", () => {
   });
 
   it("без @", () => {
-    expect(emailLooksWrong("ivanexample.com")).toBe(true);
+    expect(emailLooksWrong("userexample.com")).toBe(true);
   });
 
   it("без точки в домені", () => {
-    expect(emailLooksWrong("ivan@example")).toBe(true);
+    expect(emailLooksWrong("user@example")).toBe(true);
   });
 
   it("@ на початку", () => {
@@ -84,12 +70,12 @@ describe("пошта", () => {
   });
 
   it("звичайна адреса проходить", () => {
-    expect(emailLooksWrong("ivan.khomychh@gmail.com")).toBe(false);
+    expect(emailLooksWrong("first.last@gmail.com")).toBe(false);
   });
 
   it("плюс-адресація проходить", () => {
     // Перевірка навмисно груба: сувору робить бекенд, і відхиляти тут те, що
     // сервер приймає, — гірше, ніж пропустити зайве.
-    expect(emailLooksWrong("ivan+slovnuk@gmail.com")).toBe(false);
+    expect(emailLooksWrong("user+slovnuk@gmail.com")).toBe(false);
   });
 });

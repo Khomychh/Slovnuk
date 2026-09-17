@@ -88,7 +88,7 @@ describe("уточнення під головним реченням", () => {
 
 describe("підпис автора", () => {
   it("імʼя є", () => {
-    expect(ownerLine("Іван")).toBe("Поділився Іван");
+    expect(ownerLine("Андрій")).toBe("Поділився Андрій");
   });
 
   it("імені немає — підпису немає, а не «Поділився null»", () => {
@@ -154,8 +154,8 @@ describe("порожній результат — не помилка", () => {
 
 describe("адреса посилання", () => {
   it("будується з origin браузера", () => {
-    expect(buildShareUrl("https://slovnuk.ivankhomych.com", "AbC123")).toBe(
-      "https://slovnuk.ivankhomych.com/shares/AbC123",
+    expect(buildShareUrl("https://slovnuk.example.com", "AbC123")).toBe(
+      "https://slovnuk.example.com/shares/AbC123",
     );
   });
 
