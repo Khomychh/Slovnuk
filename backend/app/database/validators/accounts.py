@@ -12,10 +12,6 @@ def validate_password_strength(password: str) -> str:
         raise ValueError("Пароль має містити щонайменше одну малу літеру.")
     if not re.search(r"\d", password):
         raise ValueError("Пароль має містити щонайменше одну цифру.")
-    if not re.search(r"[@$!%*?&#]", password):
-        raise ValueError(
-            "Пароль має містити щонайменше один спеціальний символ: @, $, !, %, *, ?, #, &."
-        )
     return password
 
 

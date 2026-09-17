@@ -14,7 +14,10 @@ from app.schemas.vocabulary import (
     CardCreateSchema,
     CardPageSchema,
     CardSchema,
+    CardsDeleteSchema,
     CardUpdateSchema,
+    DeletedCardsSchema,
+    ListDeletionSchema,
     UnlistedSchema,
     VocabularyStatsSchema,
     WordListCreateSchema,
@@ -271,6 +274,55 @@ async def delete_list(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+@router.get(
+    "/lists/{list_id}/deletion/",
+    response_model=ListDeletionSchema,
+    summary="What deleting a list with its cards would do",
+    description="Counts of cards that would be removed, kept (they are in other lists) and lose history.",
+    status_code=status.HTTP_200_OK,
+)
+async def get_list_deletion(
+    list_id: int,
+    current_user: UserModel = Depends(get_current_authenticated_user),
+    db: AsyncSession = Depends(get_db),
+) -> ListDeletionSchema:
+    """Числа для діалогу підтвердження — до того, як людина натисне."""
+    word_list = await vocabulary_crud.get_own_list(db, list_id, current_user.id)
+    if not word_list:
+        raise _list_not_found()
+
+    counts = await vocabulary_crud.list_deletion_counts(db, current_user.id, list_id)
+    return ListDeletionSchema(**counts)
+
+
+@router.post(
+    "/lists/{list_id}/delete-with-cards/",
+    response_model=DeletedCardsSchema,
+    summary="Delete a word list together with its cards",
+    description="Cards that are also in other lists survive; the rest are removed with their review history.",
+    status_code=status.HTTP_200_OK,
+)
+async def delete_list_with_cards(
+    list_id: int,
+    current_user: UserModel = Depends(get_current_authenticated_user),
+    db: AsyncSession = Depends(get_db),
+) -> DeletedCardsSchema:
+    """
+    Картки, що лежать ще в інших списках, лишаються: туди їх поклав сам
+    користувач, і видалення одного списку не має права це скасувати (ADR-0035).
+    """
+    word_list = await vocabulary_crud.get_own_list(db, list_id, current_user.id)
+    if not word_list:
+        raise _list_not_found()
+
+    deleted = await vocabulary_crud.delete_cards_only_in_list(
+        db, current_user.id, list_id
+    )
+    await db.delete(word_list)
+    await db.commit()
+    return DeletedCardsSchema(deleted_card_ids=deleted)
+
+
 # --------------------------------------------------------------------------
 # Картки
 # --------------------------------------------------------------------------
@@ -525,3 +577,24 @@ async def delete_card(
     await db.delete(card)
     await db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/cards/delete/",
+    response_model=DeletedCardsSchema,
+    summary="Delete several cards",
+    description="Removes own cards among the given ids with their review history; unknown ids are skipped.",
+    status_code=status.HTTP_200_OK,
+)
+async def delete_cards(
+    payload: CardsDeleteSchema,
+    current_user: UserModel = Depends(get_current_authenticated_user),
+    db: AsyncSession = Depends(get_db),
+) -> DeletedCardsSchema:
+    """
+    Невідомий id не валить усе: картку могли вже видалити з іншого пристрою.
+    Чужий пропускається так само, щоб відповідь не підтверджувала, що він існує.
+    """
+    deleted = await vocabulary_crud.delete_cards(db, current_user.id, payload.card_ids)
+    await db.commit()
+    return DeletedCardsSchema(deleted_card_ids=deleted)

@@ -8,7 +8,7 @@
 from datetime import datetime
 from typing import Sequence
 
-from sqlalchemy import Select, and_, case, exists, func, or_, select
+from sqlalchemy import Select, and_, case, delete, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -303,6 +303,85 @@ async def count_unlisted(
     card_count = (await db.execute(cards_stmt)).scalar_one()
     due_count = (await db.execute(due_stmt)).scalar_one()
     return card_count, due_count
+
+
+def _only_in_list(list_id: int):
+    """Картка лежить у цьому списку і ні в якому іншому."""
+    return and_(
+        exists().where(
+            CardListLinkModel.card_id == CardModel.id,
+            CardListLinkModel.list_id == list_id,
+        ),
+        ~exists().where(
+            CardListLinkModel.card_id == CardModel.id,
+            CardListLinkModel.list_id != list_id,
+        ),
+    )
+
+
+async def list_deletion_counts(
+    db: AsyncSession, user_id: int, list_id: int
+) -> dict[str, int]:
+    """
+    Що станеться з картками списку, якщо видалити його разом зі словами.
+
+    `studied` рахується серед тих, що зникнуть: у них є доріжка не в стані NEW,
+    тобто разом із ними зникнуть записи повторень (ADR-0003).
+    """
+    in_list = exists().where(
+        CardListLinkModel.card_id == CardModel.id,
+        CardListLinkModel.list_id == list_id,
+    )
+    studied = exists().where(
+        ReviewTrackModel.card_id == CardModel.id,
+        ReviewTrackModel.state != ReviewStateEnum.NEW,
+    )
+    only_here = _only_in_list(list_id)
+
+    stmt = select(
+        func.count(CardModel.id),
+        func.count(case((only_here, 1))),
+        func.count(case((and_(only_here, studied), 1))),
+    ).where(CardModel.user_id == user_id, in_list)
+    total, removable, studied_count = (await db.execute(stmt)).one()
+
+    return {
+        "removed": removable,
+        "kept": total - removable,
+        "studied": studied_count,
+    }
+
+
+async def delete_cards_only_in_list(
+    db: AsyncSession, user_id: int, list_id: int
+) -> list[int]:
+    """
+    Видалити картки, що лежать лише в цьому списку. Сам список видаляє роут.
+
+    Картки з інших списків лишаються: там їх поклав сам користувач.
+    """
+    stmt = (
+        delete(CardModel)
+        .where(CardModel.user_id == user_id, _only_in_list(list_id))
+        .returning(CardModel.id)
+    )
+    return list((await db.execute(stmt)).scalars().all())
+
+
+async def delete_cards(
+    db: AsyncSession, user_id: int, card_ids: Sequence[int]
+) -> list[int]:
+    """
+    Видалити свої картки з переданих. Чужі й неіснуючі мовчки пропускаються.
+
+    Доріжки, записи повторень, значення й мітки списків забирає каскад у базі.
+    """
+    stmt = (
+        delete(CardModel)
+        .where(CardModel.user_id == user_id, CardModel.id.in_(set(card_ids)))
+        .returning(CardModel.id)
+    )
+    return list((await db.execute(stmt)).scalars().all())
 
 
 async def has_forms(db: AsyncSession, card_id: int) -> bool:

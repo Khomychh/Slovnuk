@@ -85,7 +85,7 @@ export function ForgotPasswordScreen() {
           autoCapitalize="none"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="ivan@example.com"
+          placeholder="email@example.com"
           required
         />
         <button className="btn" type="submit" disabled={busy || !email}>

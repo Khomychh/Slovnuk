@@ -22,13 +22,13 @@ import { forgetShare, rememberShare } from "../sharing/pending";
 import { useImportShare, useSharePreview, useSharedCards } from "../sharing/queries";
 import {
   alreadyHave,
+  canImport,
   importFoundNothing,
+  importLabel,
   importSummary,
   needsMode,
   overwriteWarning,
   ownerLine,
-  previewHeadline,
-  previewNote,
 } from "../sharing/share";
 import { skippedPreview } from "../library/library";
 import { plural, words } from "../ui/plural";
@@ -50,7 +50,7 @@ function SharedRow({ card }: { card: SharedCard }) {
       <div className="sh-word-line">
         <span className="sh-word">{card.word}</span>
         {card.forms.length > 0 ? <span className="v-tag">форми</span> : null}
-        {card.already_have ? <span className="sh-have">вже є</span> : null}
+        {card.already_have ? <span className="v-tag sh-have">вже є</span> : null}
       </div>
       {summary ? <div className="sh-tr">{summary}</div> : null}
     </div>
@@ -227,7 +227,7 @@ function SharedList({ token }: { token: string }) {
   /* --- перегляд і кнопка -------------------------------------------------- */
 
   const items = cards.data?.pages.flatMap((page) => page.items) ?? [];
-  const canTake = online && summary.total_cards > 0 && Boolean(name.trim());
+  const canTake = online && canImport(summary, mode) && Boolean(name.trim());
 
   /** Взяти список. Перезапис сюди потрапляє вже підтвердженим. */
   const run = async () => {
@@ -266,16 +266,13 @@ function SharedList({ token }: { token: string }) {
           disabled={!canTake || take.isPending}
           onClick={() => (mode === "overwrite" ? setAsking(true) : void run())}
         >
-          {take.isPending ? "Беремо…" : "Взяти список"}
+          {take.isPending ? "Беремо…" : importLabel(summary, mode)}
         </button>
       }
     >
-      {author ? <div className="sh-author">{author}</div> : null}
-
-      <div className="sh-headline">{previewHeadline(summary)}</div>
-      {previewNote(summary) ? (
-        <p className="hint">{previewNote(summary)}</p>
-      ) : null}
+      {/* Та сама шапка, що на сторінці публікації: хто поділився, а що
+          станеться — каже кнопка внизу, окремого заголовка над формою немає. */}
+      {author ? <div className="pub-by pub-by-page">{author}</div> : null}
 
       {problem ? <Message kind="error">{problem}</Message> : null}
 
@@ -350,10 +347,17 @@ function SharedList({ token }: { token: string }) {
         />
       ) : null}
 
-      <div className="ed-label">Слова у списку</div>
-      {items.map((card, index) => (
-        <SharedRow card={card} key={`${card.word}#${index}`} />
-      ))}
+      {/* Число підписує перелік, як на сторінці публікації. */}
+      <div className="pub-figures pub-figures-page sh-figures">
+        <span className="pub-figure">{words(summary.total_cards)}</span>
+      </div>
+      {items.length > 0 ? (
+        <div className="panel sh-panel">
+          {items.map((card, index) => (
+            <SharedRow card={card} key={`${card.word}#${index}`} />
+          ))}
+        </div>
+      ) : null}
       {cards.isPending ? <div className="hint">Завантаження…</div> : null}
       <div ref={sentinel} />
       {cards.isFetchingNextPage ? <div className="hint">Ще…</div> : null}

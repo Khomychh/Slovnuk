@@ -36,6 +36,9 @@ import { asOfLine, canPublish, stalenessLine } from "../library/library";
 import { words } from "../ui/plural";
 import { MAX_TITLE, MAX_DESCRIPTION } from "../library/limits";
 
+/** Заголовок — місце, а не список: «Подорожі» вже стоїть на «Віддати», звідки прийшли. */
+const TITLE = "У Бібліотеці";
+
 export default function ListPublishScreen() {
   const navigate = useNavigate();
   const online = useOnline();
@@ -96,12 +99,12 @@ export default function ListPublishScreen() {
     );
   }
   if (publication.isPending) {
-    return <Screen back={back} title={list.name}>Завантаження…</Screen>;
+    return <Screen back={back} title={TITLE}>Завантаження…</Screen>;
   }
   if (publication.isError && !notPublished) {
     const problem = publication.error;
     return (
-      <Screen back={back} title={list.name}>
+      <Screen back={back} title={TITLE}>
         <Message kind="error">
           {problem instanceof OfflineError
             ? "Немає звʼязку. Бібліотека живе в мережі."
@@ -160,10 +163,16 @@ export default function ListPublishScreen() {
   const staleness = current ? stalenessLine(current) : null;
   const hiddenByModerator = current?.hidden_by_moderator ?? false;
 
+  const unchanged =
+    current !== null &&
+    current.is_listed &&
+    trimmed === current.title &&
+    (description.trim() || null) === (current.description ?? null);
+
   return (
     <Screen
       back={back}
-      title={list.name}
+      title={TITLE}
       foot={
         <button
           className="btn"
@@ -172,6 +181,7 @@ export default function ListPublishScreen() {
             !online ||
             busy ||
             !trimmed ||
+            unchanged ||
             hiddenByModerator ||
             !canPublish(list.card_count)
           }
@@ -187,6 +197,10 @@ export default function ListPublishScreen() {
         </button>
       }
     >
+      <div className="v-summary">
+        {list.name} · {words(list.card_count)}
+      </div>
+
       {error ? <Message kind="error">{error}</Message> : null}
       {note ? <Message>{note}</Message> : null}
 
@@ -202,11 +216,9 @@ export default function ListPublishScreen() {
         </div>
       ) : null}
 
+      {/* Стан публікації — своя картка: копія на дату, числа й «Оновити». */}
       {current ? (
-        <>
-          <div className="ed-label">У Бібліотеці</div>
-          {/* Уся правда про копію-на-дату — цей рядок. Прийменник «станом на»
-              каже те, що раніше пояснював абзац про знімок. */}
+        <div className="panel panel-pad">
           <div className="state-line">
             {words(current.cards_count)} · {asOfLine(current.content_updated_at)}
           </div>
@@ -224,9 +236,8 @@ export default function ListPublishScreen() {
             <span className="state-figure">взяли {current.takes_count}</span>
           </div>
 
-          {/* Розбіжність показується тільки коли вона є — і тоді ж поруч стоїть
-              кнопка, яка її прибирає. Мовчати про це не можна: слова, кинуті в
-              опублікований список, публічними не стають самі. */}
+          {/* Розбіжність зі списком — єдине попередження екрана, і кнопка, що
+              її прибирає, стоїть у ньому ж. */}
           {staleness ? (
             <div className="state-stale">
               <span>{staleness}</span>
@@ -251,39 +262,51 @@ export default function ListPublishScreen() {
               Оновити в Бібліотеці
             </button>
           ) : null}
-        </>
+        </div>
       ) : null}
 
-      <div className="ed-label">Назва в Бібліотеці</div>
-      <div className="ed-inline">
-        <input
-          value={title}
-          placeholder="як назвати список для інших"
-          maxLength={MAX_TITLE}
+      {/* Те, що бачать інші, — друга картка. Назва публікації окрема від назви
+          списку, тож підпис над полем лишається. */}
+      <div className="panel panel-pad">
+        <label className="ed-label panel-label" htmlFor="pub-title">
+          Назва
+        </label>
+        <div className="ed-inline">
+          <input
+            id="pub-title"
+            value={title}
+            placeholder="як назвати список для інших"
+            maxLength={MAX_TITLE}
+            disabled={!online || hiddenByModerator}
+            onChange={(event) => {
+              setTouched(true);
+              setTitle(event.target.value);
+            }}
+          />
+        </div>
+
+        <label className="ed-label panel-label" htmlFor="pub-desc">
+          Опис
+        </label>
+        <textarea
+          id="pub-desc"
+          className="ed-body lib-desc-input"
+          value={description}
+          placeholder="для кого цей список і що в ньому"
+          maxLength={MAX_DESCRIPTION}
           disabled={!online || hiddenByModerator}
           onChange={(event) => {
             setTouched(true);
-            setTitle(event.target.value);
+            setDescription(event.target.value);
           }}
         />
       </div>
 
-      <div className="ed-label">Опис</div>
-      <textarea
-        className="ed-body lib-desc-input"
-        value={description}
-        placeholder="для кого цей список і що в ньому"
-        maxLength={MAX_DESCRIPTION}
-        disabled={!online || hiddenByModerator}
-        onChange={(event) => {
-          setTouched(true);
-          setDescription(event.target.value);
-        }}
-      />
-
+      {/* Зняття — посиланням під картками, як «Вимкнути посилання» в «Віддати»:
+          щоб натиснути, треба свідомо цілитись. */}
       {current && current.is_listed ? (
         <button
-          className="btn-quiet card-delete"
+          className="btn-link give-off"
           type="button"
           disabled={!online || busy}
           onClick={() => setAsking("takeOff")}

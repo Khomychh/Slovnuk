@@ -21,10 +21,16 @@ import { SpeakButton } from "../tts/SpeakButton";
 export default function CardRow({
   card,
   onOpen,
+  selected,
 }: {
   card: Card;
+  /** У режимі вибору — перемкнути позначку, інакше відкрити картку. */
   onOpen: () => void;
+  /** `undefined` — режиму вибору немає. */
+  selected?: boolean;
 }) {
+  const selecting = selected !== undefined;
+
   const summary = senseSummary(card);
   const transcriptions = distinctTranscriptions(card);
   // Довге «слово» — не рідкість: у словнику є цілі речення на 61 символ. Тоді
@@ -36,13 +42,20 @@ export default function CardRow({
   // в поведінці.
   return (
     <div
-      className="v-row"
+      className={
+        selecting ? (selected ? "v-row v-row-picking v-row-on" : "v-row v-row-picking") : "v-row"
+      }
       // Риска ліворуч несе температуру (ADR-0017). Підказкою вона тут бути не
       // може: поруч уже стоїть переклад, тобто ховати нічого — на відміну від
       // закритої картки навчання, де той самий колір заборонений (ADR-0016).
       style={{ "--temp": cardTemperature(card.tracks) } as React.CSSProperties}
     >
-      <button className="v-row-main" type="button" onClick={onOpen}>
+      <button
+        className="v-row-main"
+        type="button"
+        aria-pressed={selecting ? selected : undefined}
+        onClick={onOpen}
+      >
         <span className="v-word-line">
           <span className="v-word">{card.word}</span>
           {!longWord && transcriptions.length > 0 ? (
@@ -52,7 +65,13 @@ export default function CardRow({
         </span>
         {summary ? <span className="v-tr">{summary}</span> : null}
       </button>
-      <SpeakButton text={card.word} className="spk-row" />
+      {/* У режимі вибору динамік поступається позначкою: ціль на тому ж місці
+          мусить робити те саме, що й решта рядка. */}
+      {selecting ? (
+        <span className="v-check" aria-hidden="true" onClick={onOpen} />
+      ) : (
+        <SpeakButton text={card.word} className="spk-row" />
+      )}
     </div>
   );
 }

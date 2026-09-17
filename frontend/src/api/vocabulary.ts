@@ -13,6 +13,8 @@ export type CardPage = components["schemas"]["CardPageSchema"];
 export type WordListPage = components["schemas"]["WordListPageSchema"];
 export type Unlisted = components["schemas"]["UnlistedSchema"];
 export type VocabularyStats = components["schemas"]["VocabularyStatsSchema"];
+export type DeletedCards = components["schemas"]["DeletedCardsSchema"];
+export type ListDeletion = components["schemas"]["ListDeletionSchema"];
 
 /**
  * Порядок сторінки. Береться зі схеми, а не пишеться руками: значення мусить
@@ -105,6 +107,13 @@ export function deleteCard(id: number): Promise<void> {
   return apiFetch<void>(`/vocabulary/cards/${id}/`, { method: "DELETE" });
 }
 
+export function deleteCards(ids: number[]): Promise<DeletedCards> {
+  return apiFetch<DeletedCards>("/vocabulary/cards/delete/", {
+    method: "POST",
+    body: { card_ids: ids },
+  });
+}
+
 export function fetchLists(): Promise<WordListPage> {
   return apiFetch<WordListPage>("/vocabulary/lists/");
 }
@@ -125,4 +134,15 @@ export function renameList(id: number, name: string): Promise<WordList> {
 
 export function deleteList(id: number): Promise<void> {
   return apiFetch<void>(`/vocabulary/lists/${id}/`, { method: "DELETE" });
+}
+
+/** Скільки слів зникне й скільки лишиться, якщо видалити список разом зі словами. */
+export function fetchListDeletion(id: number): Promise<ListDeletion> {
+  return apiFetch<ListDeletion>(`/vocabulary/lists/${id}/deletion/`);
+}
+
+export function deleteListWithCards(id: number): Promise<DeletedCards> {
+  return apiFetch<DeletedCards>(`/vocabulary/lists/${id}/delete-with-cards/`, {
+    method: "POST",
+  });
 }

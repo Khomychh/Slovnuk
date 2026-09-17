@@ -39,7 +39,7 @@ describe("parseGoal", () => {
 
 describe("nameProblem", () => {
   it("пропускає українське імʼя", () => {
-    expect(nameProblem("Іван")).toBeNull();
+    expect(nameProblem("Олена")).toBeNull();
     expect(nameProblem("Ґудзь")).toBeNull();
   });
 
@@ -50,13 +50,13 @@ describe("nameProblem", () => {
 
   it("ловить латиницю до того, як її відкине сервер", () => {
     // validate_name: ^[А-Яа-яЁёІіЇїЄєҐґ]*$ — інакше користувач отримав би
-    // «Ivan contains non-Ukrainian letters» англійською після «Зберегти».
-    expect(nameProblem("Ivan")).not.toBeNull();
+    // «Olena contains non-Ukrainian letters» англійською після «Зберегти».
+    expect(nameProblem("Olena")).not.toBeNull();
   });
 
   it("ловить дефіс і пробіл — бекенд їх теж не приймає", () => {
     expect(nameProblem("Анна-Марія")).not.toBeNull();
-    expect(nameProblem("Іван Петрович")).not.toBeNull();
+    expect(nameProblem("Олена Петрівна")).not.toBeNull();
   });
 });
 
@@ -75,8 +75,8 @@ describe("nameChanged", () => {
   it("пробіл у кінці не є зміною — сервер його не побачить", () => {
     expect(
       nameChanged(
-        { firstName: "Іван", lastName: null },
-        { firstName: "Іван  ", lastName: "" },
+        { firstName: "Олена", lastName: null },
+        { firstName: "Олена  ", lastName: "" },
       ),
     ).toBe(false);
   });
@@ -84,8 +84,8 @@ describe("nameChanged", () => {
   it("бачить справжню правку будь-якого з двох полів", () => {
     expect(
       nameChanged(
-        { firstName: "Іван", lastName: null },
-        { firstName: "Іван", lastName: "Хомич" },
+        { firstName: "Олена", lastName: null },
+        { firstName: "Олена", lastName: "Коваленко" },
       ),
     ).toBe(true);
   });
@@ -118,18 +118,18 @@ describe("avatarSrc", () => {
 
 describe("заголовок профілю", () => {
   it("імʼя й прізвище одним рядком", () => {
-    expect(fullName({ first_name: "Іван", last_name: "Хомич" })).toBe(
-      "Іван Хомич",
+    expect(fullName({ first_name: "Олена", last_name: "Коваленко" })).toBe(
+      "Олена Коваленко",
     );
   });
 
   it("саме імʼя, коли прізвища немає", () => {
-    expect(fullName({ first_name: "Іван", last_name: null })).toBe("Іван");
-    expect(fullName({ first_name: "Іван", last_name: "  " })).toBe("Іван");
+    expect(fullName({ first_name: "Олена", last_name: null })).toBe("Олена");
+    expect(fullName({ first_name: "Олена", last_name: "  " })).toBe("Олена");
   });
 
   it("саме прізвище, коли імені немає", () => {
-    expect(fullName({ first_name: null, last_name: "Хомич" })).toBe("Хомич");
+    expect(fullName({ first_name: null, last_name: "Коваленко" })).toBe("Коваленко");
   });
 
   /* Порожня шапка читалась би як недовантажений екран, а не як «імені немає». */
@@ -139,8 +139,8 @@ describe("заголовок профілю", () => {
   });
 
   it("зайві пробіли не дають подвійного розділювача", () => {
-    expect(fullName({ first_name: "  Іван ", last_name: " Хомич " })).toBe(
-      "Іван Хомич",
+    expect(fullName({ first_name: "  Олена ", last_name: " Коваленко " })).toBe(
+      "Олена Коваленко",
     );
   });
 });

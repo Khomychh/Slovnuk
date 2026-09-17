@@ -23,6 +23,7 @@ export default function ConfirmSheet({
   note,
   confirmLabel,
   busy = false,
+  alternative,
   onConfirm,
   onCancel,
 }: {
@@ -36,10 +37,16 @@ export default function ConfirmSheet({
   /** Підпис дії. Дієслово, те саме, що привело сюди. */
   confirmLabel: string;
   busy?: boolean;
+  /** Друга, суворіша дія. Стоїть нижче за основну, щоб найлегший шлях лишався м'якшим. */
+  alternative?: { label: string; onClick: () => void };
   onConfirm: () => void;
   onCancel: () => void;
 }) {
   const confirmRef = useRef<HTMLButtonElement>(null);
+  // Аркуш ставить дію під той самий палець, що його відкрив: другий дотик
+  // подвійного натискання не має права підтвердити незворотне.
+  const openedAt = useRef(performance.now());
+  const settled = () => performance.now() - openedAt.current > 400;
 
   // Фокус іде на дію, а не на скасування: клавіатурою сюди потрапляють рідко, і
   // коли потрапляють — уже знаючи, чого хочуть. Esc поруч, і він безпечний.
@@ -77,10 +84,20 @@ export default function ConfirmSheet({
             className="btn"
             type="button"
             disabled={busy}
-            onClick={onConfirm}
+            onClick={() => settled() && onConfirm()}
           >
             {busy ? "Зачекайте…" : confirmLabel}
           </button>
+          {alternative ? (
+            <button
+              className="btn-quiet confirm-alt"
+              type="button"
+              disabled={busy}
+              onClick={() => settled() && alternative.onClick()}
+            >
+              {alternative.label}
+            </button>
+          ) : null}
           <button className="btn-quiet" type="button" onClick={onCancel}>
             Скасувати
           </button>

@@ -122,7 +122,7 @@ export default function RegisterScreen() {
           autoCapitalize="none"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          placeholder="ivan@example.com"
+          placeholder="email@example.com"
           required
         />
         <Field

@@ -348,3 +348,37 @@ class WordListUpdateSchema(BaseModel):
     position: int | None = Field(default=None, ge=0)
 
     model_config = ConfigDict(extra="forbid")
+
+
+# --------------------------------------------------------------------------
+# Видалення кількох карток
+# --------------------------------------------------------------------------
+
+# Вибір робиться руками, рядок за рядком, тож тисяча — межа від помилки клієнта,
+# а не від людини.
+MAX_CARDS_PER_DELETE = 1000
+
+
+class CardsDeleteSchema(BaseModel):
+    card_ids: list[int] = Field(min_length=1, max_length=MAX_CARDS_PER_DELETE)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class DeletedCardsSchema(BaseModel):
+    """Які картки справді зникли — клієнт прибирає їх із черги навчання."""
+
+    deleted_card_ids: list[int]
+
+
+class ListDeletionSchema(BaseModel):
+    """
+    Що станеться зі словами, якщо видалити список разом із ними.
+
+    `removed` — лежать лише в цьому списку й зникнуть, `kept` — є ще в інших і
+    лишаться, `studied` — скільки з `removed` уже вчили, тобто втратять історію.
+    """
+
+    removed: int
+    kept: int
+    studied: int

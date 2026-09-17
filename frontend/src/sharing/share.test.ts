@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   alreadyHave,
   buildShareUrl,
+  canImport,
   importFoundNothing,
+  importLabel,
   importSummary,
   needsMode,
   overwriteWarning,
   ownerLine,
-  previewHeadline,
-  previewNote,
 } from "./share";
 
 /** Зведення до імпорту — рівно ті два числа, з яких усе рахується. */
@@ -44,51 +44,49 @@ describe("перемикач режиму", () => {
   });
 });
 
-describe("головне речення", () => {
-  it("частина слів нових — називає обидва числа", () => {
-    // Саме та правда, без якої імпорт виглядає зламаним: зі списку на 50 слів
-    // додається 38.
-    expect(previewHeadline(preview(50, 38))).toBe("Додасться 38 із 50 слів");
+describe("підпис кнопки взяття", () => {
+  it("пропуск — називає, скільки справді додасться", () => {
+    expect(importLabel(preview(50, 38), "skip")).toBe("Взяти 38 слів");
+    expect(importLabel(preview(1, 1), "skip")).toBe("Взяти 1 слово");
+    expect(importLabel(preview(22, 22), "skip")).toBe("Взяти 22 слова");
   });
 
-  it("усі слова нові — одне число", () => {
-    expect(previewHeadline(preview(50, 50))).toBe("Додасться 50 слів");
+  it("пропуск і нових немає — каже причину, а не «Взяти 0 слів»", () => {
+    expect(importLabel(preview(12, 0), "skip")).toBe("Усі слова вже є");
   });
 
-  it("нових немає — каже це прямо, а не «додасться 0»", () => {
-    expect(previewHeadline(preview(12, 0))).toBe("Усі ці слова у вас уже є");
+  it("заміна — називає обидві дії", () => {
+    expect(importLabel(preview(50, 38), "overwrite")).toBe("Взяти 38 слів і замінити 12");
+    expect(importLabel(preview(12, 0), "overwrite")).toBe("Замінити 12 слів");
+  });
+
+  it("заміна без збігів — те саме, що пропуск", () => {
+    expect(importLabel(preview(50, 50), "overwrite")).toBe("Взяти 50 слів");
   });
 
   it("порожній список", () => {
-    expect(previewHeadline(preview(0, 0))).toBe("У цьому списку немає слів");
-  });
-
-  it("одне слово — відмінок правильний", () => {
-    expect(previewHeadline(preview(1, 1))).toBe("Додасться 1 слово");
-  });
-
-  it("двадцять два слова — не «22 слів»", () => {
-    expect(previewHeadline(preview(22, 22))).toBe("Додасться 22 слова");
+    expect(importLabel(preview(0, 0), "skip")).toBe("У списку немає слів");
   });
 });
 
-describe("уточнення під головним реченням", () => {
-  it("збігів немає — уточнювати нічого", () => {
-    expect(previewNote(preview(50, 50))).toBeNull();
+describe("чи є що брати", () => {
+  it("пропуск без нових — нічого", () => {
+    expect(canImport(preview(12, 0), "skip")).toBe(false);
   });
 
-  it("один збіг — однина", () => {
-    expect(previewNote(preview(50, 49))).toBe("1 слово у вас уже є — його імпорт не чіпає.");
+  it("заміна без нових — є: вміст карток зміниться", () => {
+    expect(canImport(preview(12, 0), "overwrite")).toBe(true);
   });
 
-  it("дванадцять збігів — множина", () => {
-    expect(previewNote(preview(50, 38))).toBe("12 слів у вас уже є — їх імпорт не чіпає.");
+  it("порожній список — нічого в жодному режимі", () => {
+    expect(canImport(preview(0, 0), "skip")).toBe(false);
+    expect(canImport(preview(0, 0), "overwrite")).toBe(false);
   });
 });
 
 describe("підпис автора", () => {
   it("імʼя є", () => {
-    expect(ownerLine("Іван")).toBe("Поділився Іван");
+    expect(ownerLine("Андрій")).toBe("Поділився Андрій");
   });
 
   it("імені немає — підпису немає, а не «Поділився null»", () => {
@@ -154,8 +152,8 @@ describe("порожній результат — не помилка", () => {
 
 describe("адреса посилання", () => {
   it("будується з origin браузера", () => {
-    expect(buildShareUrl("https://slovnuk.ivankhomych.com", "AbC123")).toBe(
-      "https://slovnuk.ivankhomych.com/shares/AbC123",
+    expect(buildShareUrl("https://slovnuk.example.com", "AbC123")).toBe(
+      "https://slovnuk.example.com/shares/AbC123",
     );
   });
 

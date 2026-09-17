@@ -47,11 +47,30 @@ export default function ListsScreen() {
       : "mine",
   );
 
+  /*
+   * Половина пишеться і в запис історії (replace, без зміни адреси): повернувшись
+   * «назад» зі сторінки публікації, людина мусить опинитись у Бібліотеці, а не
+   * в «Моїх». Кнопка в шапці Словника стану не несе, тож і далі відкриває «Мої».
+   */
+  const pick = (next: Half) => {
+    setHalf(next);
+    navigate(location.pathname, {
+      replace: true,
+      state: { ...(location.state as object | null), half: next },
+    });
+  };
+
+  // Без попереднього запису (пряме посилання) крок назад вивів би із застосунку.
+  const back = () =>
+    location.key === "default"
+      ? navigate("/vocabulary", { replace: true })
+      : navigate(-1);
+
   const lists = useLists();
   const count = lists.data?.items.length ?? 0;
 
   return (
-    <Screen title="Списки" back={() => navigate(-1)}>
+    <Screen title="Списки" back={back}>
       {/* Перемикач липне до верху області прокрутки: під ним лежать і вісім
           списків, і нескінченна витрина, а повертатись угору, щоб перемкнути
           половину, — це та сама кнопка, до якої треба догортати. */}
@@ -61,7 +80,7 @@ export default function ListsScreen() {
           type="button"
           role="tab"
           aria-selected={half === "mine"}
-          onClick={() => setHalf("mine")}
+          onClick={() => pick("mine")}
         >
           Мої
           {count > 0 ? <span className="half-count">{count}</span> : null}
@@ -71,7 +90,7 @@ export default function ListsScreen() {
           type="button"
           role="tab"
           aria-selected={half === "library"}
-          onClick={() => setHalf("library")}
+          onClick={() => pick("library")}
         >
           Бібліотека
         </button>

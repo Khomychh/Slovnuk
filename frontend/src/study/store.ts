@@ -386,6 +386,19 @@ export async function cardDeleted(cardId: number): Promise<void> {
   await refillIfLow();
 }
 
+/**
+ * Кілька карток видалили зі словника — прибрати їх із буфера.
+ *
+ * Спершу `init`: інакше запис порожнього буфера до читання затер би збережений.
+ */
+export async function cardsDeleted(cardIds: number[]): Promise<void> {
+  if (cardIds.length === 0) return;
+  await init();
+  const gone = new Set(cardIds);
+  set({ buffer: state.buffer.filter((item) => !gone.has(item.card.id)) });
+  await persistBuffer();
+}
+
 /** Нова сесія: інше зерно розкладу боків і свіжа вибірка. */
 export async function beginSession(): Promise<void> {
   set({ seed: Math.floor(Math.random() * 2 ** 31) });

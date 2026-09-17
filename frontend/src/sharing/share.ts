@@ -8,6 +8,7 @@
  * Функції чисті навмисно: помилка в цих реченнях не падає, а бреше.
  */
 
+import type { ImportMode } from "../api/sharing";
 import { plural, words } from "../ui/plural";
 
 /** Скільки слів зі списку в отримувача вже є. */
@@ -33,36 +34,32 @@ export function needsMode(preview: {
 }
 
 /**
- * Головне речення екрана — те, що станеться після натискання.
- *
- * Саме `new_cards`, а не `total_cards`: друге описує чужий список, а перше —
- * наслідок для твого словника.
+ * Підпис кнопки взяття — наслідок натискання, тепер замість заголовка над
+ * списком. Залежить від режиму: у «Замінити» наявні слова не пропускаються.
  */
-export function previewHeadline(preview: {
-  total_cards: number;
-  new_cards: number;
-}): string {
-  if (preview.total_cards === 0) return "У цьому списку немає слів";
-  if (preview.new_cards === 0) return "Усі ці слова у вас уже є";
-  if (preview.new_cards === preview.total_cards) {
-    return `Додасться ${words(preview.new_cards)}`;
+export function importLabel(
+  preview: { total_cards: number; new_cards: number },
+  mode: ImportMode,
+): string {
+  if (preview.total_cards === 0) return "У списку немає слів";
+  const already = alreadyHave(preview);
+
+  if (mode === "overwrite" && already > 0) {
+    return preview.new_cards === 0
+      ? `Замінити ${words(already)}`
+      : `Взяти ${words(preview.new_cards)} і замінити ${already}`;
   }
-  return `Додасться ${preview.new_cards} із ${words(preview.total_cards)}`;
+  if (preview.new_cards === 0) return "Усі слова вже є";
+  return `Взяти ${words(preview.new_cards)}`;
 }
 
-/** Уточнення під головним реченням. Порожнє, коли уточнювати нічого. */
-export function previewNote(preview: {
-  total_cards: number;
-  new_cards: number;
-}): string | null {
-  const already = alreadyHave(preview);
-  if (already === 0) return null;
-  return `${words(already)} у вас уже є — ${plural(
-    already,
-    "його",
-    "їх",
-    "їх",
-  )} імпорт не чіпає.`;
+/** Чи додасть натискання хоч щось: пропустити всі наявні — це нічого. */
+export function canImport(
+  preview: { total_cards: number; new_cards: number },
+  mode: ImportMode,
+): boolean {
+  if (preview.total_cards === 0) return false;
+  return mode === "overwrite" ? true : preview.new_cards > 0;
 }
 
 /** Підпис автора, коли той заповнив ім'я. Пошту бекенд не віддає ніколи. */

@@ -421,3 +421,121 @@ async def test_another_users_list_cannot_be_used(
         headers=other_auth_headers,
     )
     assert response.status_code in (400, 404, 422), response.text
+
+
+# --------------------------------------------------------------------------
+# «Список разом зі словами» і видалення кількох слів (ADR-0035)
+# --------------------------------------------------------------------------
+
+
+async def test_list_with_cards_keeps_words_from_other_lists(
+    client: AsyncClient, auth_headers
+):
+    taken = await _new_list(client, auth_headers, "Від Івана")
+    general = await _new_list(client, auth_headers, "Загальний")
+    only_here = await _new_card(client, auth_headers, "run", list_ids=[taken])
+    shared = await _new_card(client, auth_headers, "walk", list_ids=[taken, general])
+    outside = await _new_card(client, auth_headers, "talk", list_ids=[general])
+
+    response = await client.post(
+        f"{VOCAB}/lists/{taken}/delete-with-cards/", headers=auth_headers
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["deleted_card_ids"] == [only_here["id"]]
+
+    response = await client.get(
+        f"{VOCAB}/cards/{only_here['id']}/", headers=auth_headers
+    )
+    assert response.status_code == 404
+
+    response = await client.get(f"{VOCAB}/cards/{shared['id']}/", headers=auth_headers)
+    assert response.status_code == 200, "слово з іншого списку зникло"
+    assert response.json()["list_ids"] == [general]
+
+    response = await client.get(f"{VOCAB}/cards/{outside['id']}/", headers=auth_headers)
+    assert response.status_code == 200
+
+    lists = (await client.get(f"{VOCAB}/lists/", headers=auth_headers)).json()
+    assert [item["id"] for item in lists["items"]] == [general]
+
+
+async def test_list_deletion_counts_what_goes_and_what_stays(
+    client: AsyncClient, auth_headers
+):
+    taken = await _new_list(client, auth_headers, "Від Івана")
+    general = await _new_list(client, auth_headers, "Загальний")
+    studied = await _new_card(client, auth_headers, "run", list_ids=[taken])
+    await _new_card(client, auth_headers, "jump", list_ids=[taken])
+    await _new_card(client, auth_headers, "walk", list_ids=[taken, general])
+
+    queue = (await client.get(f"{STUDY}/queue/", headers=auth_headers)).json()
+    track = next(item for item in queue["items"] if item["card"]["id"] == studied["id"])
+    await client.post(
+        f"{STUDY}/tracks/{track['track_id']}/review/",
+        json={"rating": 3},
+        headers=auth_headers,
+    )
+
+    response = await client.get(
+        f"{VOCAB}/lists/{taken}/deletion/", headers=auth_headers
+    )
+    assert response.status_code == 200, response.text
+    assert response.json() == {"removed": 2, "kept": 1, "studied": 1}
+
+
+async def test_deleting_several_cards_skips_foreign_and_unknown_ids(
+    client: AsyncClient, auth_headers, other_auth_headers
+):
+    mine = await _new_card(client, auth_headers, "run")
+    kept = await _new_card(client, auth_headers, "walk")
+    foreign = await _new_card(client, other_auth_headers, "talk")
+
+    response = await client.post(
+        f"{VOCAB}/cards/delete/",
+        json={"card_ids": [mine["id"], foreign["id"], 999999]},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["deleted_card_ids"] == [mine["id"]]
+
+    response = await client.get(f"{VOCAB}/cards/{kept['id']}/", headers=auth_headers)
+    assert response.status_code == 200
+
+    response = await client.get(
+        f"{VOCAB}/cards/{foreign['id']}/", headers=other_auth_headers
+    )
+    assert response.status_code == 200, "видалено чужу картку"
+
+
+async def test_deleted_cards_leave_the_queue(client: AsyncClient, auth_headers):
+    first = await _new_card(client, auth_headers, "run")
+    second = await _new_card(client, auth_headers, "walk")
+
+    await client.post(
+        f"{VOCAB}/cards/delete/",
+        json={"card_ids": [first["id"], second["id"]]},
+        headers=auth_headers,
+    )
+
+    queue = (await client.get(f"{STUDY}/queue/", headers=auth_headers)).json()
+    assert queue["items"] == []
+
+
+async def test_another_users_list_cannot_be_deleted_with_cards(
+    client: AsyncClient, auth_headers, other_auth_headers
+):
+    list_id = await _new_list(client, auth_headers, "Дієслова")
+    card = await _new_card(client, auth_headers, "run", list_ids=[list_id])
+
+    response = await client.post(
+        f"{VOCAB}/lists/{list_id}/delete-with-cards/", headers=other_auth_headers
+    )
+    assert response.status_code == 404, response.text
+
+    response = await client.get(
+        f"{VOCAB}/lists/{list_id}/deletion/", headers=other_auth_headers
+    )
+    assert response.status_code == 404, response.text
+
+    response = await client.get(f"{VOCAB}/cards/{card['id']}/", headers=auth_headers)
+    assert response.status_code == 200

@@ -18,6 +18,7 @@ import {
   stalenessLine,
   takeFoundNothing,
   takeHeadline,
+  takeLabel,
   takeNote,
   takeSummary,
   updatedLine,
@@ -66,6 +67,18 @@ describe("takeHeadline", () => {
   });
 });
 
+describe("takeLabel", () => {
+  it("називає, скільки слів справді додасться, а не розмір списку", () => {
+    expect(takeLabel({ cards_count: 12, new_cards: 10 })).toBe("Взяти 10 слів");
+    expect(takeLabel({ cards_count: 3, new_cards: 1 })).toBe("Взяти 1 слово");
+  });
+
+  it("коли додати нічого, каже причину, а не «Взяти 0 слів»", () => {
+    expect(takeLabel({ cards_count: 540, new_cards: 0 })).toBe("Усі слова вже є");
+    expect(takeLabel({ cards_count: 0, new_cards: 0 })).toBe("У списку немає слів");
+  });
+});
+
 describe("alreadyHave", () => {
   it("рахує різницю й не йде в мінус", () => {
     expect(alreadyHave({ cards_count: 540, new_cards: 495 })).toBe(45);
@@ -103,7 +116,7 @@ describe("authorLine", () => {
   });
 
   it("імʼя віддає як є", () => {
-    expect(authorLine("Іван Хомич")).toBe("Іван Хомич");
+    expect(authorLine("Олена Коваленко")).toBe("Олена Коваленко");
   });
 });
 

@@ -20,14 +20,35 @@ import {
   EMPTY_BROWSE,
   flatten,
   useCards,
+  useDeleteCards,
   useLists,
   type Browse,
 } from "../vocabulary/queries";
+import { deletionLosesHistory, type Card } from "../vocabulary/card";
+import ConfirmSheet from "../ui/ConfirmSheet";
 import CardRow from "../vocabulary/CardRow";
 import ListFilterSheet from "../vocabulary/ListFilterSheet";
 import SortSheet from "../vocabulary/SortSheet";
-import { lists as listsLabel, words } from "../ui/plural";
+import { lists as listsLabel, plural, words } from "../ui/plural";
 import type { CardSort } from "../api/vocabulary";
+
+/** «run, walk, talk і ще 4» — щоб у підтвердженні було видно, що саме зникне. */
+function namePicked(picked: Card[]): string {
+  const shown = picked.slice(0, 3).map((card) => card.word);
+  const rest = picked.length - shown.length;
+  return rest > 0 ? `${shown.join(", ")} і ще ${rest}` : shown.join(", ");
+}
+
+/** Наслідок тими самими словами, що при видаленні списку разом зі словами. */
+function pickedNote(picked: Card[]): string {
+  const studied = picked.filter(deletionLosesHistory).length;
+  if (studied === 0) {
+    return `${plural(picked.length, "Воно зникне", "Вони зникнуть", "Вони зникнуть")} зі словника.`;
+  }
+  return studied === picked.length
+    ? `Разом ${plural(studied, "з ним", "з ними", "з ними")} зникне історія повторень, і відновити її не вийде.`
+    : `У ${studied} з них зникне й історія повторень, і відновити її не вийде.`;
+}
 
 /** Ті самі слова, що в аркуші: кнопка каже, у якому порядку ти зараз. */
 const SORT_LABEL: Record<CardSort, string> = {
@@ -56,6 +77,15 @@ export default function VocabularyScreen() {
   const [draftQuery, setDraftQuery] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
+  /*
+   * Вибрані картки, а не лише id: вибір переживає зміну пошуку й фільтра, тож
+   * підтвердження мусить назвати й ті слова, яких на екрані вже немає.
+   * `null` — режиму вибору немає. «Вибрати всі» немає навмисно (ADR-0035).
+   */
+  const [picked, setPicked] = useState<Map<number, Card> | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const removeCards = useDeleteCards();
 
   // Пошук іде на сервер, тож набір тексту не має слати запит на кожну літеру.
   useEffect(() => {
@@ -96,6 +126,27 @@ export default function VocabularyScreen() {
     return () => observer.disconnect();
   }, [cards.hasNextPage, cards.isFetchingNextPage, cards.fetchNextPage, cards]);
 
+  const toggle = (card: Card) =>
+    setPicked((current) => {
+      const next = new Map(current);
+      if (next.has(card.id)) next.delete(card.id);
+      else next.set(card.id, card);
+      return next;
+    });
+
+  const pickedCards = picked ? [...picked.values()] : [];
+
+  const destroyPicked = async () => {
+    setDeleteError(null);
+    try {
+      await removeCards.mutateAsync(pickedCards.map((card) => card.id));
+      setPicked(null);
+    } catch (problem) {
+      setDeleteError(problem instanceof Error ? problem.message : "Не вдалось видалити");
+    }
+    setConfirmDelete(false);
+  };
+
   const openCard = (id: number) => {
     // background — щоб маршрут картки намалювався аркушем ПОВЕРХ списку:
     // список лишається змонтованим, і позиція скролу не гине.
@@ -105,6 +156,32 @@ export default function VocabularyScreen() {
   return (
     <Screen
       title="Словник"
+      foot={
+        picked ? (
+          // Вихід із режиму — тут, а не вгорі: верх їде разом із прокруткою.
+          <div className="v-select-foot">
+            <button
+              className="btn-quiet v-select-cancel"
+              type="button"
+              onClick={() => {
+                setDeleteError(null);
+                setPicked(null);
+              }}
+            >
+              Скасувати
+            </button>
+            <button
+              className="btn-quiet v-select-act"
+              type="button"
+              disabled={!online || picked.size === 0}
+              title={online ? undefined : "Потрібен звʼязок"}
+              onClick={() => setConfirmDelete(true)}
+            >
+              {picked.size === 0 ? "Виберіть слова" : `Видалити ${words(picked.size)}`}
+            </button>
+          </div>
+        ) : undefined
+      }
       /* Два органи в правому куті, і це єдина шапка, де їх два.
          «Списки» стоять саме тут, бо звідси в них і ходять: керувати списками —
          це робота над словником, а не окрема справа. Аватар лишається на місці
@@ -128,8 +205,25 @@ export default function VocabularyScreen() {
       }
     >
       <div className="v-summary">
-        {words(total)} · {listsLabel(listCount)}
+        <span>
+          {words(total)} · {listsLabel(listCount)}
+        </span>
+        {/* У режимі вибору лише ховається: рядок не має міняти висоту. */}
+        <button
+          className={picked ? "v-select v-select-off" : "v-select"}
+          type="button"
+          disabled={Boolean(picked) || !online || items.length === 0}
+          aria-hidden={picked ? true : undefined}
+          onClick={() => {
+            setDeleteError(null);
+            setPicked(new Map());
+          }}
+        >
+          Вибрати
+        </button>
       </div>
+
+      {deleteError ? <div className="msg msg-error">{deleteError}</div> : null}
 
       <input
         className="v-search"
@@ -179,28 +273,46 @@ export default function VocabularyScreen() {
 
       <div className="v-list">
         {items.map((card) => (
-          <CardRow key={card.id} card={card} onOpen={() => openCard(card.id)} />
+          <CardRow
+            key={card.id}
+            card={card}
+            selected={picked ? picked.has(card.id) : undefined}
+            onOpen={() => (picked ? toggle(card) : openCard(card.id))}
+          />
         ))}
       </div>
 
       <div ref={sentinel} />
       {cards.isFetchingNextPage ? <div className="hint">Ще…</div> : null}
 
-      <button
-        className="v-add"
-        type="button"
-        disabled={!online}
-        title={online ? "Додати слово" : "Потрібен звʼязок"}
-        onClick={() =>
-          navigate("/vocabulary/cards/new", {
-            // Активний фільтр їде разом: «додати слово», не виходячи з
-            // відкритого списку, має класти картку саме туди.
-            state: { background: location, activeListId: browse.listId },
-          })
-        }
-      >
-        +
-      </button>
+      {picked ? null : (
+        <button
+          className="v-add"
+          type="button"
+          disabled={!online}
+          title={online ? "Додати слово" : "Потрібен звʼязок"}
+          onClick={() =>
+            navigate("/vocabulary/cards/new", {
+              // Активний фільтр їде разом: «додати слово», не виходячи з
+              // відкритого списку, має класти картку саме туди.
+              state: { background: location, activeListId: browse.listId },
+            })
+          }
+        >
+          +
+        </button>
+      )}
+
+      {confirmDelete && picked ? (
+        <ConfirmSheet
+          title={`Видалити ${words(picked.size)}?`}
+          note={`${namePicked(pickedCards)}. ${pickedNote(pickedCards)}`}
+          confirmLabel={`Видалити ${words(picked.size)}`}
+          busy={removeCards.isPending}
+          onConfirm={() => void destroyPicked()}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      ) : null}
 
       {sheetOpen ? (
         <ListFilterSheet

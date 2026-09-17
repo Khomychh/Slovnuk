@@ -355,6 +355,46 @@ export interface paths {
         patch: operations["update_list_api_v1_vocabulary_lists__list_id___patch"];
         trace?: never;
     };
+    "/api/v1/vocabulary/lists/{list_id}/deletion/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What deleting a list with its cards would do
+         * @description Counts of cards that would be removed, kept (they are in other lists) and lose history.
+         */
+        get: operations["get_list_deletion_api_v1_vocabulary_lists__list_id__deletion__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/vocabulary/lists/{list_id}/delete-with-cards/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Delete a word list together with its cards
+         * @description Cards that are also in other lists survive; the rest are removed with their review history.
+         */
+        post: operations["delete_list_with_cards_api_v1_vocabulary_lists__list_id__delete_with_cards__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/vocabulary/stats/": {
         parameters: {
             query?: never;
@@ -426,6 +466,26 @@ export interface paths {
          * @description Partial update. Children present in the body are matched by id.
          */
         patch: operations["update_card_api_v1_vocabulary_cards__card_id___patch"];
+        trace?: never;
+    };
+    "/api/v1/vocabulary/cards/delete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Delete several cards
+         * @description Removes own cards among the given ids with their review history; unknown ids are skipped.
+         */
+        post: operations["delete_cards_api_v1_vocabulary_cards_delete__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/grammar/categories/": {
@@ -1049,6 +1109,11 @@ export interface components {
             /** Forms */
             forms?: components["schemas"]["WordFormWriteSchema"][] | null;
         };
+        /** CardsDeleteSchema */
+        CardsDeleteSchema: {
+            /** Card Ids */
+            card_ids: number[];
+        };
         /** ChangePasswordRequestSchema */
         ChangePasswordRequestSchema: {
             /** Current Password */
@@ -1089,6 +1154,14 @@ export interface components {
             info?: string | null;
             /** Avatar */
             avatar?: string | null;
+        };
+        /**
+         * DeletedCardsSchema
+         * @description Які картки справді зникли — клієнт прибирає їх із черги навчання.
+         */
+        DeletedCardsSchema: {
+            /** Deleted Card Ids */
+            deleted_card_ids: number[];
         };
         /**
          * GoalModeEnum
@@ -1208,6 +1281,21 @@ export interface components {
             per_page: number;
             /** Items */
             items: components["schemas"]["PublicationSummarySchema"][];
+        };
+        /**
+         * ListDeletionSchema
+         * @description Що станеться зі словами, якщо видалити список разом із ними.
+         *
+         *     `removed` — лежать лише в цьому списку й зникнуть, `kept` — є ще в інших і
+         *     лишаться, `studied` — скільки з `removed` уже вчили, тобто втратять історію.
+         */
+        ListDeletionSchema: {
+            /** Removed */
+            removed: number;
+            /** Kept */
+            kept: number;
+            /** Studied */
+            studied: number;
         };
         /** MessageResponseSchema */
         MessageResponseSchema: {
@@ -3158,6 +3246,68 @@ export interface operations {
             };
         };
     };
+    get_list_deletion_api_v1_vocabulary_lists__list_id__deletion__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                list_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListDeletionSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_list_with_cards_api_v1_vocabulary_lists__list_id__delete_with_cards__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                list_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletedCardsSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_stats_api_v1_vocabulary_stats__get: {
         parameters: {
             query?: never;
@@ -3335,6 +3485,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CardSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_cards_api_v1_vocabulary_cards_delete__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CardsDeleteSchema"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletedCardsSchema"];
                 };
             };
             /** @description Validation Error */

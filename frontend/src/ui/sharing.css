@@ -30,25 +30,9 @@
 
 /* --- чужий список ------------------------------------------------------- */
 
-/* Автор — звичайним шрифтом, як `.pub-by` (ADR-0022). Це імʼя людини, і
-   читають його зліва направо один раз; капс із трекінгом перетворював «Іван
-   Хомич» на рубрику, тобто на назву розділу, якою він не є. Тим паче що
-   рубрика тут стояла б перед справжнім заголовком екрана (`.sh-headline`) і
-   сперечалась би з ним за те, з чого рядок починати. */
-.sh-author {
-  font-size: var(--t-meta);
-  color: var(--haze-2);
-  margin-top: 8px;
-}
-
-/* Головне речення екрана — наслідок натискання, а не назва чужого списку.
-   Дисплейною гарнітурою, бо це найважливіший рядок тут. */
-.sh-headline {
-  font-family: var(--display);
-  font-size: var(--t-title);
-  font-weight: 500;
-  letter-spacing: var(--track-title);
-  margin: 16px 0 6px;
+/* Під формою назви й режиму число відділяє перелік так само, як підпис розділу. */
+.sh-figures {
+  margin-top: 24px;
 }
 
 .sh-row {
@@ -77,17 +61,19 @@
   overflow-wrap: anywhere;
 }
 
-.sh-have {
-  flex: none;
-  font-family: var(--sans);
-  font-weight: 600;
-  font-size: var(--t-label);
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
-  color: var(--haze-2);
-  border: 1px solid var(--edge);
-  border-radius: 6px;
-  padding: 1px 5px;
+/* Позначка «вже є» — та сама плашка, що «форми» (`.v-tag`), і стоїть поруч
+   із нею праворуч. Друга плашка не відштовхується від першої. */
+.v-tag + .sh-have {
+  margin-left: 0;
+}
+
+/* Слова лежать у картці: остання межа збіглася б із рамкою. */
+.sh-panel {
+  margin-top: 4px;
+}
+
+.sh-panel > .sh-row:last-child {
+  border-bottom: none;
 }
 
 .sh-tr {

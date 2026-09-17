@@ -19,6 +19,15 @@ import { useSettings } from "../study/queries";
 
 export type FilterPick = { listId: number | null; unlisted: boolean };
 
+/** Вибране — галочкою, як в інших аркушах вибору. Слот є завжди, щоб числа стояли стовпчиком. */
+function Check({ on }: { on: boolean }) {
+  return (
+    <span className="sheet-check" aria-hidden="true">
+      {on ? "✓" : ""}
+    </span>
+  );
+}
+
 export default function ListFilterSheet({
   browse,
   onPick,
@@ -42,12 +51,15 @@ export default function ListFilterSheet({
         aria-label="Вибір списку"
         onClick={(event) => event.stopPropagation()}
       >
+        <div className="sheet-title">Списки</div>
+
         <button
           className={allActive ? "sheet-row sheet-row-on" : "sheet-row"}
           type="button"
           onClick={() => onPick({ listId: null, unlisted: false })}
         >
           <span>Усі слова</span>
+          <Check on={allActive} />
         </button>
 
         {lists.data?.items.map((item) => (
@@ -68,7 +80,10 @@ export default function ListFilterSheet({
                 </span>
               ) : null}
             </span>
-            <span className="sheet-count">{item.card_count}</span>
+            <span className="sheet-end">
+              <span className="sheet-count">{item.card_count}</span>
+              <Check on={browse.listId === item.id} />
+            </span>
           </button>
         ))}
 
@@ -81,8 +96,11 @@ export default function ListFilterSheet({
           onClick={() => onPick({ listId: null, unlisted: true })}
         >
           <span className="sheet-muted">Без списку</span>
-          <span className="sheet-count">
-            {lists.data?.unlisted.card_count ?? 0}
+          <span className="sheet-end">
+            <span className="sheet-count">
+              {lists.data?.unlisted.card_count ?? 0}
+            </span>
+            <Check on={browse.unlisted} />
           </span>
         </button>
 

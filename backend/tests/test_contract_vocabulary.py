@@ -1,5 +1,5 @@
 """
-Контракт словника: 10 ендпоінтів, успішний шлях.
+Контракт словника: 13 ендпоінтів, успішний шлях.
 
 Тут не перевіряються доменні правила (це `test_domain_*`), а лише те, що роут
 відповідає очікуваним кодом і у відповіді є поля, на які спиратиметься
@@ -98,6 +98,28 @@ async def test_delete_list(client: AsyncClient, auth_headers):
     assert response.json()["items"] == []
 
 
+async def test_list_deletion_preview(client: AsyncClient, auth_headers):
+    created = await _create_list(client, auth_headers)
+    await _create_card(client, auth_headers, list_ids=[created["id"]])
+
+    response = await client.get(
+        f"{API}/lists/{created['id']}/deletion/", headers=auth_headers
+    )
+    assert response.status_code == 200, response.text
+    assert response.json() == {"removed": 1, "kept": 0, "studied": 0}
+
+
+async def test_delete_list_with_cards(client: AsyncClient, auth_headers):
+    created = await _create_list(client, auth_headers)
+    card = await _create_card(client, auth_headers, list_ids=[created["id"]])
+
+    response = await client.post(
+        f"{API}/lists/{created['id']}/delete-with-cards/", headers=auth_headers
+    )
+    assert response.status_code == 200, response.text
+    assert response.json() == {"deleted_card_ids": [card["id"]]}
+
+
 # --------------------------------------------------------------------------
 # Картки
 # --------------------------------------------------------------------------
@@ -178,6 +200,25 @@ async def test_delete_card(client: AsyncClient, auth_headers):
 
     response = await client.get(f"{API}/cards/{created['id']}/", headers=auth_headers)
     assert response.status_code == 404
+
+
+async def test_delete_several_cards(client: AsyncClient, auth_headers):
+    created = await _create_card(client, auth_headers)
+
+    response = await client.post(
+        f"{API}/cards/delete/", json={"card_ids": [created["id"]]}, headers=auth_headers
+    )
+    assert response.status_code == 200, response.text
+    assert response.json() == {"deleted_card_ids": [created["id"]]}
+
+
+async def test_delete_several_cards_needs_at_least_one_id(
+    client: AsyncClient, auth_headers
+):
+    response = await client.post(
+        f"{API}/cards/delete/", json={"card_ids": []}, headers=auth_headers
+    )
+    assert response.status_code == 422, response.text
 
 
 # --------------------------------------------------------------------------
