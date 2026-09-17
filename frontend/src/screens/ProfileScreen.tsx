@@ -618,6 +618,7 @@ function AccountBlock({ timezone }: { timezone: string }) {
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
+  const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -675,8 +676,9 @@ function AccountBlock({ timezone }: { timezone: string }) {
             <label htmlFor="pwd-current">Поточний пароль</label>
             <input
               id="pwd-current"
-              type="password"
+              type={show ? "text" : "password"}
               autoComplete="current-password"
+              autoCapitalize="none"
               value={current}
               onChange={(event) => setCurrent(event.target.value)}
             />
@@ -685,12 +687,21 @@ function AccountBlock({ timezone }: { timezone: string }) {
             <label htmlFor="pwd-next">Новий пароль</label>
             <input
               id="pwd-next"
-              type="password"
+              type={show ? "text" : "password"}
               autoComplete="new-password"
+              autoCapitalize="none"
               value={next}
               onChange={(event) => setNext(event.target.value)}
             />
           </div>
+          {/* Один перемикач на обидва поля: звіряти старий і новий зручніше разом. */}
+          <button
+            className="btn-link auth-pw-toggle"
+            type="button"
+            onClick={() => setShow((shown) => !shown)}
+          >
+            {show ? "Сховати" : "Показати"}
+          </button>
 
           {error ? <div className="msg msg-error">{error}</div> : null}
 

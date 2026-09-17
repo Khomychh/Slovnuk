@@ -21,7 +21,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ApiError, OfflineError } from "../api/client";
 import { useOnline } from "../app/useOnline";
 import { Message, Screen } from "../ui/parts";
@@ -39,6 +39,7 @@ import {
   skippedPreview,
   takeFoundNothing,
   takeHeadline,
+  takeLabel,
   takeNote,
   takeSummary,
   updatedLine,
@@ -54,14 +55,19 @@ function cardSummary(card: SnapshotCard): string {
     .join(" · ");
 }
 
-function CardRow({ card }: { card: SnapshotCard }) {
+/**
+ * `allHave` — у вас уже є всі слова списку. Тоді позначка на кожному рядку
+ * повторювала б заголовок, і приглушений був би весь перелік.
+ */
+function CardRow({ card, allHave }: { card: SnapshotCard; allHave: boolean }) {
   const summary = cardSummary(card);
+  const have = card.already_have && !allHave;
   return (
-    <div className={card.already_have ? "sh-row sh-row-have" : "sh-row"}>
+    <div className={have ? "sh-row sh-row-have" : "sh-row"}>
       <div className="sh-word-line">
         <span className="sh-word">{card.word}</span>
         {card.forms.length > 0 ? <span className="v-tag">форми</span> : null}
-        {card.already_have ? <span className="sh-have">вже є</span> : null}
+        {have ? <span className="v-tag sh-have">вже є</span> : null}
       </div>
       {summary ? <div className="sh-tr">{summary}</div> : null}
     </div>
@@ -107,6 +113,7 @@ export default function PublicationScreen() {
   const params = useParams();
   const id = Number(params.id);
   const navigate = useNavigate();
+  const location = useLocation();
   const online = useOnline();
 
   const publication = usePublication(Number.isFinite(id) ? id : undefined);
@@ -144,8 +151,16 @@ export default function PublicationScreen() {
     return () => observer.disconnect();
   }, [cards.hasNextPage, cards.isFetchingNextPage, cards.fetchNextPage, cards]);
 
-  // Витрина власного кореня не має — це половина «Списків» (ADR-0021).
-  const back = () => navigate("/vocabulary/lists", { state: { half: "library" } });
+  /*
+   * Назад — справжній крок історії: перехід на «Списки» новим записом клав їх
+   * поверх публікації, і «назад» зі «Списків» вертав сюди ж. Половину
+   * «Бібліотека» відновлює сам запис «Списків». Без історії (пряме посилання)
+   * ведемо у витрину, яка власного кореня не має — це половина «Списків» (ADR-0021).
+   */
+  const back = () =>
+    location.key === "default"
+      ? navigate("/vocabulary/lists", { replace: true, state: { half: "library" } })
+      : navigate(-1);
 
   /* --- публікація недоступна ---------------------------------------------- */
 
@@ -242,11 +257,8 @@ export default function PublicationScreen() {
   const derived = derivedLine(summary.derived_from_title);
   /*
    * `new_cards > 0`, а не `cards_count > 0`: обіцянка кнопки в тому, що словник
-   * поповниться. Коли всі слова вже є — а так буває і в чужому списку, і у
-   * власній публікації, — натискання не додало б нічого, а для власної ще й
-   * упало б у 409. Кнопка, яка веде в тупик, гірша за погашену: перша обманює,
-   * друга каже правду. Причину вже сказав заголовок «Усі ці слова у вас уже є»,
-   * тож підписувати її вдруге не треба.
+   * поповниться. Коли всі слова вже є, натискання не додало б нічого (а для
+   * власної публікації впало б у 409) — тому кнопка гасне й підписом каже чому.
    */
   const canOpenTake = online && summary.new_cards > 0;
 
@@ -291,22 +303,12 @@ export default function PublicationScreen() {
             setTaking(true);
           }}
         >
-          Взяти список
+          {takeLabel(summary)}
         </button>
       }
     >
-      {/* Числа окремо від людей — два голоси, як на картці витрини (ADR-0022). */}
-      <div className="pub-figures pub-figures-page">
-        <span className="pub-figure">{words(summary.cards_count)}</span>
-        {summary.rating !== null ? (
-          <span className="pub-figure pub-rating">
-            <span className="pub-star">★</span>
-            {summary.rating.toFixed(1)}
-            <span className="pub-of">({summary.ratings_count})</span>
-          </span>
-        ) : null}
-        <span className="pub-figure">взяли {summary.takes_count}</span>
-      </div>
+      {/* Шапка як обкладинка: хто й коли, опис, а числа останніми — «12 слів»
+          підписує перелік, що стоїть одразу під ними. */}
       <div className="pub-by pub-by-page">
         {authorLine(summary.author)}
         <span className="pub-sep">·</span>
@@ -318,7 +320,20 @@ export default function PublicationScreen() {
         <p className="lib-desc-full">{summary.description}</p>
       ) : null}
 
-      <div className="sh-headline">{takeHeadline(summary)}</div>
+      <div className="pub-figures pub-figures-page">
+        <span className="pub-figure">{words(summary.cards_count)}</span>
+        {summary.rating !== null ? (
+          <span className="pub-figure pub-rating">
+            <span className="pub-star">★</span>
+            {summary.rating.toFixed(1)}
+            <span className="pub-of">({summary.ratings_count})</span>
+          </span>
+        ) : null}
+        {/* Нуль не пишемо, як і рейтинг без оцінок: порожнє місце каже те саме тихіше. */}
+        {summary.takes_count > 0 ? (
+          <span className="pub-figure">взяли {summary.takes_count}</span>
+        ) : null}
+      </div>
 
       {problem ? <Message kind="error">{problem}</Message> : null}
 
@@ -349,10 +364,17 @@ export default function PublicationScreen() {
         </>
       ) : null}
 
-      <div className="ed-label">Слова у списку</div>
-      {items.map((card, index) => (
-        <CardRow card={card} key={`${card.word}#${index}`} />
-      ))}
+      {items.length > 0 ? (
+        <div className="panel sh-panel">
+          {items.map((card, index) => (
+            <CardRow
+              card={card}
+              allHave={summary.new_cards === 0}
+              key={`${card.word}#${index}`}
+            />
+          ))}
+        </div>
+      ) : null}
       {cards.isPending ? <div className="hint">Завантаження…</div> : null}
       <div ref={sentinel} />
       {cards.isFetchingNextPage ? <div className="hint">Ще…</div> : null}

@@ -63,6 +63,19 @@ export function takeHeadline(publication: {
   return `Додасться ${publication.new_cards} із ${words(publication.cards_count)}`;
 }
 
+/**
+ * Підпис кнопки взяття — наслідок натискання замість окремого заголовка над
+ * списком. Коли додати нічого, неактивна кнопка каже чому.
+ */
+export function takeLabel(publication: {
+  cards_count: number;
+  new_cards: number;
+}): string {
+  if (publication.cards_count === 0) return "У списку немає слів";
+  if (publication.new_cards === 0) return "Усі слова вже є";
+  return `Взяти ${words(publication.new_cards)}`;
+}
+
 /** Скільки слів публікації в читача вже є. */
 export function alreadyHave(publication: {
   cards_count: number;

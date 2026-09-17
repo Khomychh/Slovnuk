@@ -49,7 +49,9 @@
    вертикалі, що й на екранах без нього. */
 .screen-head-main {
   display: flex;
-  align-items: center;
+  /* До першого рядка, а не до середини: довга назва публікації переноситься, і
+     шеврон відривався від її початку. */
+  align-items: flex-start;
   gap: 2px;
   min-width: 0;
 }
@@ -380,6 +382,28 @@ a.btn-quiet {
 .hint-center {
   text-align: center;
   margin-top: 14px;
+}
+
+/* Картка: один предмет — одна підкладка. Та сама, що в «Віддати» й на
+   витрині, тож екрани списків складаються з однакових цеглин. */
+.panel {
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  background: var(--sheet);
+  box-shadow: var(--lift);
+  padding: 2px 15px;
+}
+
+.panel + .panel {
+  margin-top: 12px;
+}
+
+/* Поле стоїть на сходинку від того, на чому лежить: на ґрунті — світліше,
+   у картці чи аркуші — темніше. Інакше воно зливається з підкладкою. */
+.panel input,
+.panel textarea,
+.sheet-page .ed-inline input {
+  background: var(--night);
 }
 
 /* --- смуга офлайну ------------------------------------------------------ */

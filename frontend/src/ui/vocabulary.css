@@ -417,8 +417,17 @@
   cursor: pointer;
 }
 
+/* Вибране — галочкою й вагою, не кольором: золото в застосунку належить
+   зіркам (оцінка й «нові слова сюди»). */
 .sheet-row-on {
-  color: var(--a3);
+  font-weight: 600;
+}
+
+/* Правий край рядка, коли там і число, і галочка. */
+.sheet-end {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
 }
 
 .sheet-count {
@@ -460,9 +469,7 @@
   color: var(--a3);
 }
 
-/* Позначка множинного вибору в аркуші списків. Кольору свого немає — читає
-   колір рядка (`--frost` чи, коли рядок увімкнено, `--a3` з `.sheet-row-on`),
-   тож не заводить третього значення насиченого кольору поряд із тими двома. */
+/* Позначка вибору. Кольору свого немає — читає колір рядка. */
 .sheet-check {
   font-size: var(--t-lead);
   min-width: 16px;
@@ -1361,17 +1368,17 @@ input.ed-word-input::placeholder {
   transform: scale(0.985);
 }
 
-/* Поле з кнопкою в один рядок — «Новий список» на екрані списків. */
+/* Поле в рядок. Вигляд — спільний для всіх полів (base.css); темніше воно лише
+   в картці чи аркуші, за правилом `.panel input`. */
 .ed-inline {
   display: flex;
   gap: 7px;
   align-items: center;
 }
 
-.ed-inline input {
-  background: var(--night);
-  border-radius: 11px;
-  padding: 11px 12px;
+/* В аркуші під полем одразу дія («Взяти») — без відступу вони злипались. */
+.sheet-page .ed-inline {
+  margin-bottom: 16px;
 }
 
 

@@ -20,8 +20,9 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ApiError } from "../api/client";
 import { useOnline } from "../app/useOnline";
-import { PencilIcon, PlusIcon, ShareIcon, TrashIcon } from "../ui/parts";
+import { PencilIcon, PlusIcon, SaveIcon, ShareIcon, TrashIcon } from "../ui/parts";
 import ConfirmSheet from "../ui/ConfirmSheet";
 import {
   useCreateList,
@@ -33,6 +34,14 @@ import {
 import { listFraction, listStateLine } from "./card";
 import { useSettings, useUpdateSettings } from "../study/queries";
 import { plural, words } from "../ui/plural";
+
+/** Сервер пише помилки англійською; назву, що вже зайнята, кажемо своїми словами. */
+function listProblem(problem: unknown, fallback: string): string {
+  if (problem instanceof ApiError && problem.code === "list_exists") {
+    return "Список із такою назвою вже є.";
+  }
+  return problem instanceof Error ? problem.message : fallback;
+}
 
 export default function MyLists() {
   const navigate = useNavigate();
@@ -48,6 +57,8 @@ export default function MyLists() {
 
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  /** Список, чия назва зараз стоїть полем у власному рядку. */
+  const [editing, setEditing] = useState<{ id: number; name: string } | null>(null);
   /** Який саме список питають видалити. Рядків багато — прапорця тут мало. */
   const [asking, setAsking] = useState<{
     id: number;
@@ -68,18 +79,30 @@ export default function MyLists() {
       await create.mutateAsync(name.trim());
       setName("");
     } catch (problem) {
-      setError(problem instanceof Error ? problem.message : "Не вдалось створити");
+      setError(listProblem(problem, "Не вдалось створити"));
     }
   };
 
-  const onRename = async (id: number, current: string) => {
-    const next = window.prompt("Нова назва списку", current);
-    if (!next || next.trim() === current) return;
+  const cancelRename = () => {
+    setEditing(null);
+    setError(null);
+  };
+
+  const saveRename = async (current: string) => {
+    // Поле під час запиту не гаситься (гасіння забирало фокус), тож повторний Enter відсікається тут.
+    if (!editing || rename.isPending) return;
+    const next = editing.name.trim();
+    if (!next || next === current) {
+      setEditing(null);
+      return;
+    }
     setError(null);
     try {
-      await rename.mutateAsync({ id, name: next.trim() });
+      await rename.mutateAsync({ id: editing.id, name: next });
+      setEditing(null);
     } catch (problem) {
-      setError(problem instanceof Error ? problem.message : "Не вдалось перейменувати");
+      // Поле лишається відкритим: назву, яку не прийняли, виправляють на місці.
+      setError(listProblem(problem, "Не вдалось перейменувати"));
     }
   };
 
@@ -104,102 +127,159 @@ export default function MyLists() {
 
   return (
     <>
-      <div className="ed-label">Новий список</div>
-      <div className="ed-inline">
-        <input
-          placeholder="назва"
-          value={name}
-          disabled={!online}
-          onChange={(event) => setName(event.target.value)}
-        />
-        <button
-          className="row-icon"
-          type="button"
-          aria-label="Додати список"
-          title="Додати список"
-          disabled={!online || !name.trim() || create.isPending}
-          onClick={add}
+      {error ? <div className="msg msg-error lists-msg">{error}</div> : null}
+
+      {/* Списки й поле нового — одна картка: це один предмет, «мої списки»,
+          і новий рядок народжується там само, де житиме. */}
+      <div className="panel lists-panel">
+        {items.map((list) => (
+          <div className="list-item" key={list.id}>
+            {editing?.id === list.id ? (
+              // Перейменування на місці: назва стає полем у тому ж рядку.
+              <form
+                className="list-row list-rename"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void saveRename(list.name);
+                }}
+              >
+                <input
+                  autoFocus
+                  aria-label={`Нова назва для «${list.name}»`}
+                  value={editing.name}
+                  disabled={!online}
+                  onFocus={(event) => event.currentTarget.select()}
+                  onChange={(event) =>
+                    setEditing({ id: list.id, name: event.target.value })
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") cancelRename();
+                  }}
+                />
+                <button
+                  className="row-icon row-icon-on"
+                  type="submit"
+                  aria-label="Зберегти назву"
+                  title="Зберегти"
+                  disabled={!online || !editing.name.trim() || rename.isPending}
+                >
+                  <SaveIcon />
+                </button>
+                <button
+                  className="row-icon row-icon-close"
+                  type="button"
+                  aria-label="Скасувати перейменування"
+                  title="Скасувати"
+                  onClick={cancelRename}
+                >
+                  ×
+                </button>
+              </form>
+            ) : (
+              <div className="list-row">
+                <div className="list-row-main">
+                  <div className="list-row-name">{list.name}</div>
+                  <div className="list-row-sub">
+                    {listStateLine(list, list.id === defaultListId)}
+                  </div>
+                </div>
+                <button
+                  className={
+                    list.id === defaultListId ? "row-icon list-star on" : "row-icon list-star"
+                  }
+                  type="button"
+                  disabled={!online}
+                  aria-label="Список за замовчуванням"
+                  title="Нові слова потраплятимуть сюди"
+                  onClick={() => setDefault(list.id)}
+                >
+                  ★
+                </button>
+                <button
+                  className="row-icon"
+                  type="button"
+                  disabled={!online}
+                  aria-label={`Віддати список «${list.name}»`}
+                  // Не «Спільне посилання»: за цією іконкою обидва способи віддати
+                  // список — посилання й Бібліотека, — і тепер вони на одному екрані.
+                  title="Віддати іншим"
+                  onClick={() => navigate(`/vocabulary/lists/${list.id}/share`)}
+                >
+                  <ShareIcon />
+                </button>
+                <button
+                  className="row-icon"
+                  type="button"
+                  disabled={!online}
+                  aria-label={`Перейменувати «${list.name}»`}
+                  title="Перейменувати"
+                  onClick={() => {
+                    setError(null);
+                    setEditing({ id: list.id, name: list.name });
+                  }}
+                >
+                  <PencilIcon />
+                </button>
+                <button
+                  className="row-icon row-icon-danger"
+                  type="button"
+                  disabled={!online}
+                  aria-label={`Видалити «${list.name}»`}
+                  title="Видалити"
+                  onClick={() =>
+                    setAsking({
+                      id: list.id,
+                      name: list.name,
+                      cardCount: list.card_count,
+                    })
+                  }
+                >
+                  <TrashIcon />
+                </button>
+              </div>
+            )}
+            {/* Ширина — частка словника. Порожній словник дає нуль, і смуга
+                лишається волосяною лінією, а не зникає разом із межею рядка. */}
+            <div
+              className="list-frac"
+              style={{ "--frac": `${listFraction(list.card_count, totalCards)}%` } as React.CSSProperties}
+            />
+          </div>
+        ))}
+
+        <form
+          className="lists-new"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void add();
+          }}
         >
-          <PlusIcon />
-        </button>
+          <input
+            placeholder="Новий список"
+            aria-label="Назва нового списку"
+            value={name}
+            disabled={!online}
+            onChange={(event) => setName(event.target.value)}
+          />
+          <button
+            className="row-icon"
+            type="submit"
+            aria-label="Додати список"
+            title="Додати список"
+            disabled={!online || !name.trim() || create.isPending}
+          >
+            <PlusIcon />
+          </button>
+        </form>
       </div>
 
-      {error ? <div className="msg msg-error">{error}</div> : null}
-
-      <div className="ed-label">Мої списки</div>
-      {items.map((list) => (
-        <div className="list-item" key={list.id}>
-          <div className="list-row">
-            <div className="list-row-main">
-              <div className="list-row-name">{list.name}</div>
-              <div className="list-row-sub">
-                {listStateLine(list, list.id === defaultListId)}
-              </div>
-            </div>
-            <button
-              className={
-                list.id === defaultListId ? "row-icon list-star on" : "row-icon list-star"
-              }
-              type="button"
-              disabled={!online}
-              aria-label="Список за замовчуванням"
-              title="Нові слова потраплятимуть сюди"
-              onClick={() => setDefault(list.id)}
-            >
-              ★
-            </button>
-            <button
-              className="row-icon"
-              type="button"
-              disabled={!online}
-              aria-label={`Віддати список «${list.name}»`}
-              // Не «Спільне посилання»: за цією іконкою обидва способи віддати
-              // список — посилання й Бібліотека, — і тепер вони на одному екрані.
-              title="Віддати іншим"
-              onClick={() => navigate(`/vocabulary/lists/${list.id}/share`)}
-            >
-              <ShareIcon />
-            </button>
-            <button
-              className="row-icon"
-              type="button"
-              disabled={!online}
-              aria-label={`Перейменувати «${list.name}»`}
-              title="Перейменувати"
-              onClick={() => onRename(list.id, list.name)}
-            >
-              <PencilIcon />
-            </button>
-            <button
-              className="row-icon row-icon-danger"
-              type="button"
-              disabled={!online}
-              aria-label={`Видалити «${list.name}»`}
-              title="Видалити"
-              onClick={() =>
-                setAsking({
-                  id: list.id,
-                  name: list.name,
-                  cardCount: list.card_count,
-                })
-              }
-            >
-              <TrashIcon />
-            </button>
-          </div>
-          {/* Ширина — частка словника. Порожній словник дає нуль, і смуга
-              лишається волосяною лінією, а не зникає разом із межею рядка. */}
-          <div
-            className="list-frac"
-            style={{ "--frac": `${listFraction(list.card_count, totalCards)}%` } as React.CSSProperties}
-          />
-        </div>
-      ))}
-
+      {/* Поза карткою й без дій: це не список, а слова, що не лежать ні в якому. */}
       {lists.data && lists.data.unlisted.card_count > 0 ? (
-        <div className="hint">
-          Без списку: {words(lists.data.unlisted.card_count)}. Це не список — його не
-          можна перейменувати чи видалити.
+        <div className="lists-unlisted">
+          <span>Без списку</span>
+          <span className="list-row-sub">
+            {words(lists.data.unlisted.card_count)}
+          </span>
         </div>
       ) : null}
 

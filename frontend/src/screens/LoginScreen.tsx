@@ -20,6 +20,7 @@ export default function LoginScreen() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [show, setShow] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -86,12 +87,20 @@ export default function LoginScreen() {
         <Field
           label="Пароль"
           id="password"
-          type="password"
+          type={show ? "text" : "password"}
           autoComplete="current-password"
+          autoCapitalize="none"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
+        <button
+          className="btn-link auth-pw-toggle"
+          type="button"
+          onClick={() => setShow((current) => !current)}
+        >
+          {show ? "Сховати" : "Показати"}
+        </button>
         <button className="btn" type="submit" disabled={busy || !email || !password}>
           {busy ? "Заходимо…" : "Увійти"}
         </button>

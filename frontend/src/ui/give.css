@@ -208,6 +208,32 @@
   margin-top: 16px;
 }
 
+/* Картка з полями й станом, а не з рядками: відступ рівний з усіх боків. */
+.panel-pad {
+  padding: 15px;
+}
+
+.panel-label {
+  display: block;
+  margin: 18px 0 8px;
+}
+
+.panel-label:first-child {
+  margin-top: 0;
+}
+
+/* У картці попередження вже має підкладку — лишається тільки золота риска. */
+.panel > .state-stale {
+  background: none;
+  border-radius: 0;
+  padding: 2px 0 2px 12px;
+  margin-top: 14px;
+}
+
+.panel > .state-update {
+  margin-top: 14px;
+}
+
 /* Опис — багаторядкове поле, але не на пів екрана: три рядки вистачає на те,
    що читають на витрині двома. */
 .lib-desc-input {

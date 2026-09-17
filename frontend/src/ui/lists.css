@@ -34,12 +34,14 @@
    інакше вміст проїжджав би у смугах відступу обабіч перемикача. */
 .halves {
   position: sticky;
-  top: 0;
+  /* Липкість рахується від краю вмісту, тобто під верхнім полем `.screen`
+     (24px). Без від'ємного зсуву в це поле просвічував прокручений вміст. */
+  top: -24px;
   z-index: 2;
   display: flex;
   gap: 8px;
-  margin: 18px calc(-1 * var(--pad)) 4px;
-  padding: 6px var(--pad) 0;
+  margin: 6px calc(-1 * var(--pad)) 0;
+  padding: 18px var(--pad) 0;
   background: var(--night);
 }
 
@@ -83,10 +85,84 @@
   color: var(--haze-2);
 }
 
-/* Пошук іде першим у половині «Бібліотека»: власного відступу в поля немає, і
-   тут його треба задати — інакше воно липне просто до перемикача. */
-.halves + .v-search {
+/* Перше під перемикачем — однаковий відступ в обох половинах. */
+.halves + .v-search,
+.halves + .panel,
+.halves + .lists-msg {
   margin-top: 16px;
+}
+
+.lists-msg + .panel {
+  margin-top: 0;
+}
+
+/* --- «Мої» ---------------------------------------------------------------- */
+
+/* Останній рядок картки — поле нового списку. Без рамки: воно рядок серед
+   рядків, а не форма під ними. Фокус видно лінією по низу. */
+.lists-new {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 -15px;
+  padding: 0 11px 0 15px;
+  border-radius: 0 0 var(--r-sm) var(--r-sm);
+}
+
+.lists-new:focus-within {
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--a1) 55%, transparent);
+}
+
+.panel .lists-new input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  box-shadow: none;
+  padding: 14px 0;
+}
+
+.lists-new:focus-within .row-icon:not(:disabled) {
+  color: var(--frost);
+}
+
+/* Перейменування на місці. Поле без рамки, як «Новий список»; що рядок зараз
+   редагується, каже лінія під назвою. */
+.panel .list-rename input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--a1) 55%, transparent);
+  padding: 9px 0;
+  font-weight: 500;
+}
+
+/* Фокус у рядкових полях показує лінія, а не рамка браузера. */
+.panel .list-rename input:focus,
+.panel .lists-new input:focus {
+  outline: none;
+}
+
+.row-icon-on:not(:disabled) {
+  color: var(--frost);
+}
+
+.row-icon-close {
+  font-family: var(--sans);
+  font-size: 26px;
+  line-height: 1;
+}
+
+.lists-unlisted {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px 0;
+  font-size: var(--t-body);
+  color: var(--haze);
 }
 
 /* --- картка публікації --------------------------------------------------- */
@@ -226,22 +302,27 @@
   margin-top: 6px;
 }
 
-/* На сторінці публікації ті самі два голоси стоять під заголовком, тож дихають
-   вільніше: тут вони шапка екрана, а не низ картки. */
-.pub-figures-page {
+/* Шапка сторінки публікації: підпис під назвою, опис, числа останніми — одразу
+   над переліком, який вони підписують. */
+.pub-by-page {
   font-size: var(--t-sub);
-  margin-top: 16px;
+  margin-top: 10px;
 }
 
-.pub-by-page {
-  margin-top: 4px;
+.pub-figures-page {
+  font-size: var(--t-sub);
+  margin: 14px 0 12px;
+}
+
+.pub-figures-page + .ed-label {
+  margin-top: 12px;
 }
 
 .lib-desc-full {
   color: var(--haze);
   font-size: var(--t-body);
   line-height: 1.55;
-  margin: 14px 0 0;
+  margin: 12px 0 0;
   overflow-wrap: anywhere;
 }
 
@@ -255,6 +336,10 @@
 
 /* Полотно 40×40 — палець, а не символ: зірка сама 22px, решта поле влучання.
    Менше 40px на телефоні означає промах у сусідню оцінку. */
+.lib-stars + .panel {
+  margin-top: 16px;
+}
+
 .lib-star {
   width: 40px;
   height: 40px;
